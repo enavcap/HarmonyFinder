@@ -134,4 +134,4 @@ python -m pytest -q multicorpus/tests
 
 ---
 
-<p align="center"><sub>Proyecto de Ezequiel · Conservatorio Profesional de Música de Baza</sub></p>
+<p align="center"><sub>Ezequiel Navarrete</sub></p>
