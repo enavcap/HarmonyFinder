@@ -1277,6 +1277,8 @@ async function mostrar(h){
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML='<div class="vacio">No encuentro esos compases en la partitura.</div>';pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
+      // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
+      cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       if(cargado.obra!==o.m){cargado.obra=o.m;cargado.metro=metro(t.getMEI())}
       svg=cont.querySelector('svg');
@@ -1380,13 +1382,18 @@ function anotar(svg,acordes,compasDom,primero,reducir){
     return sig.x;
   };
   // posición x de cada acorde (un compás puede estar partido en varios segmentos dibujados)
-  const puestos=[];
+  const puestos=[], vistas=new Map();
   for(const c of acordes){
     const segs=compasDom.map((n,i)=>n===c.compas?i:-1).filter(i=>i>=0); if(!segs.length) continue;
+    // dos compases con el mismo número (casillas de repetición, compases repetidos en la fuente):
+    // la segunda aparición de un mismo compás y parte va al segundo compás dibujado con ese número
+    const clave=c.compas+'|'+c.parte, occ=vistas.get(clave)||0; vistas.set(clave,occ+1);
     let q=(c.parte-1)*mt.beat;
     if(c.compas===primero&&segs.length===1&&dur[segs[0]]<mt.full-1e-6) q-=mt.full-dur[segs[0]];
     q=Math.max(0,q);
-    let k=0; while(k<segs.length-1&&q>=(dur[segs[k]]||mt.full)-1e-6){q-=dur[segs[k]]||mt.full;k++}
+    let k=0;
+    if(occ>0&&segs.length>1){let acum=0;for(let j=0;j<segs.length;j++){if(acum>=occ*mt.full-1e-6){k=j;break}acum+=dur[segs[j]]||mt.full;k=Math.min(j+1,segs.length-1)}}
+    while(k<segs.length-1&&q>=(dur[segs[k]]||mt.full)-1e-6){q-=dur[segs[k]]||mt.full;k++}
     puestos.push({c,x:xDe(segs[k],q),p:parseRN(c.rn)});
   }
   const sistema=svg.querySelector('g.system').getBBox(), abajo=sistema.y+sistema.height;
