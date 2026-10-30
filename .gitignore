@@ -1,0 +1,7 @@
+# datos de trabajo regenerables (fuentes clonadas, caché, catálogo e índice)
+datos/
+indice.sqlite
+recortes/
+__pycache__/
+*.pyc
+.pytest_cache/
