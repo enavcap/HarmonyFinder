@@ -152,6 +152,8 @@ button.btn:disabled{opacity:.45;cursor:default}
 #vista .herr a{color:var(--accent)}
 #partitura{padding:10px 12px 14px;overflow-x:auto;background:#fff;color:#000}
 #partitura svg{max-width:100%;height:auto;display:block}
+#partitura.desliza{position:relative}
+#partitura.desliza::before{content:'desliza para ver más →';position:sticky;left:0;display:block;font:12px var(--body);color:#5d6670;margin:0 0 4px}
 #partitura .vacio{font-family:var(--body);color:#5d6670;padding:40px 16px;text-align:center;font-size:14px}
 :root[data-theme="dark"] #partitura{background:#f3f1ec}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #partitura{background:#f3f1ec}}
@@ -1283,6 +1285,13 @@ async function mostrar(h){
       anchoPag=Math.min(6000,anchoPag/Math.max(0.4,r));   // ensanchar los compases y repetir
     }
     const medidas=[...svg.querySelectorAll('g.measure')];
+    // móvil: partitura a tamaño legible y desplazable en horizontal, en vez de encogerla al ancho de la pantalla
+    if(cont.clientWidth<640){
+      const pentas=svg.querySelector('g.measure')?.querySelectorAll('g.staff').length||1;
+      const ancho=Math.max(cont.clientWidth-24,Math.round(medidas.length*(150+20*Math.min(pentas,4))));
+      svg.style.maxWidth='none'; svg.style.width=ancho+'px'; svg.style.height='auto';
+      cont.classList.toggle('desliza',ancho>cont.clientWidth);
+    } else {svg.style.width='';svg.style.maxWidth='';cont.classList.remove('desliza')}
     if(!h.frag){
       const m=medidas[pos.compas.indexOf(h.compas)];
       if(m){const bb=m.getBBox(),r=document.createElementNS(NS,'rect');r.setAttribute('class','resalte');
