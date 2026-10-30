@@ -1136,7 +1136,7 @@ async function xmlDe(o){
   let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
   x=x.replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(/reconstruida/.test(o.src.partitura||'')) x=ordenarVoces(x);
+  if(/reconstruida/.test(o.src.partitura||'')) x=ordenarVoces(x,o.src.inst);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -1163,7 +1163,7 @@ function alinearAnacrusa(x){
 // altura (la más aguda, plica arriba; la más grave, abajo), los silencios de la voz aguda se colocan arriba y se
 // ocultan los de las demás (las tablas del DCML no contienen silencios; esos los añadió la reconstrucción).
 const PASO={C:0,D:1,E:2,F:3,G:4,A:5,B:6};
-const ARRIBA={G2:['F',5],F4:['A',3],C3:['G',4],C4:['E',4],C1:['C',5],G1:['A',5],F3:['C',4]};  // línea superior según la clave
+const ARRIBA={G2:['F',5],'G2-1':['F',4],F4:['A',3],C3:['G',4],C4:['E',4],C1:['C',5],G1:['A',5],F3:['C',4]};  // línea superior según la clave
 // En un pentagrama con 3+ voces, la voz cuyas notas coinciden todas (inicio y duración) con las de otra
 // se convierte en acordes de esa otra; su hueco temporal se mantiene como <forward> (espacio invisible).
 function fusionarVocesIguales(doc,m,hijo){
@@ -1207,15 +1207,97 @@ function fusionarVocesIguales(doc,m,hijo){
     }
   }
 }
-function ordenarVoces(xml){
+// Claves de las partituras reconstruidas (DCML): la reconstrucción pone una sola clave por pentagrama para toda la
+// pieza. Aquí se elige, compás a compás, la clave que pediría un copista: las propias del instrumento (violonchelo:
+// fa, tenor y sol; viola: do en 3.ª y sol; tenor vocal: sol octava baja; teclado: sol y fa…), evitando pasajes con
+// 3 o más líneas adicionales, sin cambios de un compás y cambiando solo en la barra de compás (programación dinámica).
+const CLAVES={G2:{s:'G',l:2,c:34},'G2-1':{s:'G',l:2,o:-1,c:27},F4:{s:'F',l:4,c:22},C3:{s:'C',l:3,c:28},C4:{s:'C',l:4,c:26}};
+function clavesDeInstrumento(nombre){
+  const t=(nombre||'').toLowerCase();
+  if(/cello|violoncell|gamba/.test(t)) return {c:['F4','C4','G2'],d:'F4'};
+  if(/viola\b|bratsche/.test(t)) return {c:['C3','G2'],d:'C3'};
+  if(/violin|flute|flöte|oboe|recorder|clarinet|trumpet|cornet/.test(t)) return {c:['G2'],d:'G2'};
+  if(/continuo|bassoon|fagott/.test(t)) return {c:['F4','C4'],d:'F4'};
+  // voces: una clave para toda la pieza (la de su tesitura); se cambia solo si la parte se sale mucho de ella
+  if(/tenor/.test(t)) return {c:['G2-1','F4','G2'],d:'G2-1',voz:1};
+  if(/bass|basso|bajo/.test(t)) return {c:['F4','G2-1'],d:'F4',voz:1};
+  if(/soprano|alto|mezzo|contralto|canto/.test(t)) return {c:['G2','G2-1'],d:'G2',voz:1};
+  if(/voice|voce|stimme/.test(t)) return {c:['G2','G2-1','F4'],d:null,voz:1};
+  return {c:['G2','F4'],d:null};                     // teclado o desconocido: gran pentagrama sol / fa
+}
+function asignarClaves(doc,inst,hijo){
+  const partes=[...doc.getElementsByTagName('part')];
+  const lineas=(pos,clave)=>{const d=Math.abs(pos-CLAVES[clave].c);return d>=6?Math.floor((d-4)/2):0};
+  const coste=L=>L<=2?0.15*L:0.3+1.5*(L-2);
+  // pentagramas: una parte puede tener varios (gran pentagrama del teclado, <staves>2)
+  const pent=[];
+  for(const parte of partes){
+    const compases=[...parte.children].filter(c=>c.tagName==='measure'); if(!compases.length) continue;
+    const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
+    for(let s=1;s<=n;s++) pent.push({parte,compases,s,n,alt:compases.map(()=>[])});
+  }
+  for(const P of pent){
+    P.compases.forEach((m,i)=>{for(const no of m.children){if(no.tagName!=='note')continue;
+      if(P.n>1&&+(hijo(no,'staff')?.textContent||1)!==P.s) continue;
+      const pi=hijo(no,'pitch'); if(pi) P.alt[i].push((PASO[hijo(pi,'step')?.textContent]??0)+7*(+(hijo(pi,'octave')?.textContent||4)))}});
+  }
+  const nombres=inst.length===pent.length?inst:[];
+  pent.forEach((P,g)=>{
+    const todas=P.alt.flat(); if(!todas.length){P.elegida=null;return}
+    const nom=nombres[g]; let {c:cand,d:def,voz}=clavesDeInstrumento(nom);
+    const total=k=>todas.reduce((s,q)=>s+coste(lineas(q,k)),0);
+    if(!def){
+      // gran pentagrama: el de arriba en sol y el de abajo en fa
+      const hermanos=P.n===2?2:nombres.length?nombres.filter(x=>x===nom).length:0;
+      const arriba=P.n===2?P.s===1:nombres.indexOf(nom)===g;
+      if(!voz&&hermanos===2) def=arriba?'G2':'F4';
+      else def=cand.reduce((a,b)=>total(b)<total(a)?b:a);
+    }
+    if(voz){const mejor=cand.reduce((a,b)=>total(b)<total(a)?b:a); if(total(mejor)<total(def)*0.5-2) def=mejor}
+    const CAMBIO=voz?10:6, SESGO=voz?1.5:0.6;
+    const loc=P.alt.map(ps=>cand.map(k=>(k===def?0:SESGO)+ps.reduce((s,q)=>s+coste(lineas(q,k)),0)));
+    let prev=loc[0].slice(); const atras=[];
+    for(let i=1;i<loc.length;i++){
+      const de=[], act=cand.map((k,j)=>{let mejor=Infinity,arg=0;cand.forEach((k2,j2)=>{const v=prev[j2]+(j2===j?0:CAMBIO);if(v<mejor){mejor=v;arg=j2}});de.push(arg);return mejor+loc[i][j]});
+      atras.push(de); prev=act;
+    }
+    let j=prev.indexOf(Math.min(...prev)); P.elegida=new Array(loc.length);
+    for(let i=loc.length-1;i>=0;i--){P.elegida[i]=cand[j]; if(i>0) j=atras[i-1][j]}
+  });
+  // se reescriben las claves (solo de los pentagramas con notas)
+  for(const P of pent){
+    if(!P.elegida) continue;
+    for(const cl of [...P.parte.getElementsByTagName('clef')]) if(P.n===1||+(cl.getAttribute('number')||1)===P.s) cl.remove();
+  }
+  for(const P of pent){
+    if(!P.elegida) continue;
+    P.elegida.forEach((k,i)=>{
+      if(i>0&&k===P.elegida[i-1]) return;
+      const m=P.compases[i];
+      let at=[...m.children].find(c=>c.tagName==='attributes');
+      const primero=[...m.children].find(c=>['note','backup','forward'].includes(c.tagName));
+      if(at&&primero&&(at.compareDocumentPosition(primero)&Node.DOCUMENT_POSITION_PRECEDING)) at=null;
+      if(!at){at=doc.createElement('attributes'); primero?m.insertBefore(at,primero):m.append(at)}
+      const cl=doc.createElement('clef'), sg=doc.createElement('sign'), ln=doc.createElement('line'), K=CLAVES[k];
+      if(P.n>1) cl.setAttribute('number',String(P.s));
+      sg.textContent=K.s; ln.textContent=String(K.l); cl.append(sg,ln);
+      if(K.o){const oc=doc.createElement('clef-octave-change'); oc.textContent=String(K.o); cl.append(oc)}
+      // orden de MusicXML: las claves van tras divisions/key/time/staves…, por número de pentagrama
+      const tras=[...at.children].find(c=>['staff-details','transpose','directive','measure-style'].includes(c.tagName)||(c.tagName==='clef'&&+(c.getAttribute('number')||1)>P.s));
+      tras?at.insertBefore(cl,tras):at.append(cl);
+    });
+  }
+}
+function ordenarVoces(xml,inst){
   let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
   if(doc.querySelector('parsererror')) return xml;
   const hijo=(n,t)=>[...n.children].find(c=>c.tagName===t);
+  try{asignarClaves(doc,inst||[],hijo)}catch(e){console.warn('claves',e)}
   const ANTES=['notehead','notehead-text','staff','beam','notations','lyric','play','listen'];
   for(const parte of doc.getElementsByTagName('part')){
     const claves={};
     for(const m of [...parte.children].filter(c=>c.tagName==='measure')){
-      for(const cl of m.getElementsByTagName('clef')){const nn=cl.getAttribute('number')||'1';claves[nn]=(hijo(cl,'sign')?.textContent||'G')+(hijo(cl,'line')?.textContent||'2')}
+      for(const cl of m.getElementsByTagName('clef')){const nn=cl.getAttribute('number')||'1',oc=+(hijo(cl,'clef-octave-change')?.textContent||0);claves[nn]=(hijo(cl,'sign')?.textContent||'G')+(hijo(cl,'line')?.textContent||'2')+(oc?String(oc):'')}
       fusionarVocesIguales(doc,m,hijo);
       const porPent=new Map();
       for(const n of [...m.children].filter(c=>c.tagName==='note')){
