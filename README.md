@@ -1,4 +1,5 @@
-<h1 align="center">Buscador armónico</h1>
+<h1 align="center">HarmoFind</h1>
+<p align="center"><i>Buscador armónico</i></p>
 
 <p align="center">
   <b>Ejemplos reales de procedimientos armónicos, con su compás exacto y la partitura cifrada.</b><br>
