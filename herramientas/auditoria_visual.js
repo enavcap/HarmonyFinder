@@ -34,9 +34,10 @@ for(const m of muestra){
     const g=svg.querySelector('g.cifrados');
     const romanos=[...g.children].filter(x=>x.tagName==='g');
     // solapes en la fila del romano
-    const cajas=romanos.map(x=>x.getBoundingClientRect()).map(bb=>({x0:bb.left,x1:bb.right,y:bb.top})).sort((a,b)=>a.x0-b.x0);
+    const cajas=romanos.map(x=>x.getBoundingClientRect()).map(bb=>({x0:bb.left,x1:bb.right,y:bb.top,y1:bb.bottom})).sort((a,b)=>a.x0-b.x0);
     const ref=romanos[0]?romanos[0].getBoundingClientRect().height:1;
-    let solapes=0; for(let i=1;i<cajas.length;i++){ if(cajas[i].x0<cajas[i-1].x1-ref*0.05) solapes++ }
+    // solo cuentan cajas en la misma altura (el pivote de una modulación va en dos líneas, una encima de otra)
+    let solapes=0; for(let i=1;i<cajas.length;i++){ for(let j=i-1;j>=0&&j>=i-3;j--){ const A=cajas[j],B=cajas[i]; if(B.x0<A.x1-ref*0.05&&Math.min(A.y1,B.y1)-Math.max(A.y,B.y)>ref*0.3){solapes++;break} } }
     // fila funcional (textos con text-anchor middle y la y mayor)
     const nums=[...svg.querySelectorAll('g.mNum')].map(x=>x.textContent.trim()).filter(t=>!/^\d+$/.test(t));
     const medidas=svg.querySelectorAll('g.measure').length;

@@ -49,6 +49,18 @@ def alterado(a):
     if a["secundaria"] or prestado(a): return False
     return (a["alteracion"] or 0) != 0 or a["cifrado"].startswith(("N", "It", "Fr", "Ger", "Sw"))
 
+def instrumentos(r):
+    """Instrumento de cada pentagrama según los metadatos del DCML (para elegir las claves al dibujar)."""
+    try:
+        md = json.loads(r["metadatos_originales"] or "{}")
+    except ValueError:
+        return []
+    inst = [md[f"staff_{i}_instrument"] for i in range(1, 12) if md.get(f"staff_{i}_instrument")]
+    # las suites para violonchelo de Bach vienen etiquetadas como «Piano» (valor por defecto de MuseScore)
+    if r["subcorpus"] == "bach_solo" and inst == ["Piano"] and r["otit"].startswith("Suite No."):
+        inst = ["Violoncello"]
+    return inst
+
 def main(argv=None):
     solo_datos = "--solo-datos" in (argv or sys.argv[1:])
     con = conectar()
@@ -82,7 +94,8 @@ def main(argv=None):
             "f": r["fuente"], "col": f'{NOMBRE_FUENTE[r["fuente"]]} · {r["subcorpus"]}', "pq": pq,
             "src": {"archivo": r["archivo"], "url": r["url"], "version": (r["version"] or "")[:12], "licencia": r["licencia"],
                     "autores": r["autores"], "ref": r["referencia"], "origen": r["origen_declarado"],
-                    "anot": r["version_anotacion"], "partitura": r["partitura_origen"], "clave": r["id"]},
+                    "anot": r["version_anotacion"], "partitura": r["partitura_origen"], "clave": r["id"],
+                    **({"inst": instrumentos(r)} if instrumentos(r) else {})},
         })
     print(f"{len(entradas)} análisis · {len(ids_mov)} movimientos · {len(ids_obra)} obras con partitura")
     (WEB / "data" / "hits").mkdir(parents=True, exist_ok=True)

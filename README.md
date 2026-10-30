@@ -86,6 +86,7 @@ Las partituras se dibujan en el navegador con [Verovio](https://www.verovio.org)
 - **Partituras**:
   - las de When in Rome vienen de OpenScore y music21;
   - las del DCML se reconstruyen desde sus tablas de notas (sin dinámicas ni articulaciones).
+  - en las reconstruidas, las claves se eligen como lo haría un copista: las propias de cada instrumento (violonchelo en fa, tenor o sol; viola en do; tenor vocal en sol octava baja; teclado en sol y fa), con cambios de clave en la barra de compás para evitar pasajes con tres o más líneas adicionales.
 
 ## Estructura
 
