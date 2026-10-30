@@ -1384,6 +1384,33 @@ function grabarRomano(g,fig,x0,y,f){
   if(p.sec.length){const t=texto(g,'/'+p.sec.join('/'),x,y,f);x+=ancho(t)}
   return x-x0;
 }
+// ---- lectura de un acorde en otra tonalidad (para el acorde pivote de una modulación) ----
+const PC_LETRA={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function pcTono(t){const m=String(t).match(/^([A-Ga-g])([#-]*)$/);if(!m)return null;let pc=PC_LETRA[m[1].toUpperCase()];for(const ch of m[2])pc+=ch==='#'?1:-1;return (pc+12)%12}
+const ESC_MAY=[0,2,4,5,7,9,11], ESC_MEN=[0,2,3,5,7,8,10];
+const DIAT={may:[['I',0,'M'],['ii',2,'m'],['iii',4,'m'],['IV',5,'M'],['V',7,'M'],['vi',9,'m'],['vii',11,'o']],
+  men:[['i',0,'m'],['ii',2,'o'],['III',3,'M'],['iv',5,'m'],['v',7,'m'],['V',7,'M'],['VI',8,'M'],['VII',10,'M'],['vii',11,'o']]};
+function reinterpretar(rn,tonoNuevo,tonoViejo){
+  const p=parseRN(rn); if(!p||p.sec.length||!/^[ivIV]+$/.test(p.num)) return null;
+  const t0=pcTono(tonoNuevo), t1=pcTono(tonoViejo); if(t0==null||t1==null) return null;
+  const menorN=tonoNuevo[0]===tonoNuevo[0].toLowerCase(), menorV=tonoViejo[0]===tonoViejo[0].toLowerCase();
+  const g=ROM[p.num.toLowerCase()]; if(!g) return null;
+  const may=p.num===p.num.toUpperCase();
+  const cal=p.cal==='o'||p.cal==='ø'||p.cal==='%'?'o':p.cal==='+'?'+':(may?'M':'m');
+  let int=(menorN?ESC_MEN:ESC_MAY)[g-1];
+  if(menorN&&!p.acc&&((g===7&&cal==='o')||(g===6&&cal==='o'))) int+=1;          // vii°/vi° en menor: grado elevado
+  if(p.acc==='#') int+=1; else if(p.acc==='b'||p.acc==='-') int-=1;
+  const raiz=(t0+int)%12, escN=menorN?ESC_MEN:ESC_MAY, escV=menorV?ESC_MEN:ESC_MAY, conSeptima=esSeptima(p);
+  // séptima del acorde (diatónica en la tonalidad nueva; en menor, la natural: V⁷ y vii°⁷ quedan bien)
+  const sept=conSeptima?(t0+escN[(g-1+6)%7]+(p.acc==='#'?1:p.acc==='b'||p.acc==='-'?-1:0))%12:null;
+  for(const [num,iv,q] of DIAT[menorV?'men':'may']){
+    if((t1+iv)%12!==raiz||q!==cal) continue;
+    if(conSeptima){const d=['i','ii','iii','iv','v','vi','vii'].indexOf(num.toLowerCase()); if((t1+escV[(d+6)%7])%12!==sept) continue}
+    const marca=q==='o'?(p.cal==='ø'||p.cal==='%'?'ø':'o'):q==='+'?'+':'';
+    return num+marca+(p.dig||'');
+  }
+  return null;
+}
 function anotar(svg,acordes,compasDom,primero,reducir){
   const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
   const pm=svg.querySelector('g.page-margin'), inner=svg.querySelector('svg.definition-scale'); if(!pm||!inner) return 1;
@@ -1436,10 +1463,13 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   const sistema=svg.querySelector('g.system').getBBox(), abajo=sistema.y+sistema.height;
   const g=document.createElementNS(NS,'g'); g.setAttribute('class','cifrados'); pm.append(g);
   const etiquetaTono=t=>{const e=tonoEs(t);return (t[0]===t[0].toUpperCase()?e[0].toUpperCase()+e.slice(1):e)+':'};
+  // acorde pivote: en cada cambio de tonalidad, lectura del acorde en la tonalidad de partida (si es diatónico allí)
+  const pivotes=puestos.map((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono?reinterpretar(z.c.rn,z.c.tono,puestos[i-1].c.tono):null);
   function dibujar(f){
     g.innerHTML='';
-    const hayCambios=puestos.some((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono);
-    let y=abajo+f*1.4+(hayCambios?f*0.95:0); const filas={}, anchos=[];
+    const hayCambios=puestos.some((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono), hayPivote=v.rom&&pivotes.some(Boolean);
+    let y=abajo+f*1.4+(hayCambios?f*0.95:0)+(hayPivote?f*1.3:0); const filas={}, anchos=[];
+    let finEtiqueta=-Infinity;
     if(v.rom){filas.rom=y;y+=f*1.6}
     if(v.int){filas.int=y-f*0.2;y+=f*1.85}
     if(v.fun){filas.fun=y}
@@ -1456,9 +1486,23 @@ function anotar(svg,acordes,compasDom,primero,reducir){
       if(filas.fun!=null){
         const t=texto(g,cifFunc(p,c.tono),x,filas.fun,f*0.95,{'text-anchor':'middle'}); w=Math.max(w,ancho(t));
       }
+      const piv=v.rom?pivotes[n]:null;
+      if(piv&&filas.rom!=null){
+        // dos líneas: arriba la función en la tonalidad de partida, abajo en la nueva, unidas por un corchete
+        const gp=document.createElementNS(NS,'g'); g.append(gp);
+        const wp=grabarRomano(gp,piv,0,0,f); gp.setAttribute('transform',`translate(${x-wp/2},${filas.rom-f*1.3})`);
+        const xb=x-Math.max(w,wp)/2-f*0.25, br=document.createElementNS(NS,'path');
+        br.setAttribute('d',`M${xb+f*0.18},${filas.rom-f*2.05} h${-f*0.18} V${filas.rom+f*0.3} h${f*0.18}`);
+        br.setAttribute('fill','none'); br.setAttribute('stroke','#000'); br.setAttribute('stroke-width',f*0.045); g.append(br);
+        w=Math.max(w,wp);
+      }
       if(cambia&&filaT!=null){
         if(n===0) texto(g,etiquetaTono(c.tono),x-w/2-f*0.3,filaT,f*0.8,{'text-anchor':'end','font-style':'italic'});
-        else texto(g,etiquetaTono(c.tono),x-w/2,filaT-f*1.05,f*0.72,{'font-style':'italic'});
+        else{
+          // la etiqueta de la tonalidad nueva va encima (por encima del pivote si lo hay) y nunca pisa a la anterior
+          const yE=filaT-(piv?f*2.45:f*1.05), xE=Math.max(x-w/2,finEtiqueta+f*0.4);
+          const t=texto(g,etiquetaTono(c.tono),xE,yE,f*0.72,{'font-style':'italic'}); finEtiqueta=xE+ancho(t);
+        }
       }
       anchos.push({x,w});
     }
