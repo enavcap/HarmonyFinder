@@ -7,7 +7,8 @@ web/data/obras.json        una entrada por ANÁLISIS (con su movimiento y su obr
 web/data/meta.json         conceptos (con tipo y criterio), sinónimos, fuentes y licencias
 web/data/hits/<c>.json     coincidencias por concepto: [análisis, compás, parte, tono, etiqueta, ini, fin]
 web/data/compases.json     rasgos por compás (búsqueda por tipo de acorde)
-web/data/acordes/<n>.json  acordes por análisis (progresiones, contexto, comparador, cifrados)
+web/data/acordes/<n>.json  acordes por análisis (progresiones, contexto, comparador, cifrados);
+                           un 7.º campo 1 marca los acordes de un pasaje al unísono u octava
 web/scores/<p>.json        partituras MusicXML (base64), por compositor, indexadas por movimiento
 """
 import base64, json, re, sys, shutil
@@ -15,6 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .buscar_mc import conectar, acordes, conceptos, sinonimos, RAIZ, DATOS
+from . import unisonos
 import buscar
 
 WEB = RAIZ / "web"
@@ -60,6 +62,73 @@ def instrumentos(r):
     if r["subcorpus"] == "bach_solo" and inst == ["Piano"] and r["otit"].startswith("Suite No."):
         inst = ["Violoncello"]
     return inst
+
+def pcs_de(a):
+    """Clases de altura del acorde cifrado (frozenset) o None."""
+    if a.get("pcs"):
+        try:
+            return frozenset(int(x) for x in str(a["pcs"]).split(","))
+        except ValueError:
+            pass
+    try:
+        return frozenset(p.pitchClass for p in buscar._rn(a["cifrado"], a["tono"]).pitches)
+    except Exception:
+        return None
+
+def marcar_unisonos(ac, partitura, continuo=False):
+    """Pone a["unisono"] = 1 en los acordes de pasajes al unísono u octava (ver unisonos.py)."""
+    flags = [0] * len(ac)
+    if partitura and not continuo:
+        flags = unisonos.marcar(partitura, [(a["compas"], a["parte"]) for a in ac], [pcs_de(a) for a in ac])
+    for a, f in zip(ac, flags):
+        a["unisono"] = f
+    return ac
+
+def datos_analisis(ac, aid, ti, CONC):
+    """(acordes para la web, rasgos por compás, {concepto: coincidencias}) de un análisis.
+    Los acordes de pasajes al unísono no cuentan en los rasgos por compás ni en los detectores
+    derivados (que se ejecutan por tramos, sin cruzar esos pasajes); las cadencias anotadas por el
+    corpus sí se conservan siempre."""
+    fila = []
+    for a in ac:
+        x = [a["compas"], a["parte"], ti(a["tono"]), a["cifrado"],
+             a["etiqueta_original"] if a["etiqueta_original"] != a["cifrado"] else 0, a.get("cadencia") or 0]
+        if a.get("unisono"):
+            x.append(1)
+        fila.append(x)
+    pc = {}
+    prev = None
+    for a in ac:
+        if a.get("unisono"):
+            prev = None                                   # no hay cambio de tono a través del pasaje
+            continue
+        m = pc.get(a["compas"])
+        if m is None:
+            m = pc[a["compas"]] = [a["compas"], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ti(a["tono"])]
+        m[1] += 1; k = clase(a); m[{"tri": 2, "cua": 3, "otro": 4}[k]] += 1
+        if k != "otro" and a["inversion"] in (0, 1, 2, 3): m[5 + a["inversion"]] += 1
+        if prestado(a): m[9] += 1
+        if a["secundaria"]: m[10] += 1
+        if alterado(a): m[11] += 1
+        m[12] |= 1 if a["modo"] == "major" else 2
+        if prev is not None and a["tono"] != prev: m[13] = 1
+        prev = a["tono"]
+    hits = {}
+    tramos = unisonos.tramos(ac)
+    for k, (det, desc, tipo) in CONC.items():
+        partes = [(0, ac)] if tipo == "anotado" else tramos
+        out = hits[k] = []
+        for _, seg in partes:
+            try:
+                res = det(seg)
+            except Exception:
+                continue
+            for i, et, n in res:
+                a = seg[i]
+                out.append([aid, a["compas"], a["parte"], a["tono"], et,
+                            seg[max(0, i - 1)]["compas"] if n > 1 and i > 0 else a["compas"],
+                            seg[min(len(seg) - 1, i + n - 1)]["compas"]])
+    return fila, [pc[c] for c in sorted(pc)], hits
 
 def main(argv=None):
     solo_datos = "--solo-datos" in (argv or sys.argv[1:])
@@ -116,37 +185,18 @@ def main(argv=None):
     grupos, compases = defaultdict(dict), {}
     CONC = conceptos()
     hits = {k: [] for k in CONC}
+    n_uni = 0
     for r in filas:
         aid = ids_an[r["id"]]
         ac = acordes(con, r["id"])
-        grupos[aid // 50][aid] = [[a["compas"], a["parte"], ti(a["tono"]), a["cifrado"],
-                                   a["etiqueta_original"] if a["etiqueta_original"] != a["cifrado"] else 0,
-                                   a.get("cadencia") or 0] for a in ac]
-        pc = {}
-        prev = None
-        for a in ac:
-            m = pc.get(a["compas"])
-            if m is None:
-                m = pc[a["compas"]] = [a["compas"], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ti(a["tono"])]
-            m[1] += 1; k = clase(a); m[{"tri": 2, "cua": 3, "otro": 4}[k]] += 1
-            if k != "otro" and a["inversion"] in (0, 1, 2, 3): m[5 + a["inversion"]] += 1
-            if prestado(a): m[9] += 1
-            if a["secundaria"]: m[10] += 1
-            if alterado(a): m[11] += 1
-            m[12] |= 1 if a["modo"] == "major" else 2
-            if prev is not None and a["tono"] != prev: m[13] = 1
-            prev = a["tono"]
-        compases[aid] = [pc[c] for c in sorted(pc)]
-        for k, (det, desc, tipo) in CONC.items():
-            try:
-                res = det(ac)
-            except Exception:
-                continue
-            for i, et, n in res:
-                a = ac[i]
-                hits[k].append([aid, a["compas"], a["parte"], a["tono"], et,
-                                ac[max(0, i - 1)]["compas"] if n > 1 and i > 0 else a["compas"],
-                                ac[min(len(ac) - 1, i + n - 1)]["compas"]])
+        ruta = DATOS / r["partitura"]
+        marcar_unisonos(ac, ruta.read_bytes() if ruta.exists() else None,
+                        unisonos.continuo_sin_realizar(r["subcorpus"], instrumentos(r), r["nombre"]))
+        n_uni += sum(a["unisono"] for a in ac)
+        grupos[aid // 50][aid], compases[aid], hs = datos_analisis(ac, aid, ti, CONC)
+        for k, v in hs.items():
+            hits[k].extend(v)
+    print(f"{n_uni} acordes en pasajes al unísono u octava")
     for g, d in grupos.items():
         json.dump({"tonos": tonos, "obras": d}, open(WEB / "data" / "acordes" / f"{g}.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     json.dump({"tonos": tonos, "obras": compases}, open(WEB / "data" / "compases.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))

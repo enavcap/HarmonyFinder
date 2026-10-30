@@ -130,6 +130,7 @@ td.obra .c{display:block;color:var(--muted);font-size:13px}
 .lin.int{font:12.5px var(--mono);color:var(--int)}
 .lin.fun{font:13.5px var(--body);color:var(--fun)}
 .lin .sep{color:var(--muted);opacity:.6;padding:0 2px}
+.lin .uni{opacity:.4}
 .resumen{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
 .fila{cursor:pointer}
 .fila:hover td{background:var(--accent-soft)}
@@ -563,7 +564,7 @@ const gruposAc={};
 function acordesDe(obra){
   const g=Math.floor(obra/50);
   if(!gruposAc[g]) gruposAc[g]=fetch(`data/acordes/${g}.json`).then(r=>r.json());
-  return gruposAc[g].then(d=>(d.obras[obra]||[]).map(a=>({compas:a[0],parte:a[1],tono:d.tonos[a[2]],rn:a[3],orig:a[4]||a[3],cad:a[5]||null})));
+  return gruposAc[g].then(d=>(d.obras[obra]||[]).map(a=>({compas:a[0],parte:a[1],tono:d.tonos[a[2]],rn:a[3],orig:a[4]||a[3],cad:a[5]||null,u:a[6]||0})));
 }
 
 // ============ autocompletado ============
@@ -672,14 +673,15 @@ async function buscarProgresion(toks,f){
   for(const o of OBRAS){
     if(!pasaObra(o,f)) continue;
     const d=await gruposAc[Math.floor(o.id/50)], crudo=d.obras[o.id]; if(!crudo) continue;
-    const seq=[]; for(const a of crudo){const k=claveRN(a[3],sinInv,d.tonos[a[2]]); if(!seq.length||seq[seq.length-1].k!==k) seq.push({k,a})}
+    // un pasaje al unísono u octava corta la sucesión: ninguna progresión lo atraviesa
+    const seq=[]; for(const a of crudo){const k=a[6]?null:claveRN(a[3],sinInv,d.tonos[a[2]]); if(!seq.length||seq[seq.length-1].k!==k) seq.push({k,a})}
     let i=0;
     while(i<seq.length){
       let mejor=null;
       for(let k0=0;k0<=n-m;k0++){
-        if(seq[i].k!==Q[k0]) continue;
+        if(seq[i].k===null||seq[i].k!==Q[k0]) continue;
         let ult=i, kk=k0+1, hechos=1;
-        while(kk<n){let t=-1;for(let z=ult+1;z<=Math.min(seq.length-1,ult+1+gap);z++) if(seq[z].k===Q[kk]){t=z;break} if(t<0)break; ult=t;kk++;hechos++}
+        while(kk<n){let t=-1;for(let z=ult+1;z<=Math.min(seq.length-1,ult+1+gap);z++){if(seq[z].k===null)break; if(seq[z].k===Q[kk]){t=z;break}} if(t<0)break; ult=t;kk++;hechos++}
         if(hechos>=m&&(!mejor||hechos>mejor.h)) mejor={h:hechos,ult,k0};
       }
       if(mejor){
@@ -1079,7 +1081,7 @@ function resumen(s){
 }
 function progresion(ac,h){
   const dentro=ac.filter(a=>a.compas>=h.ini&&a.compas<=h.fin), v=ver();
-  const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=esc(fn(a))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
+  const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="pasaje al unísono u octava">${esc(fn(a))}</span>`:esc(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
   let out='';
   if(v.rom) out+=fila('rom',a=>a.rn);
   if(v.int) out+=fila('int',a=>cifInterv(parseRN(a.rn)));
@@ -1558,10 +1560,11 @@ function anotar(svg,acordes,compasDom,primero,reducir){
       if(filas.rom!=null){
         const gg=document.createElementNS(NS,'g'); g.append(gg);
         w=grabarRomano(gg,c.rn,0,0,f); gg.setAttribute('transform',`translate(${x-w/2},${filas.rom})`);
+        if(c.u){gg.setAttribute('opacity','0.4');const tt=document.createElementNS(NS,'title');tt.textContent='Pasaje al unísono u octava: no cuenta en las búsquedas';gg.append(tt)}
       }
-      if(filas.int!=null&&p) cifInterv(p).split('/').forEach((n,k)=>{const t=texto(g,n,x,filas.int+k*f*0.8,f*0.74,{'text-anchor':'middle'});w=Math.max(w,ancho(t))});
+      if(filas.int!=null&&p) cifInterv(p).split('/').forEach((n,k)=>{const t=texto(g,n,x,filas.int+k*f*0.8,f*0.74,{'text-anchor':'middle'});if(c.u)t.setAttribute('opacity','0.4');w=Math.max(w,ancho(t))});
       if(filas.fun!=null){
-        const t=texto(g,cifFunc(p,c.tono),x,filas.fun,f*0.95,{'text-anchor':'middle'}); w=Math.max(w,ancho(t));
+        const t=texto(g,cifFunc(p,c.tono),x,filas.fun,f*0.95,{'text-anchor':'middle'}); if(c.u)t.setAttribute('opacity','0.4'); w=Math.max(w,ancho(t));
       }
       const piv=v.rom?pivotes[n]:null;
       if(piv&&filas.rom!=null){

@@ -47,8 +47,12 @@ buscar._partitura = _partitura_analisis
 def acordes(con, aid):
     """Acordes del análisis en el formato de los detectores; las marcas de cadencia sin acorde
     se asignan al acorde anterior."""
+    return acordes_de_filas(con.execute("SELECT * FROM anotaciones WHERE analisis_id=? ORDER BY pos", (aid,)), aid)
+
+def acordes_de_filas(filas, aid):
+    """Igual que `acordes`, a partir de las filas de anotación (de la base o de un adaptador)."""
     out = []
-    for r in con.execute("SELECT * FROM anotaciones WHERE analisis_id=? ORDER BY pos", (aid,)):
+    for r in filas:
         if r["tipo"] == "marca":
             if out and r["cadencia"] and not out[-1]["cadencia"]:
                 out[-1]["cadencia"] = r["cadencia"]
