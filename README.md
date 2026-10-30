@@ -6,6 +6,8 @@
   Para preparar clases de armonía, análisis y materiales de teoría.
 </p>
 
+<p align="center"><a href="https://enavcap.github.io/HarmoFind/"><b>▶ Abrir HarmoFind en el navegador</b></a></p>
+
 <p align="center">
   <img src="docs/img/portada.png" alt="Búsqueda de «napolitana»: resumen por compositor, período y modo, ejemplos destacados y partitura de Beethoven con cifrado romano, interválico y funcional" width="100%">
 </p>
