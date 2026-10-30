@@ -1129,10 +1129,35 @@ async function xmlDe(o){
   const nombre=Object.keys(mxl.files).find(n=>n.endsWith('.xml')&&!n.startsWith('META-INF'))||Object.keys(mxl.files).find(n=>n.endsWith('.musicxml'));
   // se quitan las etiquetas armónicas que traen algunos archivos de origen (<harmony>, p. ej. «C.I»):
   // Verovio las dibujaría sobre el pentagrama superior y duplicarían, en otra notación, los cifrados de abajo
-  let x=(await mxl.file(nombre).async('string')).replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
+  // algunas partituras (madrigales de Monteverdi) vienen en UTF-16: se detecta y se decodifica bien
+  const bytes=await mxl.file(nombre).async('uint8array');
+  const utf16=(bytes[0]===0xFF&&bytes[1]===0xFE)||(bytes[0]===0xFE&&bytes[1]===0xFF)||bytes[1]===0||bytes[0]===0;
+  const codif=!utf16?'utf-8':(bytes[0]===0xFE||bytes[0]===0)?'utf-16be':'utf-16le';
+  let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
+  x=x.replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
   if(/reconstruida/.test(o.src.partitura||'')) x=ordenarVoces(x);
+  // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
+  if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
+}
+function alinearAnacrusa(x){
+  const parte=x.slice(0,x.indexOf('</part>')>0?x.indexOf('</part>'):x.length);
+  const nums=[...parte.matchAll(/<measure\b[^>]*\bnumber=["']([^"']*)["']/g)].map(m=>m[1]);
+  if(!nums.length||nums[0]!=='1'||nums.includes('0')) return x;
+  const m1=parte.match(/<measure\b[^>]*\bnumber=["']1["'][^>]*>([\s\S]*?)<\/measure>/); if(!m1) return x;
+  const div=+(parte.match(/<divisions>(\d+)/)||[])[1], bt=parte.match(/<beats>(\d+)<\/beats>\s*<beat-type>(\d+)/);
+  if(!div||!bt) return x;
+  const lleno=div*4*(+bt[1])/(+bt[2]);
+  let t=0, mx=0;
+  for(const tok of m1[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
+    const d=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
+    if(tok.startsWith('<backup')){t-=d;continue}
+    if(/<chord\b|<grace\b/.test(tok)) continue;
+    t+=d; mx=Math.max(mx,t);
+  }
+  if(mx>=lleno-1e-6) return x;                       // primer compás completo: no es anacrusa
+  return x.replace(/(<measure\b[^>]*\bnumber=["'])(\d+)(["'])/g,(m,a,n,c)=>a+(+n-1)+c);
 }
 // Partituras reconstruidas desde tablas de notas: en cada pentagrama con varias voces se ordenan las voces por
 // altura (la más aguda, plica arriba; la más grave, abajo), los silencios de la voz aguda se colocan arriba y se
@@ -1232,7 +1257,7 @@ function ordenarVoces(xml){
 function rango(h,primero){const m=+$('#margen').value;return [Math.max(primero,h.ini-m),h.fin+m]}
 const numCache=new Map();
 function numerosCompas(id,xml){
-  if(!numCache.has(id)){const fin=xml.indexOf('</part>');numCache.set(id,[...(fin>0?xml.slice(0,fin):xml).matchAll(/<measure\b[^>]*\bnumber="([^"]*)"/g)].map(m=>m[1]))}
+  if(!numCache.has(id)){const fin=xml.indexOf('</part>');numCache.set(id,[...(fin>0?xml.slice(0,fin):xml).matchAll(/<measure\b[^>]*\bnumber=["']([^"']*)["']/g)].map(m=>m[1]))}
   return numCache.get(id);
 }
 // posiciones (1-based) a seleccionar y número de compás del análisis para cada compás dibujado
@@ -1273,9 +1298,16 @@ async function mostrar(h){
   try{
     const [t,xml]=await Promise.all([toolkit(),xmlDe(o),fuentesListas]);
     if(seleccion!==h) return;
-    const pos=posiciones(numerosCompas(o.m,xml),a,b);
+    // el análisis numera compases que la partitura no escribe (repeticiones desplegadas por el analista):
+    // no se adivina; se muestran los cifrados sin partitura y se explica
+    const numsPart=numerosCompas(o.m,xml), objetivo=h.frag?[...Array(h.fin-h.ini+1)].map((_,i)=>String(h.ini+i)):[String(h.compas)];
+    if(!objetivo.some(n=>numsPart.includes(n))){
+      cont.innerHTML='<div class="vacio">El análisis numera este pasaje con las repeticiones desplegadas y la partitura no lo escribe con esos números; se muestran solo los cifrados.</div>';
+      pintarTira(h,dentro); return;
+    }
+    const pos=posiciones(numsPart,a,b);
     let anchoPag=Math.max(700,Math.min(2000,cont.clientWidth*2.4)), svg=null;
-    for(let intento=0;intento<2;intento++){
+    for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,svgFontFaceInclude:true,
         ...GRABADO});
       t.select({measureRange:pos.sel}); t.loadData(xml);
@@ -1287,8 +1319,8 @@ async function mostrar(h){
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       if(cargado.obra!==o.m){cargado.obra=o.m;cargado.metro=metro(t.getMEI())}
       svg=cont.querySelector('svg');
-      const r=anotar(svg,dentro,pos.compas,primero,intento===1);
-      if(r>=0.9||intento===1) break;
+      const r=anotar(svg,dentro,pos.compas,primero,intento===2);
+      if(r>=0.9||intento===2) break;
       anchoPag=Math.min(6000,anchoPag/Math.max(0.4,r));   // ensanchar los compases y repetir
     }
     const medidas=[...svg.querySelectorAll('g.measure')];
@@ -1439,7 +1471,7 @@ function anotar(svg,acordes,compasDom,primero,reducir){
     return factor;
   }
   const f0=sp*2.2, r=dibujar(f0);
-  if(reducir&&r<0.98) dibujar(f0*Math.max(0.6,r));
+  if(reducir&&r<0.98) dibujar(f0*Math.max(0.5,r));
   const gb=g.getBBox(), vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
   const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
   const alto=Math.max(vb[3],+tr[2]+gb.y+gb.height+sp*1.5);
@@ -1651,7 +1683,7 @@ function aviso(t){const el=$('#toast');el.textContent=t;el.classList.add('on');s
 // ============ estado inicial: vacío ============
 pintarInicio(); pintarEtiquetas();
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,acordesDe,
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
 </script>
