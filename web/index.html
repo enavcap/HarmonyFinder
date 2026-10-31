@@ -1983,11 +1983,11 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
   return null;
 }
 // Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
-// líneas adicionales, plicas, barras, tresillos, casillas de repetición o indicaciones, se sube por encima de todas ellas.
+// líneas adicionales, plicas, barras, tresillos, ligaduras, casillas de repetición o indicaciones, se sube por encima de todas ellas.
 function despejarNumeros(svg){
   const pm=svg&&svg.querySelector('g.page-margin'), inner=svg&&svg.querySelector('svg.definition-scale'); if(!pm||!inner) return;
   const nums=[...pm.querySelectorAll('g.mNum')]; if(!nums.length) return;
-  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket';
+  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket,g.slur,g.tie';
   const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
   let minY=Infinity;
   for(const g of nums){
