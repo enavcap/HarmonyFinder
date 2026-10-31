@@ -2123,7 +2123,7 @@ function anotar(svg,acordes,occ,E,pos,reducir){
   // en orden, para que ninguna etiqueta pise a otra
   if(reducir||r>=0.9){
     let dcha=-Infinity, mueve=false;
-    ultAnchos.forEach((a,i)=>{const izq=puestos[i].x-a.w/2, min=dcha+f*0.2; if(izq<min){puestos[i].x+=min-izq;mueve=true} dcha=puestos[i].x+a.w/2});
+    ultAnchos.forEach((a,i)=>{const izq=puestos[i].x-a.w/2, min=dcha+f*0.3; if(izq<min){puestos[i].x+=min-izq;mueve=true} dcha=puestos[i].x+a.w/2});
     if(mueve) dibujar(f);
   }
   const gb=g.getBBox(), vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
