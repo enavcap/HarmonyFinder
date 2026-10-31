@@ -3,7 +3,9 @@ Motor de búsqueda sobre el catálogo multicorpus.
 
 Reutiliza los detectores de `buscar.py` (que trabajan sobre una lista de acordes con campos
 normalizados) y añade:
-  · cadencia auténtica imperfecta, acordes disminuidos, quinta aumentada, sexta añadida,
+  · cadencias como finales de frase (cadencias.py): además del cifrado miran la partitura
+    (parte fuerte, duración, tiple, bajo); sustituyen a las de buscar.py
+  · acordes disminuidos, quinta aumentada, sexta añadida,
     secuencia de quintas descendentes — reglas sobre el cifrado (derivadas)
 
 Cada concepto declara su `tipo` ('derivado') y su `criterio`.
@@ -15,6 +17,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 import buscar                                            # detectores existentes
+from . import cadencias                                  # cadencias con rasgos de partitura
 
 DB = RAIZ / "datos" / "catalogo.sqlite"
 DATOS = RAIZ / "datos"
@@ -65,17 +68,6 @@ def acordes_de_filas(filas, aid):
     return out
 
 # ---------------------------------------------------------------- detectores nuevos
-def cadencia_autentica_imperfecta(ac):
-    """V o vii° → I en la misma tonalidad con alguno de los dos acordes invertido (no se comprueba la voz superior)."""
-    out = []
-    for i in range(len(ac) - 1):
-        a, b = ac[i], ac[i + 1]
-        dom = (a["grado"] == 5 and a["calidad"] == "major") or (a["grado"] == 7 and a["calidad"] == "diminished")
-        if a["tono"] == b["tono"] and dom and not a["secundaria"] and b["grado"] == 1 and not b["secundaria"] \
-           and b["alteracion"] == 0 and (a["inversion"] or b["inversion"]) and not b["cifrado"].startswith("Cad"):
-            out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
-    return out
-
 def acorde_disminuido(ac):
     """Tríada o cuatríada disminuida diatónica (no secundaria) según el cifrado."""
     return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if a["calidad"] == "diminished" and not a["secundaria"]]
@@ -113,7 +105,12 @@ def secuencia_quintas(ac):
     return out
 
 NUEVOS = {
-    "cadencia_autentica_imperfecta": (cadencia_autentica_imperfecta, "V/viio → I con alguno invertido", "derivado"),
+    "cadencia_autentica_perfecta": (cadencias.cadencia_autentica_perfecta, "V → I al final de frase, tónica en el tiple", "derivado"),
+    "cadencia_autentica_imperfecta": (cadencias.cadencia_autentica_imperfecta, "V → I al final de frase, 3.º o 5.º en el tiple", "derivado"),
+    "semicadencia": (cadencias.semicadencia, "llegada a V al final de frase", "derivado"),
+    "cadencia_rota": (cadencias.cadencia_rota, "V → VI al final de frase", "derivado"),
+    "cadencia_frigia": (cadencias.cadencia_frigia, "iv6 → V en menor, bajo 6.º → 5.º", "derivado"),
+    "cadencia_plagal": (cadencias.cadencia_plagal, "IV → I al final de frase", "derivado"),
     "acorde_disminuido": (acorde_disminuido, "tríadas y séptimas disminuidas diatónicas", "derivado"),
     "quinta_aumentada": (quinta_aumentada, "acordes aumentados (III+, V+…)", "derivado"),
     "sexta_anadida": (sexta_anadida, "acorde con sexta añadida ([add6] / +6)", "derivado"),

@@ -2,6 +2,11 @@
 from multicorpus import unisonos
 from multicorpus.exportar_mc import datos_analisis
 from multicorpus.buscar_mc import conceptos
+import buscar
+
+def _conc():
+    """Modulación y un V→I por regla simple (las cadencias del buscador necesitan rasgos de partitura)."""
+    return {"modulacion": conceptos()["modulacion"], "v_i": (buscar.cadencia_autentica_perfecta, "", "derivado")}
 
 STEP = {0: ("C", 0), 2: ("D", 0), 4: ("E", 0), 5: ("F", 0), 7: ("G", 0), 9: ("A", 0), 11: ("B", 0), 6: ("F", 1), 1: ("C", 1)}
 
@@ -83,12 +88,12 @@ def test_no_hay_modulacion_ni_cadencia_a_traves_del_unisono():
           _ac("I", "C", 1, 5), _ac("V", "C", 5, 6), _ac("I", "C", 1, 7)]
     tonos = []
     ti = lambda t: tonos.index(t) if t in tonos else (tonos.append(t) or len(tonos) - 1)
-    fila, comp, hits = datos_analisis(ac, 1, ti, conceptos())
+    fila, comp, hits = datos_analisis(ac, 1, ti, _conc())
     assert [len(x) for x in fila] == [6, 6, 7, 7, 6, 6, 6]       # 7.º campo = unísono
     assert not hits["modulacion"]
-    assert [h[1] for h in hits["cadencia_autentica_perfecta"]] == [7]   # V→I de c. 2-3 cruzaría el pasaje
+    assert [h[1] for h in hits["v_i"]] == [7]   # V→I de c. 2-3 cruzaría el pasaje
     assert [c[0] for c in comp] == [1, 2, 5, 6, 7] and not any(c[13] for c in comp)
     for a in ac:
         a["unisono"] = 0
-    _, comp, hits = datos_analisis(ac, 1, ti, conceptos())
+    _, comp, hits = datos_analisis(ac, 1, ti, _conc())
     assert len(hits["modulacion"]) == 2 and any(c[13] for c in comp)

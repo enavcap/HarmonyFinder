@@ -37,9 +37,10 @@ def _xml_de(datos):
         datos = z.read(nombre)
     return datos
 
-def leer(datos):
+def leer(datos, midi=False, calderones=None):
     """(notas, compases) de una partitura.
-    notas: [(inicio, fin, clase de altura)] en negras, alturas reales.
+    notas: [(inicio, fin, clase de altura)] en negras, alturas reales (con midi=True, altura MIDI).
+    calderones: si se pasa un set, recibe el inicio de cada nota con calderón.
     compases: [(número, inicio, duración, (num, den))] de la primera parte, en orden."""
     raiz = ET.fromstring(_xml_de(datos))
     notas, compases = [], None
@@ -71,8 +72,11 @@ def leer(datos):
                         ultimo_inicio = t; t += dur; mx = max(mx, t)
                     p = el.find("pitch")
                     if p is not None and dur > 0:
-                        pc = (PC[p.findtext("step")] + int(float(p.findtext("alter") or 0)) + transp) % 12
-                        notas.append((t0 + inicio, t0 + inicio + dur, pc))
+                        alt = (PC[p.findtext("step")] + int(float(p.findtext("alter") or 0)) + transp
+                               + 12 * (int(p.findtext("octave") or 4) + 1))
+                        notas.append((t0 + inicio, t0 + inicio + dur, alt if midi else alt % 12))
+                    if calderones is not None and el.find("notations/fermata") is not None:
+                        calderones.add(t0 + inicio)
             lleno = Fraction(4 * metro[0], metro[1])
             dur_m = mx if mx > 0 else lleno
             lista.append((m.get("number") or "", t0, dur_m, metro))

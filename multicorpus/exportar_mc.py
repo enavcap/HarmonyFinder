@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .buscar_mc import conectar, acordes, conceptos, sinonimos, RAIZ, DATOS
-from . import unisonos
+from . import unisonos, cadencias
 import buscar
 
 WEB = RAIZ / "web"
@@ -76,12 +76,15 @@ def pcs_de(a):
         return None
 
 def marcar_unisonos(ac, partitura, continuo=False):
-    """Pone a["unisono"] = 1 en los acordes de pasajes al unísono u octava (ver unisonos.py)."""
+    """Pone a["unisono"] = 1 en los acordes de pasajes al unísono u octava (ver unisonos.py) y
+    a["r"] = rasgos de partitura para las cadencias (ver cadencias.py)."""
     flags = [0] * len(ac)
+    pos = [(a["compas"], a["parte"]) for a in ac]
     if partitura and not continuo:
-        flags = unisonos.marcar(partitura, [(a["compas"], a["parte"]) for a in ac], [pcs_de(a) for a in ac])
-    for a, f in zip(ac, flags):
-        a["unisono"] = f
+        flags = unisonos.marcar(partitura, pos, [pcs_de(a) for a in ac])
+    rs = cadencias.rasgos(partitura, pos) if partitura else [None] * len(ac)
+    for a, f, r in zip(ac, flags, rs):
+        a["unisono"] = f; a["r"] = r
     return ac
 
 def datos_analisis(ac, aid, ti, CONC):
