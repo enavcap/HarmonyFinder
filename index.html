@@ -1,8 +1,3 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Harmony Finder</title>
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -1434,7 +1429,7 @@ for(const id of ['verRom','verInt','verFun']){
 }
 
 // ============ partitura con cifrados grabados debajo ============
-let tk=null, tkCargando=null, temporizador; const zips={}, xmlCache=new Map(), cargado={obra:null,tm:null,metro:null};
+let tk=null, tkCargando=null, temporizador; const zips={}, xmlCache=new Map(), cargado={tm:null};
 function toolkit(){
   if(tk) return Promise.resolve(tk);
   if(!tkCargando) tkCargando=new Promise((ok,ko)=>{
@@ -1456,12 +1451,16 @@ async function xmlDe(o){
   if(xmlCache.has(o.m)) return xmlCache.get(o.m);
   if(!zips[o.pq]) zips[o.pq]=fetch(`scores/${o.pq}.json`).then(r=>r.json());
   const paquete=await zips[o.pq];
-  const mxl=await JSZip.loadAsync(paquete[o.m],{base64:true});
-  const nombre=Object.keys(mxl.files).find(n=>n.endsWith('.xml')&&!n.startsWith('META-INF'))||Object.keys(mxl.files).find(n=>n.endsWith('.musicxml'));
+  // casi todas vienen comprimidas (.mxl); alguna (BWV 69/6) es MusicXML sin comprimir
+  let bytes;
+  if(paquete[o.m].startsWith('UEs')){
+    const mxl=await JSZip.loadAsync(paquete[o.m],{base64:true});
+    const nombre=Object.keys(mxl.files).find(n=>n.endsWith('.xml')&&!n.startsWith('META-INF'))||Object.keys(mxl.files).find(n=>n.endsWith('.musicxml'));
+    bytes=await mxl.file(nombre).async('uint8array');
+  } else {const bin=atob(paquete[o.m]); bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0))}
   // se quitan las etiquetas armónicas que traen algunos archivos de origen (<harmony>, p. ej. «C.I»):
   // Verovio las dibujaría sobre el pentagrama superior y duplicarían, en otra notación, los cifrados de abajo
   // algunas partituras (madrigales de Monteverdi) vienen en UTF-16: se detecta y se decodifica bien
-  const bytes=await mxl.file(nombre).async('uint8array');
   const utf16=(bytes[0]===0xFF&&bytes[1]===0xFE)||(bytes[0]===0xFE&&bytes[1]===0xFF)||bytes[1]===0||bytes[0]===0;
   const codif=!utf16?'utf-8':(bytes[0]===0xFE||bytes[0]===0)?'utf-16be':'utf-16le';
   let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
@@ -1488,7 +1487,7 @@ function alinearAnacrusa(x){
     t+=d; mx=Math.max(mx,t);
   }
   if(mx>=lleno-1e-6) return x;                       // primer compás completo: no es anacrusa
-  return x.replace(/(<measure\b[^>]*\bnumber=["'])(\d+)(["'])/g,(m,a,n,c)=>a+(+n-1)+c);
+  return x.replace(/(<measure\b[^>]*\bnumber=["'])(\d+)([^"']*["'])/g,(m,a,n,c)=>a+(+n-1)+c);   // también «24X1», «4a»
 }
 // Partituras reconstruidas desde tablas de notas: en cada pentagrama con varias voces se ordenan las voces por
 // altura (la más aguda, plica arriba; la más grave, abajo), los silencios de la voz aguda se colocan arriba y se
@@ -1668,28 +1667,183 @@ function ordenarVoces(xml,inst){
   return new XMLSerializer().serializeToString(doc);
 }
 function rango(h,primero){const m=+$('#margen').value;return [Math.max(primero,h.ini-m),h.fin+m]}
-const numCache=new Map();
-function numerosCompas(id,xml){
-  if(!numCache.has(id)){const fin=xml.indexOf('</part>');numCache.set(id,[...(fin>0?xml.slice(0,fin):xml).matchAll(/<measure\b[^>]*\bnumber=["']([^"']*)["']/g)].map(m=>m[1]))}
-  return numCache.get(id);
+// Estructura de la partitura, compás a compás (por posición): número de compás del análisis, a qué aparición
+// de ese número pertenece, duración escrita y compás vigente.
+//  · número: «24» → 24; «24X1», «4a», «8x» → 24, 4, 8 (otra pasada o un trozo de compás); sin número («X2») → el anterior
+//  · aparición: un compás con el mismo número que el anterior y que lo completa (compás partido) es la misma aparición;
+//    si el anterior ya estaba completo, o el número vuelve a salir más adelante (casillas, repeticiones escritas,
+//    numeración que vuelve a empezar), es una aparición nueva
+//  · compás vigente: una obra puede cambiar de compás (K. 331, I: tema en 6/8, var. VI en 4/4)
+const estrCache=new Map();
+function estructura(id,xml){
+  if(estrCache.has(id)) return estrCache.get(id);
+  const fin=xml.indexOf('</part>'), parte=fin>0?xml.slice(0,fin):xml;
+  const E={etq:[],n:[],occ:[],dur:[],metro:[],ocs:new Map()};
+  let c=4,u=4,div=1,ult=null;
+  for(const m of parte.matchAll(/<measure\b([^>]*)>([\s\S]*?)<\/measure>/g)){
+    const etq=(m[1].match(/\bnumber=["']([^"']*)["']/)||[])[1]||'', cuerpo=m[2], i=E.n.length;
+    const t=cuerpo.match(/<time\b[^>]*>[\s\S]*?<beats>([^<]+)<\/beats>\s*<beat-type>(\d+)/);
+    if(t){const cc=t[1].split('+').reduce((x,y)=>x+(+y||0),0);if(cc&&+t[2]){c=cc;u=+t[2]}}
+    const dv=cuerpo.match(/<divisions>(\d+)/); if(dv) div=+dv[1]||1;
+    const full=c*4/u;
+    let tt=0,mx=0;
+    for(const tok of cuerpo.match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
+      const d=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
+      if(tok.startsWith('<backup')){tt-=d;continue}
+      if(/<chord\b|<grace\b/.test(tok)) continue;
+      tt+=d; mx=Math.max(mx,tt);
+    }
+    const dur=mx>0?mx/div:full;
+    const num=/^\d+$/.test(etq)?+etq:/^\d+/.test(etq)?+etq.match(/^\d+/)[0]:(ult??0);
+    ult=num;
+    if(!E.ocs.has(num)) E.ocs.set(num,[]);
+    const lista=E.ocs.get(num), prev=lista[lista.length-1];
+    let k;
+    if(prev&&prev.pos[prev.pos.length-1]===i-1&&prev.acum<full-1e-6){prev.pos.push(i);prev.acum+=dur;k=lista.length-1}
+    else{lista.push({pos:[i],acum:dur});k=lista.length-1}
+    E.etq.push(etq);E.n.push(num);E.occ.push(k);E.dur.push(dur);E.metro.push({c,u,full});
+  }
+  // ataques de nota de cada compás, en todas las partes (en milésimas de negra desde el comienzo del compás)
+  E.ataques=E.n.map(()=>new Set());
+  if(E.metro.some(m=>m.c%3===0)){                             // solo hacen falta para decidir la unidad de los ternarios
+    for(const pt of xml.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)){
+      let i=0, dv=1;
+      for(const m of pt[1].matchAll(/<measure\b[^>]*>([\s\S]*?)<\/measure>/g)){
+        if(i>=E.n.length) break;
+        const d=m[1].match(/<divisions>(\d+)/); if(d) dv=+d[1]||1;
+        let t=0, prev=0;
+        for(const tok of m[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
+          const du=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
+          if(tok.startsWith('<backup')){t-=du;continue}
+          if(tok.startsWith('<forward')){t+=du;continue}
+          if(/<grace\b/.test(tok)) continue;
+          const acorde=/<chord\b/.test(tok), t0=acorde?t-prev:t;
+          if(!/<rest\b/.test(tok)&&!/<tie\b[^>]*type="stop"/.test(tok)) E.ataques[i].add(Math.round(t0/dv*1000));
+          if(!acorde){prev=du;t+=du}
+        }
+        i++;
+      }
+    }
+  }
+  estrCache.set(id,E); return E;
 }
-// posiciones (1-based) a seleccionar y número de compás del análisis para cada compás dibujado
-function posiciones(nums,a,b){
-  const esNum=x=>/^\d+$/.test(x);
-  let p0=nums.indexOf(String(a)); if(p0<0) p0=Math.max(0,a-(nums[0]==='0'?0:1));
-  let p1=nums.indexOf(String(b),p0); if(p1<p0) p1=p0+(b-a);
-  while(p1+1<nums.length&&!esNum(nums[p1+1])) p1++;
-  p1=Math.min(p1,Math.max(p0,nums.length-1));
-  const compas=[]; let ult=a;
-  for(let i=p0;i<=p1;i++){const n=nums[i];if(n!=null&&esNum(n))ult=+n;compas.push(ult)}
-  return {sel:`${p0+1}-${p1+1}`,compas};
+// duración de una parte del análisis, en negras. Por defecto: When in Rome cuenta 3/8 en corcheas y el adaptador
+// del DCML como una parte con puntillo; 6/8, 9/8, 12/8, 6/4… son compuestos. Pero los analistas no siempre siguen
+// la convención (el Op. 130/4 de Beethoven cuenta el 3/8 como una parte; el Op. 1 n.º 3 de Corelli, el 6/4 en
+// blancas), así que en los compases ternarios cada análisis puede llevar su propia unidad («unidad»: compás → 1, 2
+// o 3 veces la figura del denominador), elegida en alinear() según encajen sus acordes con los ataques de nota.
+function parteDe(m,fuente,unidad){
+  const k=unidad&&unidad.get(m.c+'/'+m.u);
+  if(k) return k*4/m.u;
+  const comp=m.c%3===0&&(m.c>3||(fuente==='dcml'&&m.u>=8));
+  return comp?12/m.u:4/m.u;
 }
-function metro(mei){
-  const tag=(mei.match(/<meterSig[^>]*>/)||[''])[0];
-  let c=+((tag.match(/count="(\d+)"/)||[])[1]||0), u=+((tag.match(/unit="(\d+)"/)||[])[1]||0);
-  if(!c){c=+((mei.match(/meter\.count="(\d+)"/)||[])[1]||4);u=+((mei.match(/meter\.unit="(\d+)"/)||[])[1]||4)}
-  const compuesto=c%3===0&&(c>3||u>=8);
-  return {beat:compuesto?12/u:4/u, full:c*4/u};
+// Algunas partituras numeran por separado los dos trozos de un compás partido (corales: «5» de 3 partes + «6» de 1)
+// y el análisis los cuenta como un solo compás; desde ahí, sus números van uno por delante. Se unen solo si el
+// análisis pide más partes de las que tiene ese compás y uno de los dos trozos está incompleto.
+const alinCache=new Map();
+function alinear(E,ac,id,fuente){
+  const clave=id+'|'+fuente; if(alinCache.has(clave)) return alinCache.get(clave);
+  // unidad de parte de cada compás ternario: la que hace caer más acordes sobre ataques de nota de la partitura
+  // (y ninguno fuera de su compás); en caso de empate, la convención de la fuente
+  const ternarios=[...new Set(E.metro.filter(m=>m.c%3===0).map(m=>m.c+'/'+m.u))];
+  if(ternarios.length){
+    const occ0=ocurrencias(ac,E);
+    for(const clv of ternarios){
+      const nota=X=>{let v=0;
+        ac.forEach((c,j)=>{const z=situar(X,c,occ0[j],fuente); if(!z) return; const m=X.metro[z.p]; if(m.c+'/'+m.u!==clv) return;
+          if(z.q>X.dur[z.p]+1e-6) v-=2; else{const r=Math.round(z.q*1000),A=X.ataques[z.p]; for(let e=-3;e<=3;e++) if(A.has(r+e)){v++;break}}});
+        return v};
+      let mejor=E, vm=nota(E);
+      for(const k of [1,2,3]){const X={...E,unidad:new Map([...(E.unidad||[]),[clv,k]])}, v=nota(X); if(v>vm){mejor=X;vm=v}}
+      E=mejor;
+    }
+  }
+  // hasta dónde llega el análisis en cada compás (en negras desde su comienzo)
+  const pide=new Map();
+  for(const c of ac){
+    const oc=(E.ocs.get(c.compas)||[])[0], m=E.metro[oc?oc.pos[0]:0]||{c:4,u:4,full:4};
+    pide.set(c.compas,Math.max(pide.get(c.compas)??0,(c.parte-1)*parteDe(m,fuente,E.unidad)*(E.escala||1)));
+  }
+  const n=[], junta=[];
+  let off=0, acum=0, ini=0;                          // compás del análisis en curso: duración acumulada y primera posición
+  for(let i=0;i<E.n.length;i++){
+    let num=E.n[i]+off, une=false;
+    if(i>0&&pide.has(n[i-1])&&/^\d+$/.test(E.etq[i])&&E.n[i]===E.n[i-1]+1){
+      const full=E.metro[ini].full, anac=ini===0&&acum<full-1e-6?full-acum:0;   // anacrusa inicial: el análisis cuenta desde el compás lleno
+      const falta=pide.get(n[i-1])-anac>=acum-1e-6;
+      const partido=E.dur[i-1]<E.metro[i-1].full-1e-6||E.dur[i]<E.metro[i].full-1e-6;
+      if(falta&&partido){off--;num=n[i-1];une=true}
+    }
+    const sigue=i>0&&num===n[i-1]&&(une||acum<E.metro[ini].full-1e-6);
+    if(!sigue){acum=0;ini=i}
+    acum+=E.dur[i]; n.push(num); junta.push(une);
+  }
+  if(!junta.some(Boolean)) return escalar(E,ac,clave,fuente);
+  const A={...E,n,ocs:new Map()};
+  for(let i=0;i<n.length;i++){
+    if(!A.ocs.has(n[i])) A.ocs.set(n[i],[]);
+    const lista=A.ocs.get(n[i]), prev=lista[lista.length-1];
+    if(prev&&prev.pos[prev.pos.length-1]===i-1&&(junta[i]||prev.acum<E.metro[prev.pos[0]].full-1e-6)){prev.pos.push(i);prev.acum+=E.dur[i]}
+    else lista.push({pos:[i],acum:E.dur[i]});
+  }
+  // solo si encaja mejor con el análisis (un acorde mal anotado no debe desplazar el resto de la obra)
+  return escalar(desajustes(A,ac,fuente)<desajustes(E,ac,fuente)?A:E,ac,clave,fuente);
+}
+// Partitura con los valores de nota reducidos a la mitad respecto a la del análisis (madrigales de Monteverdi del
+// corpus de music21 frente a las tablas del DCML): si muchos acordes (más del 10 %) caen más allá del final de su
+// compás y a escala ½ caben casi todos, las partes se cuentan a esa escala.
+function escalar(E,ac,clave,fuente){
+  const d=desajustes(E,ac,fuente,true), M={...E,escala:0.5};
+  const R=d>=4&&d>ac.length*0.1&&desajustes(M,ac,fuente,true)<d/4?M:E;
+  alinCache.set(clave,R); return R;
+}
+// compás (posición) y parte, en negras desde su comienzo, donde cae el acorde j; null si la partitura no lo tiene
+function situar(E,c,occ,fuente){
+  const oc=(E.ocs.get(c.compas)||[])[occ]; if(!oc) return null;
+  const ps=oc.pos, mt=E.metro[ps[0]];
+  let q=(c.parte-1)*parteDe(mt,fuente,E.unidad)*(E.escala||1);
+  if(ps[0]===0&&oc.acum<mt.full-1e-6) q-=mt.full-oc.acum;          // anacrusa inicial
+  q=Math.max(0,q);
+  let k=0;
+  while(k<ps.length-1&&q>=E.dur[ps[k]]-1e-6){q-=E.dur[ps[k]];k++}
+  return {p:ps[k],q};
+}
+// acordes que no caben: compás inexistente, pasada que no está, o parte más allá del final del compás
+function desajustes(E,ac,fuente,soloFuera){
+  const occ=ocurrencias(ac,E); let n=0;
+  ac.forEach((c,j)=>{const z=situar(E,c,occ[j],fuente); if(z?z.q>E.dur[z.p]+1e-6:!soloFuera) n++});
+  return n;
+}
+// aparición de su número de compás a la que pertenece cada acorde del análisis: al volver a un compás ya visto
+// empieza otra pasada. Si la parte retrocede sin cambiar de compás, es otra pasada solo cuando la partitura escribe
+// otra aparición de ese compás («25» y «25X1» seguidos); si no, es un dato desordenado del análisis y no se separa.
+function ocurrencias(ac,E){
+  const vistos=new Map(), occ=[]; let prev=null;
+  for(const c of ac){
+    let k;
+    if(prev&&c.compas===prev.compas){
+      k=occ[occ.length-1];
+      if(c.parte<prev.parte-1e-6&&(E.ocs.get(c.compas)||[]).length>k+1){k++;vistos.set(c.compas,k)}
+    }
+    else{k=vistos.has(c.compas)?vistos.get(c.compas)+1:0;vistos.set(c.compas,k)}
+    occ.push(k); prev=c;
+  }
+  return occ;
+}
+// compases (posiciones, base 0) que se dibujan: desde la aparición elegida del primer compás hasta el último,
+// sin saltar a otra pasada (cuando la numeración retrocede, se para)
+function tramo(E,a,b,occA){
+  const oa=E.ocs.get(a);
+  let p0=oa&&oa.length?oa[Math.min(occA||0,oa.length-1)].pos[0]:E.n.findIndex(n=>n>=a);
+  if(p0<0) p0=0;
+  let p1=p0;
+  while(p1+1<E.n.length){
+    const n=E.n[p1+1];
+    if(n>b||n<a||n<E.n[p1]) break;
+    p1++;
+  }
+  return [p0,p1];
 }
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
@@ -1713,12 +1867,16 @@ async function mostrar(h){
     if(seleccion!==h) return;
     // el análisis numera compases que la partitura no escribe (repeticiones desplegadas por el analista):
     // no se adivina; se muestran los cifrados sin partitura y se explica
-    const numsPart=numerosCompas(o.m,xml), objetivo=h.frag?[...Array(h.fin-h.ini+1)].map((_,i)=>String(h.ini+i)):[String(h.compas)];
-    if(!objetivo.some(n=>numsPart.includes(n))){
+    const E=alinear(estructura(o.m,xml),ac,o.id,o.f), objetivo=h.frag?[...Array(h.fin-h.ini+1)].map((_,i)=>h.ini+i):[h.compas];
+    if(!objetivo.some(n=>E.ocs.has(n))){
       cont.innerHTML=`<div class="vacio">${trd('El análisis numera este pasaje con las repeticiones desplegadas y la partitura no lo escribe con esos números; se muestran solo los cifrados.','The analysis numbers this passage with its repeats written out, and the score does not use those numbers; only the analysis is shown.')}</div>`;
       pintarTira(h,dentro); return;
     }
-    const pos=posiciones(numsPart,a,b);
+    // pasada que se muestra: la del acorde buscado (mismo compás, parte y tonalidad); si no, la primera
+    const occ=ocurrencias(ac,E);
+    let occA=0;
+    if(!h.frag){const i=ac.findIndex(c=>c.compas===h.compas&&Math.abs(c.parte-h.parte)<1e-6&&(!h.tono||c.tono===h.tono)); if(i>=0) occA=occ[i]}
+    const [p0,p1]=tramo(E,a,b,occA), pos={sel:`${p0+1}-${p1+1}`,p0,p1,fuente:o.f};
     let anchoPag=Math.max(700,Math.min(2000,cont.clientWidth*2.4)), svg=null;
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,svgFontFaceInclude:true,
@@ -1731,9 +1889,8 @@ async function mostrar(h){
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
       despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
-      if(cargado.obra!==o.m){cargado.obra=o.m;cargado.metro=metro(t.getMEI())}
       svg=cont.querySelector('svg');
-      const r=anotar(svg,dentro,pos.compas,primero,intento===2);
+      const r=anotar(svg,ac,occ,E,pos,intento===2);
       if(r>=0.9||intento===2) break;
       anchoPag=Math.min(6000,anchoPag/Math.max(0.4,r));   // ensanchar los compases y repetir
     }
@@ -1746,7 +1903,7 @@ async function mostrar(h){
       cont.classList.toggle('desliza',ancho>cont.clientWidth);
     } else {svg.style.width='';svg.style.maxWidth='';cont.classList.remove('desliza')}
     if(!h.frag){
-      const m=medidas[pos.compas.indexOf(h.compas)];
+      const oc=(E.ocs.get(h.compas)||[])[occA], m=oc?medidas[oc.pos.find(i=>i>=p0&&i<=p1)-p0]:null;
       if(m){const bb=m.getBBox(),r=document.createElementNS(NS,'rect');r.setAttribute('class','resalte');
         // ancho real del compás: el de sus líneas de pentagrama (las ligaduras que entran desde antes no cuentan)
         const linea=m.querySelector('g.staff > path'), c=linea?(linea.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number):[];
@@ -1754,6 +1911,11 @@ async function mostrar(h){
         r.setAttribute('x',x0);r.setAttribute('y',bb.y-120);r.setAttribute('width',x1-x0);r.setAttribute('height',bb.height+240);
         r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.22');r.setAttribute('rx','40');m.parentNode.insertBefore(r,m)}
     }
+    // los números de compás se recolocan otra vez cuando el navegador ha terminado de maquetar la partitura:
+    // en la primera pasada algunas cajas (claves, barras) aún no tienen su tamaño final
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    if(seleccion!==h||!svg.isConnected) return;
+    svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); despejarNumeros(svg);
     $('#copiarSVG').disabled=$('#copiarPNG').disabled=false;
   }catch(e){cont.innerHTML=`<div class="vacio">${trd('No se pudo mostrar la partitura','The score could not be shown')} (${esc(e.message||e)}).</div>`;pintarTira(h,dentro)}
 }
@@ -1826,11 +1988,11 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
   return null;
 }
 // Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
-// líneas adicionales, plicas, barras, tresillos o indicaciones, se sube por encima de todas ellas.
+// líneas adicionales, plicas, barras, tresillos, ligaduras, casillas de repetición o indicaciones, se sube por encima de todas ellas.
 function despejarNumeros(svg){
   const pm=svg&&svg.querySelector('g.page-margin'), inner=svg&&svg.querySelector('svg.definition-scale'); if(!pm||!inner) return;
   const nums=[...pm.querySelectorAll('g.mNum')]; if(!nums.length) return;
-  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse';
+  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket,g.slur,g.tie';
   const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
   let minY=Infinity;
   for(const g of nums){
@@ -1856,18 +2018,18 @@ function despejarNumeros(svg){
     svg.setAttribute('viewBox',`${ovb[0]} ${ovb[1]} ${ovb[2]} ${ovb[3]*nvb[3]/vb[3]}`);
   }
 }
-function anotar(svg,acordes,compasDom,primero,reducir){
+function anotar(svg,acordes,occ,E,pos,reducir){
   const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
   const pm=svg.querySelector('g.page-margin'), inner=svg.querySelector('svg.definition-scale'); if(!pm||!inner) return 1;
   const medidas=[...svg.querySelectorAll('g.measure')]; if(!medidas.length) return 1;
-  const tm=cargado.tm, mt=cargado.metro;
+  const tm=cargado.tm, mtDe=i=>E.metro[pos.p0+i]||{beat:1,full:4};
   let sp=180;
   const ys=[...svg.querySelector('g.staff').children].filter(n=>n.tagName==='path').map(pth=>(pth.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number)).filter(c=>c.length>=4&&c[1]===c[3]).map(c=>c[1]).slice(0,5);
   if(ys.length===5&&ys[4]>ys[0]) sp=(ys[4]-ys[0])/4;
   const inicio=new Map(), arranques=[];
   for(const e of tm) if(e.measureOn){inicio.set(e.measureOn,e.qstamp);arranques.push(e.qstamp)}
   const idx=new Map(medidas.map((m,i)=>[m.id,i]));
-  const ini=medidas.map(m=>inicio.get(m.id)), dur=ini.map(s0=>{const n=arranques.find(q=>q>s0+1e-6);return n!=null?n-s0:mt.full});
+  const ini=medidas.map(m=>inicio.get(m.id)), dur=ini.map(s0=>{const n=arranques.find(q=>q>s0+1e-6);return n!=null?n-s0:null}).map((d,i)=>d??mtDe(i).full);
   const ataques=medidas.map(()=>new Map());
   for(const e of tm){
     if(!e.on) continue;
@@ -1882,28 +2044,27 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   }
   const xDe=(i,q)=>{
     const lista=[...ataques[i].entries()].map(([qq,xs])=>({q:qq,x:xs.reduce((s1,x)=>s1+x,0)/xs.length})).sort((p,r)=>p.q-r.q);
-    const mb=medidas[i].getBBox(), d=dur[i]||mt.full;
+    const mb=medidas[i].getBBox(), d=dur[i]||mtDe(i).full;
     if(!lista.length) return mb.x+mb.width*(0.15+0.7*q/d);
     const exacto=lista.find(z=>Math.abs(z.q-q)<0.02); if(exacto) return exacto.x;
     const ant=[...lista].reverse().find(z=>z.q<q), sig=lista.find(z=>z.q>q);
     if(ant&&sig) return ant.x+(sig.x-ant.x)*(q-ant.q)/(sig.q-ant.q);
-    if(ant) return ant.x+(mb.x+mb.width-ant.x)*0.8*(q-ant.q)/Math.max(0.01,d-ant.q);
-    return sig.x;
+    if(ant) return ant.x+(mb.x+mb.width-ant.x)*0.8*Math.min(1,(q-ant.q)/Math.max(0.01,d-ant.q));   // nunca fuera de su compás
+    // antes del primer ataque (el compás empieza con una nota ligada o un silencio): hacia atrás con el espaciado
+    // del propio compás, sin salirse por la izquierda; nunca en la x del ataque siguiente, que es de otro acorde
+    const ult=lista[lista.length-1], paso=lista.length>1&&ult.q>sig.q?(ult.x-sig.x)/(ult.q-sig.q):(mb.x+mb.width-sig.x)/Math.max(0.5,d-sig.q);
+    return Math.max(mb.x+(sig.x-mb.x)*0.25, sig.x-(sig.q-q)*paso);
   };
-  // posición x de cada acorde (un compás puede estar partido en varios segmentos dibujados)
-  const puestos=[], vistas=new Map();
-  for(const c of acordes){
-    const segs=compasDom.map((n,i)=>n===c.compas?i:-1).filter(i=>i>=0); if(!segs.length) continue;
-    // dos compases con el mismo número (casillas de repetición, compases repetidos en la fuente):
-    // la segunda aparición de un mismo compás y parte va al segundo compás dibujado con ese número
-    const clave=c.compas+'|'+c.parte, occ=vistas.get(clave)||0; vistas.set(clave,occ+1);
-    let q=(c.parte-1)*mt.beat;
-    if(c.compas===primero&&segs.length===1&&dur[segs[0]]<mt.full-1e-6) q-=mt.full-dur[segs[0]];
-    q=Math.max(0,q);
-    let k=0;
-    if(occ>0&&segs.length>1){let acum=0;for(let j=0;j<segs.length;j++){if(acum>=occ*mt.full-1e-6){k=j;break}acum+=dur[segs[j]]||mt.full;k=Math.min(j+1,segs.length-1)}}
-    while(k<segs.length-1&&q>=(dur[segs[k]]||mt.full)-1e-6){q-=dur[segs[k]]||mt.full;k++}
-    puestos.push({c,x:xDe(segs[k],q),p:parseRN(c.rn)});
+  // posición x de cada acorde: va a la aparición de su compás que le toca (otra pasada, casilla de repetición…);
+  // si esa aparición no está escrita en la partitura (el análisis despliega una repetición), no se dibuja encima de otra.
+  // Un compás puede estar partido en varios trozos (anacrusa al otro lado de una barra de repetición, «4»+«4a»).
+  // Dos acordes en el mismo punto exacto (dato repetido en el análisis): solo se dibuja el primero.
+  const puestos=[], ocupado=new Set();
+  for(const [j,c] of acordes.entries()){
+    const z=situar(E,c,occ[j],pos.fuente); if(!z) continue;
+    if(z.p<pos.p0||z.p>pos.p1||z.p-pos.p0>=medidas.length) continue;
+    const punto=z.p+'|'+Math.round(Math.min(z.q,E.dur[z.p])*1000); if(ocupado.has(punto)) continue; ocupado.add(punto);
+    puestos.push({c,x:xDe(z.p-pos.p0,z.q),p:parseRN(c.rn)});
   }
   const sistema=svg.querySelector('g.system').getBBox(), abajo=sistema.y+sistema.height;
   const g=document.createElementNS(NS,'g'); g.setAttribute('class','cifrados'); pm.append(g);
@@ -1913,7 +2074,7 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   function dibujar(f){
     g.innerHTML='';
     const hayCambios=puestos.some((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono), hayPivote=v.rom&&pivotes.some(Boolean);
-    let y=abajo+f*1.4+(hayCambios?f*0.95:0)+(hayPivote?f*1.3:0); const filas={}, anchos=[];
+    let y=abajo+f*1.4+(hayCambios?f*0.95:0)+(hayPivote?f*1.3:0); const filas={}, anchos=ultAnchos=[];
     let finEtiqueta=-Infinity;
     if(v.rom){filas.rom=y;y+=f*1.6}
     if(v.int){filas.int=y-f*0.2;y+=f*1.85}
@@ -1960,8 +2121,16 @@ function anotar(svg,acordes,compasDom,primero,reducir){
     }
     return factor;
   }
-  const f0=sp*2.2, r=dibujar(f0);
-  if(reducir&&r<0.98) dibujar(f0*Math.max(0.5,r));
+  let ultAnchos=[], f=sp*2.2;
+  const r=dibujar(f);
+  if(reducir&&r<0.98){f*=Math.max(0.5,r);dibujar(f)}
+  // acordes tan juntos (a distancia de semicorchea) que no caben ni con la letra al mínimo: se separan lo justo,
+  // en orden, para que ninguna etiqueta pise a otra
+  if(reducir||r>=0.9){
+    let dcha=-Infinity, mueve=false;
+    ultAnchos.forEach((a,i)=>{const izq=puestos[i].x-a.w/2, min=dcha+f*0.3; if(izq<min){puestos[i].x+=min-izq;mueve=true} dcha=puestos[i].x+a.w/2});
+    if(mueve) dibujar(f);
+  }
   const gb=g.getBBox(), vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
   const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
   const alto=Math.max(vb[3],+tr[2]+gb.y+gb.height+sp*1.5-vb[1]);
@@ -2299,5 +2468,3 @@ window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
 </script>
-
-</html>
