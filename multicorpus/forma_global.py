@@ -41,17 +41,17 @@ def desde_secciones(secciones):
 
 # ------------------------------------------------------------------ 3. título del movimiento
 REGLAS_TITULO = [
-    (r"\brond[oòó]\b|\brondeau\b|\brondo\b", "rondo"),
+    (r"\brond[oòó]\b|\brondeaux?\b|\brondo\b", "rondo"),
+    (r"\bvaria(t|z)|\bthema\b|\btema con\b|\bair\b.*vari", "tema_variaciones"),   # «Minuetto con variazione»
     (r"\bscherzo\b", "scherzo_trio"),          # no «scherzoso», «scherzando»
     (r"\b(menuetto|minuetto|minuet|menuet)\b(?!.*\btempo di)", "minueto_trio"),
-    (r"\bvaria(t|z)|\bthema\b|\btema con\b|\bair\b.*vari", "tema_variaciones"),
     (r"\bfug(a|e|ue)\b|\bfughetta\b", "fuga"),
 ]
 DANZAS = r"\b(allemande|allemanda|courante|corrente|sarabande|sarabanda|gigue|giga|gavotte|gavotta|bourr[ée]e|passepied|loure|menuet|minuet|polonaise|double)\b"
 
 def desde_titulo(titulo):
     t = (titulo or "").lower()
-    if re.search(r"tempo di minuetto", t):
+    if re.search(r"tempo di m[ei]n?uett", t):
         return None                          # carácter de minueto, no forma
     for patron, forma in REGLAS_TITULO:
         if re.search(patron, t):

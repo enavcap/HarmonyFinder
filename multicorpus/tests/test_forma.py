@@ -78,3 +78,10 @@ def test_numeracion_tradicional():
     assert G.numero("Wolfgang Amadeus Mozart", "Sonata para piano, K. 310", "K. 310") == 8
     assert G.numero("Ludwig van Beethoven", "Sonata para piano, Op. 13(Pathetique)", "Op. 13(Pathetique)") == 8
     assert G.numero("Ludwig van Beethoven", "Cuarteto de cuerda, Op. 131", "Op. 131") == 14
+
+def test_tempo_di_menuetto_no_es_forma():
+    assert G.desde_titulo("Tempo di Menuetto") is None
+
+def test_rondeaux_y_minueto_con_variaciones():
+    assert G.desde_titulo("Rondeaux") == "rondo"
+    assert G.desde_titulo("Minuetto con variazione") == "tema_variaciones"
