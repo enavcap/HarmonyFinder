@@ -10,7 +10,7 @@ normalizados) y añade:
 
 Cada concepto declara su `tipo` ('derivado') y su `criterio`.
 """
-import sqlite3, sys
+import re, sqlite3, sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -105,6 +105,47 @@ def secuencia_quintas(ac):
             i += 1
     return out
 
+# --- tipos de cuatríada: intervalos sobre la fundamental (clases de altura) de los acordes de séptima
+CUATRIADAS = {
+    (0, 4, 7, 10): "septima_de_dominante",      # mayor con 7ª menor
+    (0, 3, 6, 9): "septima_disminuida",         # tres terceras menores
+    (0, 3, 6, 10): "septima_semidisminuida",    # disminuida con 7ª menor
+    (0, 3, 7, 10): "septima_menor",             # menor con 7ª menor
+    (0, 4, 7, 11): "septima_mayor",             # mayor con 7ª mayor
+}
+
+@lru_cache(maxsize=None)
+def tipo_cuatriada(cif, tono):
+    """Tipo de cuatríada del acorde según el cifrado, o None.
+
+    Cuenta lo que suena: un IV7 en menor melódico es de dominante. Quedan fuera las sextas aumentadas
+    (It/Fr/Ger, aunque la alemana suene como una séptima de dominante), los acordes con notas añadidas
+    ([add…]: retardos, apoyaturas, novenas) y los que no tienen cuatro sonidos distintos. Las notas
+    omitidas ([no5], [no3]) no cambian el tipo: un V7 sin quinta sigue siendo séptima de dominante."""
+    if not cif or "[add" in cif or cif.lstrip("#b")[:2] in ("It", "Fr", "Ge"):
+        return None
+    base = re.sub(r"\[no\d+\]", "", cif)
+    try:
+        rn = buscar._rn(base, tono)
+        r = rn.root().pitchClass
+        s = tuple(sorted({(p.pitchClass - r) % 12 for p in rn.pitches}))
+    except Exception:
+        return None
+    return CUATRIADAS.get(s)
+
+def _cuatriada(clave, doc):
+    def det(ac):
+        return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if tipo_cuatriada(a["cifrado"], a["tono"]) == clave]
+    det.__doc__ = doc
+    det.__name__ = clave
+    return det
+
+septima_de_dominante = _cuatriada("septima_de_dominante", "Cuatríada mayor con 7ª menor según el cifrado: V7 y V7/x, y cualquier grado con ese sonido (sin sextas aumentadas ni notas añadidas).")
+septima_disminuida = _cuatriada("septima_disminuida", "Cuatríada de tres terceras menores según el cifrado: viiº7 diatónica o secundaria (viiº7/x).")
+septima_semidisminuida = _cuatriada("septima_semidisminuida", "Cuatríada disminuida con 7ª menor según el cifrado: viiø7, iiø7 (también secundaria).")
+septima_menor = _cuatriada("septima_menor", "Cuatríada menor con 7ª menor según el cifrado: ii7, vi7, iv7, i7…")
+septima_mayor = _cuatriada("septima_mayor", "Cuatríada mayor con 7ª mayor según el cifrado: IM7, IVM7, VIM7…")
+
 NUEVOS = {
     "cadencia_autentica_perfecta": (cadencias.cadencia_autentica_perfecta, "V → I al final de frase, tónica en el tiple", "derivado"),
     "cadencia_autentica_imperfecta": (cadencias.cadencia_autentica_imperfecta, "V → I al final de frase, 3.º o 5.º en el tiple", "derivado"),
@@ -117,6 +158,11 @@ NUEVOS = {
     "quinta_aumentada": (quinta_aumentada, "acordes aumentados (III+, V+…)", "derivado"),
     "sexta_anadida": (sexta_anadida, "acorde con sexta añadida ([add6] / +6)", "derivado"),
     "secuencia_quintas": (secuencia_quintas, "≥4 fundamentales descendiendo por quintas", "derivado"),
+    "septima_de_dominante": (septima_de_dominante, "mayor con 7ª menor: V7, V7/x…", "derivado"),
+    "septima_disminuida": (septima_disminuida, "tres terceras menores: viiº7, viiº7/x", "derivado"),
+    "septima_semidisminuida": (septima_semidisminuida, "disminuida con 7ª menor: viiø7, iiø7…", "derivado"),
+    "septima_menor": (septima_menor, "menor con 7ª menor: ii7, vi7, iv7…", "derivado"),
+    "septima_mayor": (septima_mayor, "mayor con 7ª mayor: IM7, IVM7, VIM7…", "derivado"),
 }
 SINONIMOS_NUEVOS = {
     "cadencia_autentica_imperfecta": ["cadencia imperfecta", "cadencia autentica imperfecta", "imperfecta"],

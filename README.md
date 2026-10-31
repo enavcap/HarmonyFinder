@@ -40,7 +40,7 @@ La web está **en español y en inglés** (botón junto al título). El buscador
 
 - **Una sola caja con etiquetas.** Escribes y eliges: `napolitana` + `Mozart` + `modo menor`. Cada elección queda como etiqueta que se puede quitar.
 - **Seis desplegables** para explorar sin conocer el vocabulario:
-  - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, tipos de acorde y progresiones.
+  - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, cuatríadas, tipos de acorde y progresiones.
   - **Compositor**: buscador y lista por período.
   - **Período**.
   - **Tonalidad**: nota + ♭ ♮ ♯ + mayor/menor.
@@ -64,6 +64,7 @@ La web está **en español y en inglés** (botón junto al título). El buscador
 | Dominantes secundarias | dominante secundaria (resuelta o no), dominante de la dominante, séptima disminuida secundaria |
 | Modulación | diatónica, cromática, enarmónica (verificada con la grafía de la partitura), directa; a relativo, dominante, homónimo, tercera |
 | Otros | secuencia de quintas, pedal de dominante, acorde disminuido, aumentado, sexta añadida |
+| Cuatríadas | séptima de dominante, disminuida, semidisminuida, menor (menor con 7ª menor) y mayor (mayor con 7ª mayor), diatónicas o secundarias |
 | Pasajes por tipo de acorde | tríadas / cuatríadas, inversiones, prestados, secundarias, alterados, modulación — combinables |
 | Progresiones | cualquier sucesión en cifrado romano, con o sin inversiones, con acordes intermedios |
 

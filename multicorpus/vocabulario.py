@@ -123,6 +123,34 @@ CONCEPTOS = {
         ["secuencia", "secuencias", "secuencia de quintas", "circulo de quintas", "progresion de quintas",
          "quintas descendentes"],
         ["sequence", "circle of fifths", "circle-of-fifths progression", "circle progression", "fifths sequence"]),
+    "septima_de_dominante": T(
+        "acorde de séptima de dominante", "dominant seventh chord",
+        "mayor con 7ª menor: V7, V7/x…", "major triad with a minor 7th: V7, V7/x…",
+        ["septima de dominante", "septimas de dominante", "septima dominante", "acorde de septima de dominante",
+         "mayor con septima menor", "cuatriada de dominante"],
+        ["dominant seventh", "dominant sevenths", "dominant 7th", "major-minor seventh", "dom7"]),
+    "septima_disminuida": T(
+        "acorde de séptima disminuida", "diminished seventh chord",
+        "tres terceras menores: viiº7, viiº7/x", "three stacked minor thirds: viio7, viio7/x",
+        ["septima disminuida", "septimas disminuidas", "acorde de septima disminuida", "cuatriada disminuida"],
+        ["diminished seventh", "diminished sevenths", "fully diminished seventh", "dim7", "o7"]),
+    "septima_semidisminuida": T(
+        "acorde de séptima semidisminuida", "half-diminished seventh chord",
+        "disminuida con 7ª menor: viiø7, iiø7…", "diminished triad with a minor 7th: viiø7, iiø7…",
+        ["semidisminuida", "semidisminuido", "septima semidisminuida", "septimas semidisminuidas",
+         "septima de sensible", "acorde semidisminuido", "cuatriada semidisminuida"],
+        ["half-diminished seventh", "half diminished seventh", "half-diminished", "half diminished", "m7b5",
+         "minor seventh flat five"]),
+    "septima_menor": T(
+        "acorde de séptima menor", "minor seventh chord",
+        "menor con 7ª menor: ii7, vi7, iv7…", "minor triad with a minor 7th: ii7, vi7, iv7…",
+        ["septima menor", "acorde de septima menor", "menor con septima menor", "cuatriada menor"],
+        ["minor seventh", "minor sevenths", "minor 7th", "m7"]),
+    "septima_mayor": T(
+        "acorde de séptima mayor", "major seventh chord",
+        "mayor con 7ª mayor: IM7, IVM7, VIM7…", "major triad with a major 7th: IM7, IVM7, VIM7…",
+        ["septima mayor", "acorde de septima mayor", "mayor con septima mayor", "cuatriada mayor"],
+        ["major seventh", "major sevenths", "major 7th", "maj7"]),
     "pedal_de_dominante": T(
         "pedal de dominante", "dominant pedal",
         "dominante sostenida en el bajo ≥2 compases con armonías ajenas encima",
@@ -193,6 +221,7 @@ GRUPOS = {
     "secundarias": T("Dominantes secundarias", "Secondary dominants"),
     "modulacion": T("Modulación", "Modulation"),
     "otros": T("Otros recursos", "Other devices"),
+    "cuatriadas": T("Cuatríadas", "Seventh chords"),
     "tipos": T("Tipos de acorde", "Chord types"),
     "progresiones": T("Progresiones", "Progressions"),
 }

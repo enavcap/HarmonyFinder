@@ -20,7 +20,9 @@ PARES = [("cadencia rota", "deceptive cadence"), ("sexta alemana en el desarroll
          ("cadencia perfecta", "PAC"), ("semicadencia", "imperfect cadence"), ("ii6 V7 I", "ii6 V7 I"),
          ("desarrollo", "development"), ("todas las obras", "all works"),
          ("forma sonata", "sonata form"), ("sexta napolitana en forma sonata", "Neapolitan sixth in sonata form"),
-         ("rondó", "rondo"), ("minueto con trío", "minuet and trio")]
+         ("rondó", "rondo"), ("minueto con trío", "minuet and trio"),
+         ("séptima semidisminuida", "half-diminished seventh"), ("séptima disminuida en el desarrollo", "diminished seventh in the development"),
+         ("séptima mayor", "major seventh chord"), ("séptima de dominante", "dominant seventh"), ("acordes de séptima de dominante", "dominant seventh chords")]
 
 class H(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".html": "text/html; charset=utf-8",
