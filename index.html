@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Buscador Armónico</title>
+<title>Harmony Finder</title>
+<link rel="icon" type="image/svg+xml" href="icono.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -34,6 +35,8 @@ body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
 header{max-width:1240px;margin:0 auto;padding-block:28px 14px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
 h1{font:600 26px/1.1 var(--display);margin:0;text-wrap:balance}
+h1{display:flex;align-items:center;gap:10px}
+h1 .logo{width:34px;height:34px;flex:none;color:var(--accent)}
 header p{margin:0;color:var(--muted);font-size:14px}
 header p b{color:var(--fg);font-weight:500;font-variant-numeric:tabular-nums}
 main{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
@@ -248,7 +251,7 @@ footer a{color:var(--accent)}
 </style>
 
 <header>
-  <h1 data-en="Harmony finder">Buscador armónico</h1>
+  <h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1>
   <button class="btn der" id="verColecciones" type="button" hidden data-en="Collections">Colecciones</button>
   <button class="btn" id="idioma" type="button" lang="en" aria-label="Change language to English" data-en="Español" data-en-aria-label="Cambiar el idioma a español">English</button>
 </header>
@@ -346,7 +349,7 @@ function aplicarIdioma(raiz=document){
   raiz.querySelectorAll('[data-en]').forEach(el=>{el.textContent=el.dataset.en});
   for(const at of ['placeholder','aria-label','title']) raiz.querySelectorAll(`[data-en-${at}]`).forEach(el=>el.setAttribute(at,el.getAttribute(`data-en-${at}`)));
 }
-aplicarIdioma(); if(EN) document.title='Harmony finder';
+aplicarIdioma();
 const META=await (await fetch('data/meta.json')).json();
 const VOC=await (await fetch('data/vocab.json')).json();
 const FORMA=await fetch('data/forma.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
