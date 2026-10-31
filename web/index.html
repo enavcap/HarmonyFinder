@@ -1429,7 +1429,7 @@ for(const id of ['verRom','verInt','verFun']){
 }
 
 // ============ partitura con cifrados grabados debajo ============
-let tk=null, tkCargando=null, temporizador; const zips={}, xmlCache=new Map(), cargado={obra:null,tm:null,metro:null};
+let tk=null, tkCargando=null, temporizador; const zips={}, xmlCache=new Map(), cargado={tm:null,metros:[]};
 function toolkit(){
   if(tk) return Promise.resolve(tk);
   if(!tkCargando) tkCargando=new Promise((ok,ko)=>{
@@ -1679,12 +1679,20 @@ function posiciones(nums,a,b){
   for(let i=p0;i<=p1;i++){const n=nums[i];if(n!=null&&esNum(n))ult=+n;compas.push(ult)}
   return {sel:`${p0+1}-${p1+1}`,compas};
 }
-function metro(mei){
-  const tag=(mei.match(/<meterSig[^>]*>/)||[''])[0];
-  let c=+((tag.match(/count="(\d+)"/)||[])[1]||0), u=+((tag.match(/unit="(\d+)"/)||[])[1]||0);
-  if(!c){c=+((mei.match(/meter\.count="(\d+)"/)||[])[1]||4);u=+((mei.match(/meter\.unit="(\d+)"/)||[])[1]||4)}
-  const compuesto=c%3===0&&(c>3||u>=8);
-  return {beat:compuesto?12/u:4/u, full:c*4/u};
+// compás vigente en cada compás de la partitura (por posición): una obra puede cambiar de compás
+// (p. ej. K. 331: tema en 6/8, variación VI en 4/4) y la parte del análisis se mide en el compás de ese pasaje
+const metroCache=new Map();
+function metrosPorCompas(id,xml){
+  if(metroCache.has(id)) return metroCache.get(id);
+  const fin=xml.indexOf('</part>'), parte=fin>0?xml.slice(0,fin):xml, out=[];
+  let c=4,u=4;
+  for(const m of parte.matchAll(/<measure\b[^>]*>([\s\S]*?)<\/measure>/g)){
+    const t=m[1].match(/<time\b[^>]*>[\s\S]*?<beats>([^<]+)<\/beats>\s*<beat-type>(\d+)/);
+    if(t){const cc=t[1].split('+').reduce((a,b)=>a+(+b||0),0);if(cc&&+t[2]){c=cc;u=+t[2]}}
+    const compuesto=c%3===0&&(c>3||u>=8);
+    out.push({beat:compuesto?12/u:4/u, full:c*4/u});
+  }
+  metroCache.set(id,out); return out;
 }
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
@@ -1726,7 +1734,7 @@ async function mostrar(h){
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
       despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
-      if(cargado.obra!==o.m){cargado.obra=o.m;cargado.metro=metro(t.getMEI())}
+      {const [p0,p1]=pos.sel.split('-').map(Number), ms=metrosPorCompas(o.m,xml); cargado.metros=ms.slice(p0-1,p1); if(!cargado.metros.length) cargado.metros=[ms[0]||{beat:1,full:4}]}
       svg=cont.querySelector('svg');
       const r=anotar(svg,dentro,pos.compas,primero,intento===2);
       if(r>=0.9||intento===2) break;
@@ -1821,11 +1829,11 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
   return null;
 }
 // Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
-// líneas adicionales, plicas, barras, tresillos o indicaciones, se sube por encima de todas ellas.
+// líneas adicionales, plicas, barras, tresillos, casillas de repetición o indicaciones, se sube por encima de todas ellas.
 function despejarNumeros(svg){
   const pm=svg&&svg.querySelector('g.page-margin'), inner=svg&&svg.querySelector('svg.definition-scale'); if(!pm||!inner) return;
   const nums=[...pm.querySelectorAll('g.mNum')]; if(!nums.length) return;
-  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse';
+  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket';
   const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
   let minY=Infinity;
   for(const g of nums){
@@ -1855,14 +1863,14 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
   const pm=svg.querySelector('g.page-margin'), inner=svg.querySelector('svg.definition-scale'); if(!pm||!inner) return 1;
   const medidas=[...svg.querySelectorAll('g.measure')]; if(!medidas.length) return 1;
-  const tm=cargado.tm, mt=cargado.metro;
+  const tm=cargado.tm, mtDe=i=>cargado.metros[Math.min(i,cargado.metros.length-1)]||{beat:1,full:4};
   let sp=180;
   const ys=[...svg.querySelector('g.staff').children].filter(n=>n.tagName==='path').map(pth=>(pth.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number)).filter(c=>c.length>=4&&c[1]===c[3]).map(c=>c[1]).slice(0,5);
   if(ys.length===5&&ys[4]>ys[0]) sp=(ys[4]-ys[0])/4;
   const inicio=new Map(), arranques=[];
   for(const e of tm) if(e.measureOn){inicio.set(e.measureOn,e.qstamp);arranques.push(e.qstamp)}
   const idx=new Map(medidas.map((m,i)=>[m.id,i]));
-  const ini=medidas.map(m=>inicio.get(m.id)), dur=ini.map(s0=>{const n=arranques.find(q=>q>s0+1e-6);return n!=null?n-s0:mt.full});
+  const ini=medidas.map(m=>inicio.get(m.id)), dur=ini.map(s0=>{const n=arranques.find(q=>q>s0+1e-6);return n!=null?n-s0:null}).map((d,i)=>d??mtDe(i).full);
   const ataques=medidas.map(()=>new Map());
   for(const e of tm){
     if(!e.on) continue;
@@ -1877,12 +1885,12 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   }
   const xDe=(i,q)=>{
     const lista=[...ataques[i].entries()].map(([qq,xs])=>({q:qq,x:xs.reduce((s1,x)=>s1+x,0)/xs.length})).sort((p,r)=>p.q-r.q);
-    const mb=medidas[i].getBBox(), d=dur[i]||mt.full;
+    const mb=medidas[i].getBBox(), d=dur[i]||mtDe(i).full;
     if(!lista.length) return mb.x+mb.width*(0.15+0.7*q/d);
     const exacto=lista.find(z=>Math.abs(z.q-q)<0.02); if(exacto) return exacto.x;
     const ant=[...lista].reverse().find(z=>z.q<q), sig=lista.find(z=>z.q>q);
     if(ant&&sig) return ant.x+(sig.x-ant.x)*(q-ant.q)/(sig.q-ant.q);
-    if(ant) return ant.x+(mb.x+mb.width-ant.x)*0.8*(q-ant.q)/Math.max(0.01,d-ant.q);
+    if(ant) return ant.x+(mb.x+mb.width-ant.x)*0.8*Math.min(1,(q-ant.q)/Math.max(0.01,d-ant.q));   // nunca fuera de su compás
     return sig.x;
   };
   // posición x de cada acorde (un compás puede estar partido en varios segmentos dibujados)
@@ -1892,12 +1900,12 @@ function anotar(svg,acordes,compasDom,primero,reducir){
     // dos compases con el mismo número (casillas de repetición, compases repetidos en la fuente):
     // la segunda aparición de un mismo compás y parte va al segundo compás dibujado con ese número
     const clave=c.compas+'|'+c.parte, occ=vistas.get(clave)||0; vistas.set(clave,occ+1);
-    let q=(c.parte-1)*mt.beat;
+    const mt=mtDe(segs[0]); let q=(c.parte-1)*mt.beat;
     if(c.compas===primero&&segs.length===1&&dur[segs[0]]<mt.full-1e-6) q-=mt.full-dur[segs[0]];
     q=Math.max(0,q);
     let k=0;
-    if(occ>0&&segs.length>1){let acum=0;for(let j=0;j<segs.length;j++){if(acum>=occ*mt.full-1e-6){k=j;break}acum+=dur[segs[j]]||mt.full;k=Math.min(j+1,segs.length-1)}}
-    while(k<segs.length-1&&q>=(dur[segs[k]]||mt.full)-1e-6){q-=dur[segs[k]]||mt.full;k++}
+    if(occ>0&&segs.length>1){let acum=0;for(let j=0;j<segs.length;j++){if(acum>=occ*mt.full-1e-6){k=j;break}acum+=dur[segs[j]]||mtDe(segs[j]).full;k=Math.min(j+1,segs.length-1)}}
+    while(k<segs.length-1&&q>=(dur[segs[k]]||mtDe(segs[k]).full)-1e-6){q-=dur[segs[k]]||mtDe(segs[k]).full;k++}
     puestos.push({c,x:xDe(segs[k],q),p:parseRN(c.rn)});
   }
   const sistema=svg.querySelector('g.system').getBBox(), abajo=sistema.y+sistema.height;
