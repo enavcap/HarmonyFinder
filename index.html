@@ -246,16 +246,63 @@ form.guardar input,form.guardar textarea,form.guardar select{font:14px var(--bod
 .col-item{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:3px}
 .col-item .acc{display:flex;gap:8px;margin-top:4px}
 header .der{margin-left:auto}
-footer{max-width:1240px;margin:28px auto 0;color:var(--muted);font-size:13px;line-height:1.5}
+/* cabecera: marca, pestañas y botones */
+header{align-items:center}
+.marca{display:flex;flex-direction:column;gap:3px}
+.alfa{font:600 10px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid currentColor;border-radius:999px;padding:4px 7px 3px;align-self:center}
+.lema{margin:0 0 0 44px;color:var(--muted);font-size:13.5px}
+nav.pestanas{display:flex;gap:2px;margin-left:auto}
+nav.pestanas a{font:500 14px var(--body);color:var(--muted);text-decoration:none;padding:6px 10px;border-bottom:2px solid transparent}
+nav.pestanas a:hover{color:var(--fg)}
+nav.pestanas a[aria-current=page]{color:var(--accent);border-bottom-color:var(--accent)}
+header .der{margin-left:0}
+@media (max-width:640px){header{gap:10px 8px}.marca{width:100%}nav.pestanas{margin-left:0;order:2;flex:1}header>.btn{order:3}.lema{margin-left:0}}
+/* portada: lo que se ve antes de buscar */
+#portada{margin-top:22px;display:grid;gap:18px}
+#portada .cifras{display:flex;flex-wrap:wrap;gap:8px 28px;padding:16px 0;border-block:1px solid var(--line)}
+#portada .cifras div{display:grid}
+#portada .cifras b{font:600 26px/1.1 var(--display);font-variant-numeric:tabular-nums;color:var(--fg)}
+#portada .cifras span{font-size:12.5px;color:var(--muted)}
+#portada h2{font:500 10.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+#portada .ejemplos{display:flex;flex-wrap:wrap;gap:8px}
+#portada .ejemplos button{font:14px var(--body);padding:8px 13px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer;text-align:left}
+#portada .ejemplos button:hover{border-color:var(--accent);color:var(--accent)}
+#portada .aviso{margin:0;font-size:13.5px;color:var(--muted);padding:10px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0}
+#portada .aviso a{color:var(--accent)}
+/* página del proyecto */
+#proyecto{max-width:760px;margin:6px auto 0;line-height:1.65}
+#proyecto h2{font:600 30px/1.15 var(--display);margin:8px 0 14px;text-wrap:balance}
+#proyecto h3{font:600 19px/1.3 var(--display);margin:30px 0 8px}
+#proyecto p,#proyecto li{font-size:15.5px}
+#proyecto .entrada{font-size:17px;color:var(--fg)}
+#proyecto a{color:var(--accent)}
+#proyecto .no{padding:14px 18px;border:1px solid var(--line);border-left:3px solid var(--enh);border-radius:0 8px 8px 0;background:var(--panel)}
+#proyecto .no p{margin:6px 0 0}
+#proyecto .no strong:first-child{font-family:var(--display);font-size:17px}
+#proyecto .cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
+#proyecto .cifras div{padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+#proyecto .cifras b{display:block;font:600 24px/1.1 var(--display);font-variant-numeric:tabular-nums}
+#proyecto .cifras span{font-size:13px;color:var(--muted)}
+#proyecto .periodo{margin:14px 0 4px;font:500 10.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#proyecto .comps{font-size:14px;color:var(--muted);margin:0}
+#proyecto .comps b{color:var(--fg);font-weight:500}
+#proyecto .firma{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+/* pie */
+footer{max-width:1240px;margin:44px auto 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.5;display:grid;gap:6px}
+footer .autor{color:var(--fg);font-size:14px}
+footer .autor b{font-family:var(--display);font-weight:600}
 footer a{color:var(--accent)}
 </style>
 
 <header>
-  <h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1>
+  <div class="marca"><div style="display:flex;align-items:center;gap:12px"><h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1><span class="alfa" title="Versión en pruebas" data-en-title="Test version" data-en="alpha">alfa</span></div>
+  <p class="lema" data-en="Real examples of harmonic devices in the repertoire">Ejemplos reales de procedimientos armónicos en el repertorio</p></div>
+  <nav class="pestanas" aria-label="Secciones de la web" data-en-aria-label="Site sections"><a href="#" id="tabBuscar" aria-current="page" data-en="Search">Buscador</a><a href="#proyecto" id="tabProyecto" data-en="The project">El proyecto</a></nav>
   <button class="btn der" id="verColecciones" type="button" hidden data-en="Collections">Colecciones</button>
   <button class="btn" id="idioma" type="button" lang="en" aria-label="Change language to English" data-en="Español" data-en-aria-label="Cambiar el idioma a español">English</button>
 </header>
 <section id="colecciones" hidden></section>
+<article id="proyecto" hidden></article>
 
 <main>
 <section style="min-width:0">
@@ -295,6 +342,7 @@ footer a{color:var(--accent)}
     </div>
   </form>
 
+  <div id="portada" hidden></div>
   <div class="estado" id="estado"></div>
   <div class="limite" id="limite" hidden><label class="chk"><input type="checkbox" id="todosEj"> <span data-en="every example from each work">todos los ejemplos de cada obra</span></label></div>
   <div class="resumen-b" id="resumen" hidden></div>
@@ -330,7 +378,7 @@ footer a{color:var(--accent)}
 </aside>
 </main>
 
-<footer><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT), <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> (CC BY 4.0), <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a> (CC0) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></footer>
+<footer><div class="autor"><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</div><div><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT), <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> (CC BY 4.0), <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a> (CC0) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></div></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -969,6 +1017,7 @@ function pintarEtiquetas(){
   $('#ajustesProg').hidden=actual?.t!=='p';
   $('#ajustesPasaje').hidden=actual?.t!=='f';
   $('#limite').hidden=true;
+  $('#portada').hidden=!!(actual||hayFiltros());
   refrescarMenus();
 }
 $('#caja').addEventListener('click',e=>{if(!e.target.closest('button'))q.focus()});
@@ -2134,7 +2183,104 @@ $('#idioma').onclick=()=>{
   pref('idioma',EN?'es':'en'); location.reload();
 };
 // ============ estado inicial: vacío (o la búsqueda que había antes de cambiar de idioma)
-pintarInicio(); pintarEtiquetas();
+pintarInicio();
+
+// ============ portada y página del proyecto ============
+const nn0=n=>n.toLocaleString(LOC);
+const fijarCampo=(id,v)=>{const sel=$('#'+id); if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===v)){const op=document.createElement('option');op.value=v;sel.append(op)} sel.value=v};
+const EJEMPLOS=[
+  {es:'sexta alemana en el desarrollo',en:'German sixth in the development',f:{seccion:'desarrollo'},o:{t:'c',k:'sexta_aumentada_alemana'}},
+  {es:'cadencia rota en Mozart',en:'deceptive cadence in Mozart',f:{compositor:'Wolfgang Amadeus Mozart'},o:{t:'c',k:'cadencia_rota'}},
+  {es:'napolitana en forma sonata',en:'Neapolitan sixth in sonata form',f:{formaGlobal:'forma_sonata'},o:{t:'c',k:'napolitana'}},
+  {es:'modulación enarmónica',en:'enharmonic modulation',f:{},o:{t:'c',k:'modulacion_enarmonica'}},
+  {es:'progresión ii6 – V7 – I',en:'progression ii6 – V7 – I',f:{},o:{t:'p',q:['ii6','V7','I']}},
+  {es:'corales de Bach en modo menor',en:'Bach chorales in the minor mode',f:{formaGlobal:'coral',modo:'m'},o:null},
+];
+function probar(e){
+  for(const id of CAMPOS) $('#'+id).value='';
+  for(const [k,v] of Object.entries(e.f)) fijarCampo(k,v);
+  rellenarObras(); cuentaCache.clear(); actual=null;
+  if(e.o) elegir(e.o); else relanzar();
+}
+const nComp=new Set(OBRAS.map(o=>o.c)).size, nObras=new Set(OBRAS.map(o=>o.w)).size;
+function pintarPortada(){
+  const c=(n,es,en)=>`<div><b>${nn0(n)}</b><span>${trd(es,en)}</span></div>`;
+  $('#portada').innerHTML=`<div class="cifras">${c(nObras,'obras','works')}${c(porMov.size,'movimientos','movements')}${c(nComp,'compositores','composers')}${c(META.n_acordes,'acordes analizados','analysed chords')}</div>
+    <div><h2>${trd('Prueba con','Try')}</h2><div class="ejemplos">${EJEMPLOS.map((e,i)=>`<button type="button" data-ej="${i}">${esc(e[LANG])}</button>`).join('')}</div></div>
+    <p class="aviso">${trd('Harmony Finder busca <strong>dónde aparece un procedimiento</strong>, no el análisis de una obra concreta: solo incluye las obras de las que hay un análisis armónico abierto. ','Harmony Finder looks for <strong>where a device occurs</strong>, not for the analysis of a particular piece: it only includes works for which an open harmonic analysis exists. ')}<a href="#proyecto">${trd('Qué hay y qué no','What is and isn’t included')}</a></p>`;
+  $('#portada').querySelectorAll('[data-ej]').forEach(b=>b.onclick=()=>probar(EJEMPLOS[+b.dataset.ej]));
+}
+function pintarProyecto(){
+  const per=new Map(); for(const o of OBRAS){if(!per.has(o.c))per.set(o.c,{});const d=per.get(o.c);d[o.per]=d[o.per]||new Set();d[o.per].add(o.w)}
+  const principal=c=>Object.entries(per.get(c)).sort((a,b)=>b[1].size-a[1].size)[0][0];
+  const nw=c=>new Set(OBRAS.filter(o=>o.c===c).map(o=>o.w)).size;
+  const lista=EPOCAS.map(p=>{const cs=comps.filter(c=>principal(c)===p); if(!cs.length) return '';
+    return `<p class="periodo">${esc(perTxt(p))}</p><p class="comps">${cs.map(c=>`<b>${esc(porApellido(c))}</b> ${nw(c)}`).join(' · ')}</p>`}).join('');
+  const nForma=Object.keys(FORMAS).length, nSecc=Object.keys(FORMA).length;
+  const c=(n,es,en)=>`<div><b>${nn0(n)}</b><span>${trd(es,en)}</span></div>`;
+  const cifras=`<div class="cifras">${c(nObras,'obras','works')}${c(porMov.size,'movimientos','movements')}${c(nComp,'compositores','composers')}${c(META.n_acordes,'acordes analizados','analysed chords')}</div>`;
+  const es=`
+  <h2>El proyecto</h2>
+  <p class="entrada">Harmony Finder busca <strong>ejemplos reales de procedimientos armónicos</strong> en el repertorio —cadencias rotas, sextas aumentadas, modulaciones enarmónicas, dominantes secundarias, progresiones concretas— y muestra cada uno en la partitura, con su cifrado romano, interválico y funcional.</p>
+  <p>Está pensado para la clase de armonía y de análisis: preparar ejemplos, encontrar modelos para un ejercicio o comprobar cómo resuelven distintos compositores un mismo recurso. Las búsquedas se combinan: un procedimiento con un compositor, una época, una tonalidad, una forma o una sección («sexta alemana en el desarrollo de las sonatas de Beethoven»).</p>
+  <div class="no"><strong>Qué no es</strong>
+    <p>No es un catálogo de análisis de obras. No sirve para buscar una pieza concreta y leer su análisis: muchas obras no están, y las que están es porque alguien publicó en abierto un análisis armónico completo de ellas. La pregunta a la que responde es <em>«¿dónde aparece este procedimiento?»</em>, no <em>«¿cómo se analiza esta obra?»</em>.</p></div>
+  <h3>Qué hay dentro</h3>
+  ${cifras}
+  <p>El repertorio va del Renacimiento al siglo XX, con mucho más peso en el Barroco (sobre todo los corales de Bach) y en el Clasicismo y el Romanticismo. Estos son los compositores, con su número de obras:</p>
+  ${lista}
+  <h3>De dónde salen los análisis</h3>
+  <p>Harmony Finder no analiza las obras por sí mismo: lee análisis hechos por especialistas y publicados en abierto, y localiza en ellos los procedimientos.</p>
+  <ul>
+    <li><a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (Gotham et al.), que reúne en un solo formato análisis de varios proyectos: corales de Bach, sonatas y cuartetos de Beethoven, sonatas de Mozart, lieder, ejemplos de manuales de armonía…</li>
+    <li><a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus</a> del Digital and Cognitive Musicology Lab (EPFL), con cifrado romano y cadencias anotadas.</li>
+  </ul>
+  <p>Algunos procedimientos vienen marcados en el propio análisis; otros se deducen del cifrado (una napolitana es un ♭II en primera inversión, por ejemplo), y las cadencias se afinan con rasgos de la partitura: metro, bajo, calderones, final de frase. Puede haber falsos positivos y ausencias. La ficha de cada ejemplo dice cómo se ha identificado y enlaza el análisis original.</p>
+  <h3>Forma y secciones</h3>
+  <p>La forma global (forma sonata, rondó, minueto con trío…) solo se asigna cuando una fuente la indica: <a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a>, <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> para Beethoven, el <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a>, el título del movimiento o el género de la colección. Por ahora la tienen ${nn0(nForma)} de ${nn0(porMov.size)} movimientos. Las secciones (exposición, desarrollo, reexposición…) solo están en ${nn0(nSecc)} movimientos de sonatas de Beethoven y Mozart.</p>
+  <h3>Partituras</h3>
+  <p>Las partituras vienen de OpenScore, del corpus de music21 o se reconstruyen a partir de las tablas de notas del DCML, y se graban en el navegador con Verovio. Al reconstruirlas pueden aparecer pequeñas imperfecciones de notación.</p>
+  <h3>Estado y licencia</h3>
+  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmoFind" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p class="firma">Harmony Finder es un proyecto de <strong>Ezequiel Navarrete</strong>.</p>`;
+  const en=`
+  <h2>The project</h2>
+  <p class="entrada">Harmony Finder looks for <strong>real examples of harmonic devices</strong> in the repertoire —deceptive cadences, augmented sixths, enharmonic modulations, secondary dominants, specific progressions— and shows each one in the score, with Roman-numeral, figured-bass and functional analysis.</p>
+  <p>It is meant for harmony and analysis classes: preparing examples, finding models for an exercise, or seeing how different composers handle the same device. Searches can be combined: a device with a composer, a period, a key, a form or a section (“German sixth in the development of Beethoven’s sonatas”).</p>
+  <div class="no"><strong>What it is not</strong>
+    <p>It is not a catalogue of analysed works. It is not for looking up a particular piece and reading its analysis: many works are missing, and the ones included are there because someone published a complete open harmonic analysis of them. The question it answers is <em>“where does this device occur?”</em>, not <em>“how is this piece analysed?”</em>.</p></div>
+  <h3>What is inside</h3>
+  ${cifras}
+  <p>The repertoire runs from the Renaissance to the 20th century, weighted heavily towards the Baroque (above all Bach’s chorales) and towards the Classical and Romantic periods. These are the composers, with their number of works:</p>
+  ${lista}
+  <h3>Where the analyses come from</h3>
+  <p>Harmony Finder does not analyse the music itself: it reads analyses made by specialists and published openly, and finds the devices in them.</p>
+  <ul>
+    <li><a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (Gotham et al.), which brings analyses from several projects into one format: Bach chorales, Beethoven sonatas and quartets, Mozart sonatas, lieder, textbook examples…</li>
+    <li>The <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus</a> of the Digital and Cognitive Musicology Lab (EPFL), with Roman numerals and annotated cadences.</li>
+  </ul>
+  <p>Some devices are marked in the analysis itself; others are derived from the Roman numerals (a Neapolitan sixth is a ♭II in first inversion, for instance), and cadences are refined with features of the score: metre, bass, fermatas, phrase endings. There can be false positives and gaps. Each example’s sheet says how it was identified and links to the original analysis.</p>
+  <h3>Form and sections</h3>
+  <p>The overall form (sonata form, rondo, minuet and trio…) is only assigned when a source states it: <a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a>, <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> for Beethoven, the <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a>, the movement title or the genre of the collection. So far ${nn0(nForma)} of ${nn0(porMov.size)} movements have one. Sections (exposition, development, recapitulation…) are only available for ${nn0(nSecc)} movements of Beethoven and Mozart sonatas.</p>
+  <h3>Scores</h3>
+  <p>Scores come from OpenScore, the music21 corpus, or are rebuilt from the DCML note tables, and are engraved in the browser with Verovio. Rebuilt scores may show small notation imperfections.</p>
+  <h3>Status and licence</h3>
+  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it. The site can be used in Spanish or English, and searches give exactly the same results in both. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmoFind" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p class="firma">Harmony Finder is a project by <strong>Ezequiel Navarrete</strong>.</p>`;
+  $('#proyecto').innerHTML=EN?en:es;
+}
+// pestañas: Buscador / El proyecto (#proyecto en la dirección)
+function ruta(){
+  const pr=location.hash==='#proyecto';
+  if(pr&&!$('#proyecto').innerHTML) pintarProyecto();
+  $('#proyecto').hidden=!pr; document.querySelector('main').hidden=pr; if(pr) $('#colecciones').hidden=true;
+  $('#tabProyecto').setAttribute('aria-current',pr?'page':'false'); $('#tabBuscar').setAttribute('aria-current',pr?'false':'page');
+  if(pr) window.scrollTo(0,0);
+}
+$('#tabBuscar').onclick=e=>{e.preventDefault();history.pushState(null,'',location.pathname+location.search);ruta()};
+window.addEventListener('hashchange',ruta); window.addEventListener('popstate',ruta);
+pintarPortada(); ruta();
+pintarEtiquetas();
 (()=>{let r=null;try{r=JSON.parse(sessionStorage.getItem('restaurar')||'null');sessionStorage.removeItem('restaurar')}catch(e){}
   if(!r) return;
   for(let [id,v] of Object.entries(r.filtros||{})){if(!v)continue;const sel=$('#'+id); if(id==='compositor'&&COMP_OTRO[v]&&!comps.includes(v)) v=COMP_OTRO[v];
