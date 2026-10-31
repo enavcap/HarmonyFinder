@@ -431,7 +431,6 @@ function lineas(texto,tono){
 // ============ conceptos (detectores precalculados) ============
 const GRUPOS={
  'Cadencias':['cadencia_autentica_perfecta','cadencia_autentica_imperfecta','cadencia_rota','semicadencia','cadencia_frigia','cadencia_plagal','sexta_cuarta_cadencial'],
- 'Cadencias anotadas por el corpus':['cadencia_perfecta_anotada','cadencia_imperfecta_anotada','semicadencia_anotada','cadencia_rota_anotada','cadencia_plagal_anotada','cadencia_evitada_anotada'],
  'Acordes':['napolitana','napolitana_a_dominante','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','sexta_aumentada_a_64','acorde_disminuido','quinta_aumentada','sexta_anadida','intercambio_modal','acorde_vecino_cromatico'],
  'Dominantes secundarias':['dominante_secundaria','dominante_secundaria_resuelta','dominante_de_la_dominante','septima_disminuida_secundaria'],
  'Modulación':['modulacion','modulacion_diatonica','modulacion_cromatica','modulacion_enarmonica','modulacion_directa','modulacion_a_relativo','modulacion_a_dominante','modulacion_a_homonimo','modulacion_a_tercera'],
@@ -441,9 +440,7 @@ for(const k of Object.keys(META.conceptos)) if(!Object.values(GRUPOS).flat().inc
 const GRUPO_DE={}; for(const [g,l] of Object.entries(GRUPOS)) for(const k of l) GRUPO_DE[k]=g;
 const ORDEN_C=Object.values(GRUPOS).flat();
 const ACENTOS={modulacion:'modulación',diatonica:'diatónica',cromatica:'cromática',enarmonica:'enarmónica',cromatico:'cromático',homonimo:'homónimo',autentica:'auténtica',septima:'séptima'};
-const NOMBRES={cadencia_perfecta_anotada:'cadencia perfecta (anotada)',cadencia_imperfecta_anotada:'cadencia imperfecta (anotada)',semicadencia_anotada:'semicadencia (anotada)',
- cadencia_rota_anotada:'cadencia rota (anotada)',cadencia_plagal_anotada:'cadencia plagal (anotada)',cadencia_evitada_anotada:'cadencia evitada (anotada)',
- cadencia_autentica_imperfecta:'cadencia auténtica imperfecta',acorde_disminuido:'acorde disminuido',quinta_aumentada:'acorde de quinta aumentada',sexta_anadida:'acorde de sexta añadida',
+const NOMBRES={cadencia_autentica_imperfecta:'cadencia auténtica imperfecta',acorde_disminuido:'acorde disminuido',quinta_aumentada:'acorde de quinta aumentada',sexta_anadida:'acorde de sexta añadida',
  secuencia_quintas:'secuencia de quintas descendentes'};
 const NOMBRE=k=>NOMBRES[k]||k.split('_').map(w=>ACENTOS[w]||w).join(' ').replace('sexta aumentada a 64','sexta aumentada → 64 cadencial').replace('napolitana a dominante','napolitana → dominante').replace('sexta cuarta cadencial','sexta y cuarta cadencial');
 
@@ -794,7 +791,7 @@ $('#todosEj').addEventListener('change',()=>{$('#unaPorObra').checked=!$('#todos
 const PERIODOS=[['Renacimiento','hasta 1600'],['Barroco','1600–1750'],['Clasicismo','1750–1820'],['Romanticismo','1820–1900'],['Siglo XX','desde 1900']];
 function pintarInicio(){
   const corto=(g,k)=>{const n=NOMBRE(k);
-    if(/^Cadencias/.test(g)) return n.replace(/^cadencia /,'').replace(' (anotada)','');
+    if(g==='Cadencias') return n.replace(/^cadencia /,'');
     if(g==='Modulación') return n==='modulación'?'cualquiera':n.replace(/^modulación /,'');
     return n};
   const FAM=[
@@ -803,7 +800,6 @@ function pintarInicio(){
     ['Dominantes secundarias',GRUPOS['Dominantes secundarias'].map(k=>({k}))],
     ['Modulación',GRUPOS['Modulación'].map(k=>({k}))],
     ['Otros recursos',['acorde_disminuido','quinta_aumentada','sexta_anadida','secuencia_quintas','pedal_de_dominante'].map(k=>({k}))],
-    ['Cadencias anotadas',GRUPOS['Cadencias anotadas por el corpus'].map(k=>({k}))],
     ['Tipos de acorde',['tri','cua','fund','inv1','inv2','inv3','pres','sec','alt','conmod'].map(f=>({f}))],
     ['Progresiones',['I IV V I','ii6 V7 I','I vi IV V','iv6 V','I6 ii6 V'].map(p=>({p}))],
   ];
@@ -1709,7 +1705,7 @@ async function pintarComparacion(h,a,b){
 }
 function descripcionBusqueda(){
   if(!actual) return {nombre:'—',tipo:'',criterio:''};
-  if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:m.tipo==='anotado'?'Coincidencia exacta con la anotación del corpus':'Derivado por regla a partir del cifrado romano',criterio:m.criterio||m.desc||''}}
+  if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:'Derivado por regla a partir del cifrado romano',criterio:m.criterio||m.desc||''}}
   if(actual.t==='f') return {nombre:etiquetaFacetas(actual.ids),tipo:'Derivado por regla a partir del cifrado romano',criterio:actual.ids.map(id=>FAC[id].desc).join(' · ')+` (pasajes de ${filtros().L} compases)`};
   if(actual.t==='p') return {nombre:'progresión '+actual.q.join(' – '),tipo:'Coincidencia de sucesión de cifrados',criterio:`${$('#progInv').checked?'sin tener en cuenta inversiones':'con inversiones exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
   return {nombre:'obra completa',tipo:'',criterio:''};
