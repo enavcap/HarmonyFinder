@@ -2000,7 +2000,10 @@ function anotar(svg,acordes,occ,E,pos,reducir){
     const ant=[...lista].reverse().find(z=>z.q<q), sig=lista.find(z=>z.q>q);
     if(ant&&sig) return ant.x+(sig.x-ant.x)*(q-ant.q)/(sig.q-ant.q);
     if(ant) return ant.x+(mb.x+mb.width-ant.x)*0.8*Math.min(1,(q-ant.q)/Math.max(0.01,d-ant.q));   // nunca fuera de su compás
-    return sig.x;
+    // antes del primer ataque (el compás empieza con una nota ligada o un silencio): hacia atrás con el espaciado
+    // del propio compás, sin salirse por la izquierda; nunca en la x del ataque siguiente, que es de otro acorde
+    const ult=lista[lista.length-1], paso=lista.length>1&&ult.q>sig.q?(ult.x-sig.x)/(ult.q-sig.q):(mb.x+mb.width-sig.x)/Math.max(0.5,d-sig.q);
+    return Math.max(mb.x+(sig.x-mb.x)*0.25, sig.x-(sig.q-q)*paso);
   };
   // posición x de cada acorde: va a la aparición de su compás que le toca (otra pasada, casilla de repetición…);
   // si esa aparición no está escrita en la partitura (el análisis despliega una repetición), no se dibuja encima de otra.
