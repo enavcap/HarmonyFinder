@@ -1911,6 +1911,11 @@ async function mostrar(h){
         r.setAttribute('x',x0);r.setAttribute('y',bb.y-120);r.setAttribute('width',x1-x0);r.setAttribute('height',bb.height+240);
         r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.22');r.setAttribute('rx','40');m.parentNode.insertBefore(r,m)}
     }
+    // los números de compás se recolocan otra vez cuando el navegador ha terminado de maquetar la partitura:
+    // en la primera pasada algunas cajas (claves, barras) aún no tienen su tamaño final
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    if(seleccion!==h||!svg.isConnected) return;
+    svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); despejarNumeros(svg);
     $('#copiarSVG').disabled=$('#copiarPNG').disabled=false;
   }catch(e){cont.innerHTML=`<div class="vacio">${trd('No se pudo mostrar la partitura','The score could not be shown')} (${esc(e.message||e)}).</div>`;pintarTira(h,dentro)}
 }
