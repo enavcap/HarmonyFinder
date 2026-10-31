@@ -302,6 +302,28 @@ FORMA = {
     "preparacion_dominante": F(2, "preparación de la dominante", "dominant preparation",
                                ["dominant preparation", "dominant", "bass pedal", "dominant prolongation"]),
 }
+# Forma global del movimiento (filtro «Forma»). Las secciones de arriba son el filtro «Secciones».
+def G(es, en, desc_es, desc_en, sin_es=(), sin_en=()):
+    return T(es, en, desc_es, desc_en, sin_es, sin_en)
+
+FORMAS_GLOBALES = {
+    "forma_sonata": G("forma sonata", "sonata form", "exposición, desarrollo y reexposición", "exposition, development and recapitulation",
+                      ["allegro de sonata", "forma de sonata"], ["sonata-allegro form", "sonata allegro form", "first-movement form"]),
+    "rondo": G("rondó", "rondo", "estribillo que vuelve entre episodios", "a refrain returning between episodes",
+               ["rondo", "rondeau", "forma rondo"], ["rondeau", "rondo form"]),
+    "minueto_trio": G("minueto con trío", "minuet and trio", "minueto, trío y minueto da capo", "minuet, trio and minuet da capo",
+                      ["minueto", "forma minueto", "menuetto", "minuetto"], ["minuet", "menuet", "menuetto"]),
+    "scherzo_trio": G("scherzo con trío", "scherzo and trio", "scherzo, trío y scherzo da capo", "scherzo, trio and scherzo da capo",
+                      ["scherzo"], ["scherzo"]),
+    "tema_variaciones": G("tema con variaciones", "theme and variations", "un tema y sus variaciones", "a theme and its variations",
+                          ["variaciones", "variacion", "tema y variaciones"], ["variations", "variation form"]),
+    "binaria": G("forma binaria", "binary form", "dos partes, normalmente con repetición (danzas, sonatas de Scarlatti)",
+                 "two parts, usually repeated (dances, Scarlatti sonatas)", ["binaria", "bipartita", "forma bipartita"], ["binary", "two-part form"]),
+    "ternaria": G("forma ternaria", "ternary form", "A–B–A", "A–B–A", ["ternaria", "tripartita", "forma tripartita", "aba"], ["ternary", "three-part form"]),
+    "fuga": G("fuga", "fugue", "fuga", "fugue", ["fugas", "fughetta"], ["fugues", "fughetta"]),
+    "coral": G("coral", "chorale", "armonización de coral", "chorale harmonization", ["corales", "coral armonizado"], ["chorales", "chorale harmonization"]),
+}
+
 # Siglas que no son zonas propias: puntos de articulación (no se pueden buscar como tramo).
 SIGLAS_PUNTO = {"mc": "cesura media / medial caesura", "eec": "cierre esencial de la exposición / essential expositional closure"}
 
@@ -314,4 +336,4 @@ def sinonimos_concepto(k):
 def exportar():
     """Vocabulario para la web (web/data/vocab.json)."""
     return {"conceptos": CONCEPTOS, "grupos": GRUPOS, "facetas": FACETAS, "periodos": PERIODOS,
-            "forma": FORMA, "requiere": REQUIERE}
+            "forma": FORMA, "formas_globales": FORMAS_GLOBALES, "requiere": REQUIERE}

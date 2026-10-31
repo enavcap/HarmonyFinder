@@ -46,3 +46,35 @@ def test_alineacion(tmp_path):
     F = forma.alinear(r, nums, acordes)                                           # acaba antes, pero la reexposición cuadra
     assert F and F[-1] == (45, 1.0, None, None)
     assert forma.alinear(r, nums, [(1, 1.0, "C", "I"), (34, 1.0, "G", "V")]) is None   # no se puede comprobar: fuera
+
+# ------------------------------------------------------------------ forma global
+from multicorpus import forma_global as G
+
+def test_forma_global_desde_las_secciones():
+    assert G.desde_secciones(["exposicion", "desarrollo", "reexposicion", "coda"]) == "forma_sonata"
+    assert G.desde_secciones(["minueto", "trio", "minueto"]) == "minueto_trio"
+    assert G.desde_secciones(["seccion_a", "seccion_b", "seccion_a", "seccion_c", "seccion_a", "coda"]) == "rondo"
+    assert G.desde_secciones(["seccion_a", "seccion_b", "seccion_a"]) == "ternaria"
+    assert G.desde_secciones(["tema", "variacion", "variacion"]) == "tema_variaciones"
+    assert G.desde_secciones([None]) is None
+
+def test_forma_global_desde_el_titulo():
+    assert G.desde_titulo("Menuetto and Trio: Allegretto") == "minueto_trio"
+    assert G.desde_titulo("Rondo: Allegretto") == "rondo"
+    assert G.desde_titulo("Andante scherzoso quasi Allegretto") is None        # carácter, no forma
+    assert G.desde_titulo("Tempo di minuetto") is None
+    assert G.desde_titulo("Andantino con Variazioni") == "tema_variaciones"
+    assert G.desde_titulo("Allegro") is None
+
+def test_prioridad_y_suites():
+    suite = {"fuente": "dcml", "subcorpus": "bach_solo", "compositor": "Bach", "titulo": "Suite No. 1 · 5. Minuet I"}
+    assert G.asignar(suite) == ("binaria", "colección")                       # en una suite, danza binaria
+    son = {"fuente": "wir", "subcorpus": "Piano_Sonatas", "compositor": "Mozart", "titulo": "Sonata · 1", "clave": "x"}
+    assert G.asignar(son, ["exposicion", "desarrollo"]) == ("forma_sonata", "Taking Form")
+    assert G.asignar(son, ["exposicion", "desarrollo"], revision={"x": "rondo"}) == ("rondo", "revisión")
+    assert G.asignar(son) == (None, None)                                     # sin fuente, sin forma
+
+def test_numeracion_tradicional():
+    assert G.numero("Wolfgang Amadeus Mozart", "Sonata para piano, K. 310", "K. 310") == 8
+    assert G.numero("Ludwig van Beethoven", "Sonata para piano, Op. 13(Pathetique)", "Op. 13(Pathetique)") == 8
+    assert G.numero("Ludwig van Beethoven", "Cuarteto de cuerda, Op. 131", "Op. 131") == 14

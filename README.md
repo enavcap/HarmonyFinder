@@ -38,12 +38,13 @@ La web está **en español y en inglés** (botón junto al título). El buscador
 <img src="docs/img/inicio.png" alt="Caja de búsqueda con los desplegables Armonía, Compositor, Período y Tonalidad" width="100%">
 
 - **Una sola caja con etiquetas.** Escribes y eliges: `napolitana` + `Mozart` + `modo menor`. Cada elección queda como etiqueta que se puede quitar.
-- **Cinco desplegables** para explorar sin conocer el vocabulario:
+- **Seis desplegables** para explorar sin conocer el vocabulario:
   - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, tipos de acorde y progresiones.
   - **Compositor**: buscador y lista por período.
   - **Período**.
   - **Tonalidad**: nota + ♭ ♮ ♯ + mayor/menor.
-  - **Forma**: sección (exposición, desarrollo, reexposición, coda, trío…) y zona (primer grupo temático, transición, segundo grupo temático, zona conclusiva, retransición…). Se combina con cualquier procedimiento, también escribiéndolo: «sexta alemana en el desarrollo», «modulación diatónica en la exposición». Acepta las siglas de la teoría de la sonata (P, TR, S, C).
+  - **Forma**: la forma global del movimiento (forma sonata, rondó, minueto con trío, scherzo con trío, tema con variaciones, forma binaria, ternaria, fuga, coral). Se combina con compositor, tonalidad y procedimiento: «forma sonata» + «Mozart» + «la menor» da la sonata n.º 8, K. 310; «sexta napolitana en forma sonata» busca dentro de esos movimientos. Solo se asigna cuando una fuente lo dice (Taking Form, el título del movimiento o el género de la colección); el resto queda sin forma hasta revisarlo (`multicorpus/formas_revisadas.tsv`).
+  - **Secciones**: sección (exposición, desarrollo, reexposición, coda, trío…) y zona (primer grupo temático, transición, segundo grupo temático, zona conclusiva, retransición…). Se combina con cualquier procedimiento, también escribiéndolo: «sexta alemana en el desarrollo», «modulación diatónica en la exposición». Acepta las siglas de la teoría de la sonata (P, TR, S, C).
 - **Resultados que se leen de un vistazo**:
   - resumen con barras por compositor, período y modo (pulsar una barra filtra);
   - cuatro ejemplos destacados;
@@ -104,7 +105,8 @@ multicorpus/          catálogo multicorpus (modelo, identificación, adaptadore
   vocabulario.py      términos en español e inglés (claves canónicas, sinónimos, forma)
   cadencias.py        cadencias como finales de frase (rasgos de partitura)
   unisonos.py         pasajes al unísono u octava
-  forma.py            forma de Taking Form, alineada con las partituras
+  forma.py            secciones de Taking Form, alineadas con las partituras
+  forma_global.py     forma global de cada movimiento y numeración tradicional de sonatas y cuartetos
 buscar.py             detectores armónicos sobre la secuencia de acordes
 indexar.py            lectura de RomanText con music21
 herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_idiomas.py (mismos resultados en los dos idiomas)
@@ -127,7 +129,9 @@ pip install music21 pytest
 python -m multicorpus.importar wir
 python -m multicorpus.importar dcml
 python -m multicorpus.auditar            # posibles duplicados
-git clone https://github.com/MarkGotham/Taking-Form datos/fuentes/taking_form   # forma
+git clone https://github.com/MarkGotham/Taking-Form datos/fuentes/taking_form   # secciones
+# títulos de movimiento de Beethoven y Mozart (forma global): metadata.tsv de DCMLab/beethoven_piano_sonatas
+# y DCMLab/mozart_piano_sonatas en datos/fuentes/dcml_meta/<repositorio>/metadata.tsv
 python -m multicorpus.exportar_mc        # genera web/data y web/scores
 python -m pytest -q multicorpus/tests
 python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan lo mismo

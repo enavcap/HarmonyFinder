@@ -17,7 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .buscar_mc import conectar, acordes, conceptos, sinonimos, RAIZ, DATOS
-from . import unisonos, cadencias, vocabulario, forma
+from . import unisonos, cadencias, vocabulario, forma, forma_global
 import buscar
 
 WEB = RAIZ / "web"
@@ -209,8 +209,33 @@ def main(argv=None):
         grupos[aid // 50][aid], compases[aid], hs = datos_analisis(ac, aid, ti, CONC)
         for k, v in hs.items():
             hits[k].extend(v)
-    print(f"{n_uni} acordes en pasajes al unísono u octava · {len(formas)} movimientos con forma")
+    print(f"{n_uni} acordes en pasajes al unísono u octava · {len(formas)} movimientos con secciones")
     json.dump(formas, open(WEB / "data" / "forma.json", "w", encoding="utf-8"), separators=(",", ":"))
+    # forma global de cada movimiento y número tradicional de sonatas y cuartetos (forma_global.py)
+    td = forma_global.titulos_dcml(DATOS / "fuentes" / "dcml_meta" / "beethoven_piano_sonatas" / "metadata.tsv",
+                                   DATOS / "fuentes" / "dcml_meta" / "mozart_piano_sonatas" / "metadata.tsv")
+    rev = forma_global.revisadas(RAIZ / "multicorpus" / "formas_revisadas.tsv")
+    fglob, numeros = {}, {}
+    for e in entradas:
+        n = forma_global.numero(e["c"], e["ob"], e["cat"])
+        if n:
+            numeros[e["w"]] = n
+        if e["m"] in fglob:
+            continue
+        try:
+            mv = int(str(e["mv"] or "").split(".")[0])
+        except ValueError:
+            mv = None
+        extra = td.get(("Beethoven" if "Beethoven" in e["c"] else "Mozart", n, mv)) if n and mv and "Sonata para piano" in e["ob"] else None
+        clave = e["src"]["archivo"].rsplit("/", 1)[0] if e["f"] == "wir" else e["src"]["archivo"]
+        f, fu = forma_global.asignar({"fuente": e["f"], "subcorpus": e["col"].split(" · ", 1)[1], "compositor": e["c"],
+                                      "titulo": e["t"], "clave": clave},
+                                     [x[2] for x in formas.get(e["m"], [])], extra, rev)
+        if f:
+            fglob[e["m"]] = [f, fu]
+    json.dump(fglob, open(WEB / "data" / "formas.json", "w", encoding="utf-8"), separators=(",", ":"))
+    json.dump(numeros, open(WEB / "data" / "numeros.json", "w", encoding="utf-8"), separators=(",", ":"))
+    print(f"{len(fglob)} movimientos con forma global")
     for g, d in grupos.items():
         json.dump({"tonos": tonos, "obras": d}, open(WEB / "data" / "acordes" / f"{g}.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     json.dump({"tonos": tonos, "obras": compases}, open(WEB / "data" / "compases.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))

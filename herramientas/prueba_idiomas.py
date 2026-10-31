@@ -18,7 +18,9 @@ PARES = [("cadencia rota", "deceptive cadence"), ("sexta alemana en el desarroll
          ("solo tríadas sin inversiones", "triads only root position only"),
          ("dominante secundaria en el segundo grupo temático", "secondary dominant in the secondary theme"),
          ("cadencia perfecta", "PAC"), ("semicadencia", "imperfect cadence"), ("ii6 V7 I", "ii6 V7 I"),
-         ("desarrollo", "development"), ("todas las obras", "all works")]
+         ("desarrollo", "development"), ("todas las obras", "all works"),
+         ("forma sonata", "sonata form"), ("sexta napolitana en forma sonata", "Neapolitan sixth in sonata form"),
+         ("rondó", "rondo"), ("minueto con trío", "minuet and trio")]
 
 class H(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".html": "text/html; charset=utf-8",
@@ -44,7 +46,9 @@ def main():
               const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[,;.:]/g,' ').replace(/\\s+/g,' ');
               for(const [k,v] of Object.entries(V.conceptos)) for(const n of [v.es,v.en]) if(P.interpretar(n)!==k) out.push(['concepto',k,n]);
               for(const [k,v] of Object.entries(V.facetas)) for(const n of [v.es,v.en]){const r=P.parsearFacetas(norm(n));if(r.ids.join()!==k||r.libres.length) out.push(['faceta',k,n])}
-              for(const [k,v] of Object.entries(V.forma)) for(const n of [v.es,v.en]){const r=P.extraerForma(n);if(r&&r.valor!==k) out.push(['forma',k,n])}
+              // «minueto», «scherzo»… son también formas globales, que tienen prioridad al escribir
+              for(const [k,v] of Object.entries(V.forma)) for(const n of [v.es,v.en]){const r=P.extraerForma(n);if(r&&r.campo!=='formaGlobal'&&r.valor!==k) out.push(['secciones',k,n])}
+              for(const [k,v] of Object.entries(V.formas_globales)) for(const n of [v.es,v.en]){const r=P.extraerForma(n);if(r&&(r.campo!=='formaGlobal'||r.valor!==k)) out.push(['forma',k,n])}
               return out}""", voc)
             for es, en in PARES:
                 for txt in (es, en):
