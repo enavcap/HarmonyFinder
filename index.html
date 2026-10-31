@@ -83,6 +83,10 @@ label.chk input{accent-color:var(--accent)}
 #inicio .filtro{font:14px var(--body);padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);margin-bottom:4px}
 #inicio .lista{max-height:min(320px,50vh);overflow-y:auto;display:grid;gap:2px}
 #inicio .sec{display:grid;gap:1px}
+#inicio .forma{grid-template-columns:1fr 1fr;gap:8px}
+#inicio .forma h3{font:500 10.5px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 10px 4px}
+#inicio .forma .items{grid-template-columns:1fr}
+@media (max-width:520px){#inicio .forma{grid-template-columns:1fr}}
 #inicio .sec h3{font:500 10.5px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:8px 10px 4px}
 #inicio .tono{grid-template-columns:1fr auto auto;gap:8px;align-items:start}
 #inicio .tono .col{display:grid;gap:2px}
@@ -242,8 +246,9 @@ footer a{color:var(--accent)}
 </style>
 
 <header>
-  <h1>Buscador armónico</h1>
-  <button class="btn der" id="verColecciones" type="button" hidden>Colecciones</button>
+  <h1 data-en="Harmony finder">Buscador armónico</h1>
+  <button class="btn der" id="verColecciones" type="button" hidden data-en="Collections">Colecciones</button>
+  <button class="btn" id="idioma" type="button" lang="en" aria-label="Change language to English" data-en="Español" data-en-aria-label="Cambiar el idioma a español">English</button>
 </header>
 <section id="colecciones" hidden></section>
 
@@ -253,24 +258,24 @@ footer a{color:var(--accent)}
     <div class="buscador">
       <div class="caja" id="caja">
         <span id="chips"></span>
-        <input type="search" id="q" placeholder="Procedimiento, compositor, tonalidad…" role="combobox" aria-expanded="false" aria-controls="sugerencias" aria-autocomplete="list" aria-label="Buscar">
-        <button type="button" class="limpiar" id="limpiar" aria-label="Borrar la búsqueda" hidden>×</button>
+        <input type="search" id="q" placeholder="Procedimiento, compositor, tonalidad…" data-en-placeholder="Device, composer, key…" role="combobox" aria-expanded="false" aria-controls="sugerencias" aria-autocomplete="list" aria-label="Buscar" data-en-aria-label="Search">
+        <button type="button" class="limpiar" id="limpiar" aria-label="Borrar la búsqueda" data-en-aria-label="Clear the search" hidden>×</button>
       </div>
       <ul id="sugerencias" role="listbox" hidden></ul>
     </div>
     <div class="ajustes" id="ajustesProg" hidden>
-      <label class="chk"><input type="checkbox" id="progInv"> ignorar inversiones</label>
-      <select id="progGap" aria-label="Acordes intermedios"><option value="0">sin acordes intermedios</option><option value="1">hasta 1 intermedio</option><option value="2">hasta 2 intermedios</option></select>
-      <label class="chk">mínimo <input type="number" id="progMin" min="2" max="12" value="" placeholder="todos" class="num"> acordes</label>
+      <label class="chk"><input type="checkbox" id="progInv"> <span data-en="ignore inversions">ignorar inversiones</span></label>
+      <select id="progGap" aria-label="Acordes intermedios" data-en-aria-label="Chords in between"><option value="0" data-en="no chords in between">sin acordes intermedios</option><option value="1" data-en="up to 1 in between">hasta 1 intermedio</option><option value="2" data-en="up to 2 in between">hasta 2 intermedios</option></select>
+      <label class="chk"><span data-en="at least">mínimo</span> <input type="number" id="progMin" min="2" max="12" value="" placeholder="todos" data-en-placeholder="all" class="num"> <span data-en="chords">acordes</span></label>
     </div>
     <div class="ajustes" id="ajustesPasaje" hidden>
-      <select id="longitud" aria-label="Longitud de los pasajes">
-        <option value="2">pasajes de 2 compases</option>
-        <option value="4" selected>pasajes de 4 compases</option>
-        <option value="8">pasajes de 8 compases</option>
+      <select id="longitud" aria-label="Longitud de los pasajes" data-en-aria-label="Passage length">
+        <option value="2" data-en="2-bar passages">pasajes de 2 compases</option>
+        <option value="4" selected data-en="4-bar passages">pasajes de 4 compases</option>
+        <option value="8" data-en="8-bar passages">pasajes de 8 compases</option>
       </select>
     </div>
-    <nav id="inicio" aria-label="Procedimientos armónicos"></nav>
+    <nav id="inicio" aria-label="Procedimientos armónicos" data-en-aria-label="Harmonic devices"></nav>
     <div hidden>
           <select id="compositor" aria-label="Compositor"><option value="">Todos los compositores</option></select>
           <select id="obraSel" aria-label="Obra" hidden><option value="">Todas sus obras</option></select>
@@ -278,12 +283,14 @@ footer a{color:var(--accent)}
           <select id="epoca" aria-label="Época"><option value="">Todas las épocas</option></select>
           <select id="tonalidad" aria-label="Tonalidad"><option value="">Todas las tonalidades</option></select>
           <select id="modo" aria-label="Modo"><option value="">Mayor y menor</option><option value="M">Modo mayor</option><option value="m">Modo menor</option></select>
+          <select id="seccion" aria-label="Sección"><option value=""></option></select>
+          <select id="zona" aria-label="Zona"><option value=""></option></select>
           <input type="checkbox" id="unaPorObra">
     </div>
   </form>
 
   <div class="estado" id="estado"></div>
-  <div class="limite" id="limite" hidden><label class="chk"><input type="checkbox" id="todosEj"> todos los ejemplos de cada obra</label></div>
+  <div class="limite" id="limite" hidden><label class="chk"><input type="checkbox" id="todosEj"> <span data-en="every example from each work">todos los ejemplos de cada obra</span></label></div>
   <div class="resumen-b" id="resumen" hidden></div>
   <div id="destacados" hidden></div>
   <div class="tabla" id="tabla" hidden>
@@ -291,7 +298,7 @@ footer a{color:var(--accent)}
       <thead><tr id="cabecera"></tr></thead>
       <tbody id="cuerpo"></tbody>
     </table></div>
-    <div class="pag" hidden><span id="pagInfo"></span><span><button class="btn" id="prev" type="button">Anterior</button> <button class="btn" id="next" type="button">Siguiente</button></span></div>
+    <div class="pag" hidden><span id="pagInfo"></span><span><button class="btn" id="prev" type="button" data-en="Previous">Anterior</button> <button class="btn" id="next" type="button" data-en="Next">Siguiente</button></span></div>
   </div>
 </section>
 
@@ -299,25 +306,25 @@ footer a{color:var(--accent)}
   <div class="cab" id="cab"></div>
   <div id="selAnalisis" hidden></div>
   <div class="herr" id="herr" hidden>
-    <span id="nav" hidden><button class="btn" id="atras" type="button" aria-label="Compases anteriores">◀</button> <button class="btn" id="adelante" type="button" aria-label="Compases siguientes">▶</button></span>
-    <span class="mostrar" role="group" aria-label="Cifrados visibles">
-      <label class="chk rom"><input type="checkbox" id="verRom" checked> romano</label>
-      <label class="chk int"><input type="checkbox" id="verInt" checked> interválico</label>
-      <label class="chk fun"><input type="checkbox" id="verFun" checked> funcional</label>
+    <span id="nav" hidden><button class="btn" id="atras" type="button" aria-label="Compases anteriores" data-en-aria-label="Previous bars">◀</button> <button class="btn" id="adelante" type="button" aria-label="Compases siguientes" data-en-aria-label="Next bars">▶</button></span>
+    <span class="mostrar" role="group" aria-label="Cifrados visibles" data-en-aria-label="Visible analysis lines">
+      <label class="chk rom"><input type="checkbox" id="verRom" checked> <span data-en="Roman numerals">romano</span></label>
+      <label class="chk int"><input type="checkbox" id="verInt" checked> <span data-en="figured bass">interválico</span></label>
+      <label class="chk fun"><input type="checkbox" id="verFun" checked> <span data-en="functional">funcional</span></label>
     </span>
-    <label title="Compases de margen">±<input type="range" id="margen" min="0" max="4" value="1"> <span id="margenV">1</span></label>
-    <button class="btn" id="copiarSVG" type="button" title="Copia la partitura con los cifrados como SVG (vectorial) para pegar en Inkscape, Illustrator, Affinity, Word…">Copiar SVG</button>
-    <button class="btn" id="copiarPNG" type="button" title="Copia la partitura con los cifrados como imagen">Copiar imagen</button>
-    <button class="btn" id="copiar" type="button">Copiar cita</button>
+    <label title="Compases de margen" data-en-title="Bars of margin">±<input type="range" id="margen" min="0" max="4" value="1"> <span id="margenV">1</span></label>
+    <button class="btn" id="copiarSVG" type="button" title="Copia la partitura con los cifrados como SVG (vectorial) para pegar en Inkscape, Illustrator, Affinity, Word…" data-en-title="Copies the score and analysis as SVG (vector) to paste into Inkscape, Illustrator, Affinity, Word…" data-en="Copy SVG">Copiar SVG</button>
+    <button class="btn" id="copiarPNG" type="button" title="Copia la partitura con los cifrados como imagen" data-en-title="Copies the score and analysis as an image" data-en="Copy image">Copiar imagen</button>
+    <button class="btn" id="copiar" type="button" data-en="Copy citation">Copiar cita</button>
   </div>
   <div id="partitura"></div>
   <div id="tira" hidden></div>
   <div id="comparar" hidden></div>
-  <details id="ficha" open><summary>Ficha del ejemplo</summary><div class="cuerpo" id="fichaCuerpo"></div></details>
+  <details id="ficha" open><summary data-en="About this example">Ficha del ejemplo</summary><div class="cuerpo" id="fichaCuerpo"></div></details>
 </aside>
 </main>
 
-<footer>Análisis: <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</footer>
+<footer><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -326,14 +333,36 @@ footer a{color:var(--accent)}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[,;.:]/g,' ').replace(/\s+/g,' ');
+const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+// ============ idioma: la interfaz cambia; las búsquedas trabajan con claves y dan los mismos resultados
+const LANG=(()=>{const p=pref('idioma');if(p==='es'||p==='en')return p;return /^en\b/i.test(navigator.language||'')?'en':'es'})();
+const EN=LANG==='en', LOC=LANG, trd=(es,en)=>EN?en:es;
+document.documentElement.lang=LANG;
+function aplicarIdioma(raiz=document){
+  if(!EN) return;
+  raiz.querySelectorAll('[data-en]').forEach(el=>{el.textContent=el.dataset.en});
+  for(const at of ['placeholder','aria-label','title']) raiz.querySelectorAll(`[data-en-${at}]`).forEach(el=>el.setAttribute(at,el.getAttribute(`data-en-${at}`)));
+}
+aplicarIdioma(); if(EN) document.title='Harmony finder';
 const META=await (await fetch('data/meta.json')).json();
+const VOC=await (await fetch('data/vocab.json')).json();
+const FORMA=await fetch('data/forma.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
 const OBRAS=await (await fetch('data/obras.json')).json();
+// títulos que genera el catálogo en español
+const TITULOS_EN=[[/^Sonata para piano/,'Piano Sonata'],[/^Cuarteto de cuerda/,'String Quartet'],[/^Madrigali, libro/,'Madrigals, book']];
+// compositores con transliteración española: en inglés, la inglesa (el buscador acepta las dos)
+const COMP_EN={'Piotr Ilich Chaikovski':'Pyotr Ilyich Tchaikovsky','Serguéi Rajmáninov':'Sergei Rachmaninoff','Nikolái Rimski-Kórsakov':'Nikolai Rimsky-Korsakov'};
+const COMP_OTRO=Object.fromEntries(Object.entries(COMP_EN).flatMap(([a,b])=>[[a,b],[b,a]]));
+// datos de procedencia que escribe el catálogo en español
+const DATOS_EN=[[/versión «/g,'version «'],[/^reconstruida desde las tablas de notas del DCML$/,'reconstructed from the DCML note tables'],
+  [/^corpus de music21$/,'music21 corpus'],[/^convertida desde Humdrum \(Craig Sapp\)$/,'converted from Humdrum (Craig Sapp)']];
+if(EN) for(const o of OBRAS){for(const [re,en] of TITULOS_EN){o.t=o.t.replace(re,en);o.ob=o.ob.replace(re,en)} if(COMP_EN[o.c]) o.c=COMP_EN[o.c]
+  for(const k of ['autores','partitura','origen']) if(o.src[k]) for(const [re,en] of DATOS_EN) o.src[k]=o.src[k].replace(re,en)}
 const porId=new Map(OBRAS.map(o=>[o.id,o]));
 const porMov=new Map(); for(const o of OBRAS){if(!porMov.has(o.m))porMov.set(o.m,[]);porMov.get(o.m).push(o)}
 const porClave=new Map(OBRAS.map(o=>[o.src.clave,o]));
 const NFUENTE={wir:'When in Rome',dcml:'DCML'};
 const badge=f=>`<span class="fu ${f}">${f==='wir'?'WiR':'DCML'}</span>`;
-const pref=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
 
 // ============ filtros ============
 const apellido=c=>c.split(' ').pop();
@@ -342,17 +371,46 @@ const porApellido=c=>{const p=c.split(' ');return p.length>1?p[p.length-1]+', '+
 const comps=[...new Set(OBRAS.map(o=>o.c))].sort((a,b)=>porApellido(a).localeCompare(porApellido(b),'es',{sensitivity:'base'}));
 for(const c of comps){const o=document.createElement('option');o.value=c;o.textContent=porApellido(c);$('#compositor').append(o)}
 const EPOCAS=['Renacimiento','Barroco','Clasicismo','Romanticismo','Siglo XX'];
-for(const e of EPOCAS.filter(e=>OBRAS.some(o=>o.per===e))){const o=document.createElement('option');o.value=e;o.textContent=e;$('#epoca').append(o)}
+const perTxt=p=>(VOC.periodos[p]||{})[LANG]||p;
+for(const e of EPOCAS.filter(e=>OBRAS.some(o=>o.per===e))){const o=document.createElement('option');o.value=e;o.textContent=perTxt(e);$('#epoca').append(o)}
+// ---- forma (sección y zona) de los movimientos con forma anotada (Taking Form)
+const formaTxt=k=>(VOC.forma[k]||{})[LANG]||k;
+const FORMA_PRESENTE={1:new Set(),2:new Set()};
+for(const lista of Object.values(FORMA)) for(const [,,sec,zona] of lista){if(sec)FORMA_PRESENTE[1].add(sec);if(zona)FORMA_PRESENTE[2].add(zona)}
+const FORMA_ORDEN=Object.keys(VOC.forma);
+function formaEn(m,compas,parte){
+  const L=FORMA[m]; if(!L) return null;
+  let r=[null,null];
+  for(const [c,p,sec,zona] of L){if(c>compas||(c===compas&&p>(parte||1)+1e-6))break;r=[sec,zona]}
+  return r;
+}
+// ¿cae en la sección/zona pedida? un tramo [c0,p0]–[c1,p1] tiene que empezar y acabar dentro
+function pasaForma(o,f,c0,p0,c1,p1){
+  if(!f.sec&&!f.zona) return true;
+  const a=formaEn(o.m,c0,p0); if(!a) return false;
+  const b=c1==null?a:formaEn(o.m,c1,p1==null?99:p1);
+  return (!f.sec||(a[0]===f.sec&&b[0]===f.sec))&&(!f.zona||(a[1]===f.zona&&b[1]===f.zona));
+}
+// primer compás de la sección/zona pedida (para abrir un movimiento por ella)
+function inicioForma(m,f){
+  const L=FORMA[m]; if(!L) return null;
+  const x=L.find(([c,p,sec,zona])=>(!f.sec||sec===f.sec)&&(!f.zona||zona===f.zona)); if(!x) return null;
+  let fin=null; const i=L.indexOf(x);
+  for(let j=i+1;j<L.length;j++){const [c,,sec,zona]=L[j];if((f.sec&&sec!==f.sec)||(f.zona&&zona!==f.zona)){fin=c;break}}
+  return {ini:Math.max(x[0],0),fin};
+}
 const TONOS=['C','c','C#','c#','D-','D','d','E-','e-','E','e','F','f','F#','f#','G-','G','g','g#','A-','A','a','B-','b-','B','b'];
 function rellenarObras(){
-  const sel=$('#obraSel'), comp=$('#compositor').value; sel.innerHTML='<option value="">Todas sus obras</option>';
+  const sel=$('#obraSel'), comp=$('#compositor').value; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
   sel.hidden=!comp; if(!comp) return;
   const vistas=new Map(); for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)) vistas.set(o.w,o.ob);
   for(const [w,t] of [...vistas].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true}))){const op=document.createElement('option');op.value=w;op.textContent=t;sel.append(op)}
 }
 const filtros=()=>({comp:$('#compositor').value,obra:+$('#obraSel').value||0,fuente:$('#fuente').value,per:$('#epoca').value,
-  tono:$('#tonalidad').value,modo:$('#modo').value,lim:$('#unaPorObra').checked?2:Infinity,L:+$('#longitud').value});
-const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&!(f.obra&&o.w!==f.obra)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per);
+  tono:$('#tonalidad').value,modo:$('#modo').value,sec:$('#seccion').value,zona:$('#zona').value,
+  lim:$('#unaPorObra').checked?2:Infinity,L:+$('#longitud').value});
+const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&!(f.obra&&o.w!==f.obra)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per)
+  &&!((f.sec||f.zona)&&!inicioForma(o.m,f));
 const pasaTono=(t,f)=>!t||(!(f.tono&&t!==f.tono)&&!(f.modo&&((t[0]===t[0].toUpperCase())?'M':'m')!==f.modo));
 
 // ============ cifrados: romano → interválico y funcional ============
@@ -422,10 +480,10 @@ function traducir(texto,tono,modo){
 const ver=()=>({rom:$('#verRom').checked,int:$('#verInt').checked,fun:$('#verFun').checked});
 function lineas(texto,tono){
   const v=ver(); let h='';
-  if(v.rom) h+=`<span class="lin rom">${esc(texto)}</span>`;
-  if(v.int) h+=`<span class="lin int" title="Cifrado interválico">${esc(traducir(texto,tono,'int'))}</span>`;
-  if(v.fun) h+=`<span class="lin fun" title="Cifrado funcional">${esc(traducir(texto,tono,'fun'))}</span>`;
-  return h||'<span class="lin" style="color:var(--muted)">(cifrados ocultos)</span>';
+  if(v.rom) h+=`<span class="lin rom">${esc(etqTxt(texto))}</span>`;
+  if(v.int) h+=`<span class="lin int" title="${trd('Cifrado interválico','Figured bass')}">${esc(etqTxt(traducir(texto,tono,'int')))}</span>`;
+  if(v.fun) h+=`<span class="lin fun" title="${trd('Cifrado funcional','Functional analysis')}">${esc(etqTxt(traducir(texto,tono,'fun')))}</span>`;
+  return h||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
 }
 
 // ============ conceptos (detectores precalculados) ============
@@ -439,10 +497,12 @@ const GRUPOS={
 for(const k of Object.keys(META.conceptos)) if(!Object.values(GRUPOS).flat().includes(k)) GRUPOS['Acordes'].push(k);
 const GRUPO_DE={}; for(const [g,l] of Object.entries(GRUPOS)) for(const k of l) GRUPO_DE[k]=g;
 const ORDEN_C=Object.values(GRUPOS).flat();
-const ACENTOS={modulacion:'modulación',diatonica:'diatónica',cromatica:'cromática',enarmonica:'enarmónica',cromatico:'cromático',homonimo:'homónimo',autentica:'auténtica',septima:'séptima'};
-const NOMBRES={cadencia_autentica_imperfecta:'cadencia auténtica imperfecta',acorde_disminuido:'acorde disminuido',quinta_aumentada:'acorde de quinta aumentada',sexta_anadida:'acorde de sexta añadida',
- secuencia_quintas:'secuencia de quintas descendentes'};
-const NOMBRE=k=>NOMBRES[k]||k.split('_').map(w=>ACENTOS[w]||w).join(' ').replace('sexta aumentada a 64','sexta aumentada → 64 cadencial').replace('napolitana a dominante','napolitana → dominante').replace('sexta cuarta cadencial','sexta y cuarta cadencial');
+const NOMBRE=k=>(VOC.conceptos[k]||{})[LANG]||k;
+const DESC=k=>(VOC.conceptos[k]||{})['desc_'+LANG]||(META.conceptos[k]||{}).desc||'';
+// nombre de un grupo interno en el idioma de la interfaz
+const GRUPO_TXT={'Cadencias':'cadencias','Acordes':'alterados','Acordes alterados':'alterados','Dominantes secundarias':'secundarias','Modulación':'modulacion',
+  'Otros recursos':'otros','Secuencias y pedales':'otros','Tipos de acorde':'tipos','Progresiones':'progresiones'};
+const grupoTxt=g=>GRUPO_TXT[g]?VOC.grupos[GRUPO_TXT[g]][LANG]:g;
 
 function interpretar(texto){
   const t=norm(texto).trim(); if(!t) return null;
@@ -452,7 +512,7 @@ function interpretar(texto){
   for(const [k,sins] of Object.entries(META.sinonimos)){
     const req=META.requiere[k];
     if(req && !req.every(g=>g.some(x=>t.includes(norm(x))))) continue;
-    const enc=[...new Set(sins.map(norm))].filter(s=>t.includes(s));
+    const enc=[...new Set(sins.map(norm))].filter(s=>s.length>3||!/^[a-z0-9]+$/.test(s)?t.includes(s):new RegExp('(^| )'+s.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')+'( |$)').test(t));
     if(!enc.length) continue;
     const unicos=enc.filter(s=>!enc.some(o=>o!==s&&o.includes(s)));
     puntos[k]=unicos.reduce((a,s)=>a+s.length,0);
@@ -469,6 +529,7 @@ function puntuarConceptos(t){
     if(nom.startsWith(t)) p+=500; else if(nom.includes(t)) p+=300;
     if(palabras.length&&palabras.every(w=>vocab.some(v=>v.startsWith(w)))) p+=200;
     if(sins.some(x=>x.startsWith(t))) p+=150;
+    const otro=norm((VOC.conceptos[k]||{})[EN?'es':'en']||''); if(otro.startsWith(t)) p+=400; else if(t.length>2&&otro.includes(t)) p+=250;
     if(p) res.push([k,p]);
   }
   const el=t.length>4?interpretar(t):null;
@@ -477,28 +538,30 @@ function puntuarConceptos(t){
 }
 
 // ============ pasajes por tipo de acorde (condiciones combinables) ============
-const FACETAS=[
- {id:'tri',g:'tipo',label:'solo tríadas',alias:['triadas','triada','solo triadas','tres sonidos'],desc:'solo acordes de tres sonidos',test:s=>s.cua===0&&s.otro===0&&s.tri>0},
- {id:'cua',g:'tipo',label:'con cuatríadas',alias:['cuatriadas','cuatriada','con cuatriadas','septimas','acordes de septima','con septimas','cuatro sonidos','triadas y cuatriadas'],desc:'tríadas y al menos un acorde de séptima',test:s=>s.cua>0&&s.otro===0},
- {id:'solocua',g:'tipo',label:'solo cuatríadas',alias:['solo cuatriadas','solo septimas'],desc:'todos los acordes con séptima',test:s=>s.tri===0&&s.otro===0&&s.cua>0},
- {id:'fund',g:'inv',label:'sin inversiones',alias:['sin inversion','estado fundamental','en estado fundamental','en fundamental','posicion fundamental'],desc:'todos en estado fundamental',test:s=>s.i1+s.i2+s.i3===0},
- {id:'inv',g:'inv',label:'con inversiones',alias:['invertidos','inversiones'],desc:'al menos un acorde invertido',test:s=>s.i1+s.i2+s.i3>0},
- {id:'inv1',g:'inv',label:'con primera inversión',alias:['primera inversion','1a inversion','con 1a inversion','hasta primera inversion'],desc:'1ª inversión, ninguna 2ª ni 3ª',test:s=>s.i1>0&&s.i2===0&&s.i3===0},
- {id:'inv2',g:'inv',label:'con segunda inversión',alias:['segunda inversion','2a inversion','con 2a inversion'],desc:'al menos un acorde de sexta y cuarta',test:s=>s.i2>0},
- {id:'inv3',g:'inv',label:'con tercera inversión',alias:['tercera inversion','3a inversion','con 3a inversion'],desc:'al menos una séptima con la 7ª en el bajo',test:s=>s.i3>0},
- {id:'nopres',g:'pres',label:'sin acordes prestados',alias:['sin prestados','sin prestamo','sin prestamo modal','sin intercambio modal'],desc:'ningún acorde del modo paralelo',test:s=>s.prest===0},
- {id:'pres',g:'pres',label:'con acordes prestados',alias:['con prestados','acordes prestados','prestados','con prestamo','con prestamo modal'],desc:'iv, ♭VI, ♭III, iiø… en mayor; picardía en menor',test:s=>s.prest>0},
- {id:'nosec',g:'sec',label:'sin dominantes secundarias',alias:['sin secundarias','sin dominante secundaria'],desc:'ninguna V/x ni viio/x',test:s=>s.sec===0},
- {id:'sec',g:'sec',label:'con dominantes secundarias',alias:['con secundarias','con dominante secundaria'],desc:'al menos una V/x o viio/x',test:s=>s.sec>0},
- {id:'diat',g:'crom',label:'solo acordes diatónicos',alias:['solo diatonicos','diatonicos','sin alteraciones','sin cromatismo','sin acordes alterados'],desc:'sin secundarias, prestados ni alterados',test:s=>s.alt===0&&s.sec===0&&s.prest===0},
- {id:'alt',g:'crom',label:'con acordes alterados',alias:['acordes alterados','alterados','con cromatismo'],desc:'napolitana, sextas aumentadas u otros',test:s=>s.alt>0},
- {id:'nomod',g:'mod',label:'sin modular',alias:['sin modulacion','sin modulaciones','una sola tonalidad'],desc:'una sola tonalidad',test:s=>!s.cambio},
- {id:'conmod',g:'mod',label:'con modulación',alias:['con modulaciones','modulando','con cambio de tonalidad'],desc:'cambia de tonalidad dentro del pasaje',test:s=>!!s.cambio},
-];
+const PRUEBAS_FAC={
+ tri:{g:'tipo',test:s=>s.cua===0&&s.otro===0&&s.tri>0},
+ cua:{g:'tipo',test:s=>s.cua>0&&s.otro===0},
+ solocua:{g:'tipo',test:s=>s.tri===0&&s.otro===0&&s.cua>0},
+ fund:{g:'inv',test:s=>s.i1+s.i2+s.i3===0},
+ inv:{g:'inv',test:s=>s.i1+s.i2+s.i3>0},
+ inv1:{g:'inv',test:s=>s.i1>0&&s.i2===0&&s.i3===0},
+ inv2:{g:'inv',test:s=>s.i2>0},
+ inv3:{g:'inv',test:s=>s.i3>0},
+ nopres:{g:'pres',test:s=>s.prest===0},
+ pres:{g:'pres',test:s=>s.prest>0},
+ nosec:{g:'sec',test:s=>s.sec===0},
+ sec:{g:'sec',test:s=>s.sec>0},
+ diat:{g:'crom',test:s=>s.alt===0&&s.sec===0&&s.prest===0},
+ alt:{g:'crom',test:s=>s.alt>0},
+ nomod:{g:'mod',test:s=>!s.cambio},
+ conmod:{g:'mod',test:s=>!!s.cambio},
+};
+const FACETAS=Object.entries(PRUEBAS_FAC).map(([id,x])=>{const v=VOC.facetas[id];
+  return {id,g:x.g,test:x.test,label:v[LANG],desc:v['desc_'+LANG],alias:[...new Set([v.es,v.en,...v.sin_es,...v.sin_en])]}});
 const ORDEN_G=['tipo','inv','pres','sec','crom','modo','mod'];
 const FAC=Object.fromEntries(FACETAS.map(f=>[f.id,f]));
 const ALIAS=FACETAS.flatMap(f=>[norm(f.label),...f.alias.map(norm)].map(a=>({a,id:f.id}))).sort((x,y)=>y.a.length-x.a.length);
-const RELLENO=new Set(['acordes','acorde','pasajes','pasaje','fragmentos','con','y','e','de','solo','que','sin','en']);
+const RELLENO=new Set(['acordes','acorde','pasajes','pasaje','fragmentos','con','y','e','de','solo','que','sin','en','chords','chord','passages','passage','with','and','of','only','that','without','in','the']);
 
 function parsearFacetas(t){
   const usados=new Array(t.length).fill(false), hallados=[];
@@ -523,7 +586,7 @@ function parsearFacetas(t){
 function etiquetaFacetas(ids){
   const fs=ORDEN_G.map(g=>ids.find(id=>FAC[id].g===g)).filter(Boolean).map(id=>FAC[id]);
   if(!fs.length) return '';
-  return 'pasajes '+fs.map(f=>f.label).join(', ');
+  return trd('pasajes ','passages: ')+fs.map(f=>f.label).join(', ');
 }
 
 let COMP=null, compCargando=null;
@@ -546,7 +609,7 @@ function pasajes(ids,f,contar){
         s.nAc+=r[1];s.tri+=r[2];s.cua+=r[3];s.otro+=r[4];s.i0+=r[5];s.i1+=r[6];s.i2+=r[7];s.i3+=r[8];
         s.prest+=r[9];s.sec+=r[10];s.alt+=r[11];s.modos|=r[12];if(j>i&&r[13])s.cambio=1;
       }
-      if(s.nAc>=Math.max(3,L)&&tests.every(t=>t(s))){
+      if(s.nAc>=Math.max(3,L)&&tests.every(t=>t(s))&&pasaForma(porId.get(id),f,m0,1,mf,null)){
         total++; n++;
         if(!contar&&n<=f.lim) out.push({frag:true,obra:id,ini:m0,fin:mf,tono:COMP.tonos[filas[i][14]],s});
         i=j;
@@ -606,20 +669,25 @@ function sugerir(texto){
 }
 // ---- filtros que se escriben en la misma caja: compositor, obra, tonalidad, modo, época, fuente
 const NOMBRE_NOTA={C:['do'],D:['re'],E:['mi'],F:['fa'],G:['sol'],A:['la'],B:['si']};
+// nombres de una tonalidad que acepta el buscador, en los dos idiomas: «si bemol mayor», «sib M», «B flat major», «Bb major»…
 function nombresTono(k){
-  const n=NOMBRE_NOTA[k[0].toUpperCase()][0], alt=k.slice(1), may=k[0]===k[0].toUpperCase();
+  const n=NOMBRE_NOTA[k[0].toUpperCase()][0], l=k[0].toLowerCase(), alt=k.slice(1), may=k[0]===k[0].toUpperCase();
   const alts=alt==='-'?[' bemol','b',' b','♭']:alt==='#'?[' sostenido','#',' #','♯']:[''];
   const modos=may?[' mayor']:[' menor',' m'];
-  return alts.flatMap(a=>modos.map(m=>norm(n+a+m).replace('♭','b').replace('♯','#')));
+  const altsEn=alt==='-'?[' flat','-flat','b','♭']:alt==='#'?[' sharp','-sharp','#','♯']:[''];
+  const modosEn=may?[' major',' maj']:[' minor',' min'];
+  const f=x=>norm(x).replace('♭','b').replace('♯','#');
+  return [...alts.flatMap(a=>modos.map(m=>f(n+a+m))),...altsEn.flatMap(a=>modosEn.map(m=>f(l+a+m)))];
 }
-const tonoLargo=k=>tonoEs(k).replace(/ M$/,' mayor').replace(/ m$/,' menor');
+const tonoLargo=k=>EN?tonoEs(k):tonoEs(k).replace(/ M$/,' mayor').replace(/ m$/,' menor');
 const FUENTES=[{v:'wir',txt:'When in Rome',al:['when in rome','wir']},{v:'dcml',txt:'DCML (Distant Listening Corpus)',al:['dcml','distant listening corpus']}];
 function sugerirFiltros(t){
   const out=[], x=(campo,valor,txt,fuerte=true)=>out.push({t:'x',campo,valor,txt,fuerte});
-  const tc=t.replace(/^(todas las )?obras( de| del)? ?/,'').trim();
+  const tc=t.replace(/^(todas las )?obras( de| del)? ?/,'').replace(/^(all )?works( by)? ?/,'').trim();
   if(tc.length>=2){
     const ap=c=>norm(apellido(c)).startsWith(tc)?0:1;
-    for(const c of comps.filter(c=>norm(c).split(' ').some(w=>w.startsWith(tc))||(tc.length>=4&&norm(c).includes(tc))).sort((a,b)=>ap(a)-ap(b)).slice(0,5)) x('compositor',c,c,ap(c)===0);
+    const nombresC=c=>[c,COMP_OTRO[c]].filter(Boolean).map(norm);
+    for(const c of comps.filter(c=>nombresC(c).some(n=>n.split(' ').some(w=>w.startsWith(tc))||(tc.length>=4&&n.includes(tc)))).sort((a,b)=>ap(a)-ap(b)).slice(0,5)) x('compositor',c,c,ap(c)===0);
     if(tc.length>=4){
       const comp=$('#compositor').value, vistas=new Map(), empieza=o=>norm(o.ob).split(' ').some(w=>w.startsWith(tc))||(tc.length>=6&&norm(o.ob).includes(tc));
       for(const o of OBRAS) if((!comp||o.c===comp)&&!vistas.has(o.w)&&empieza(o)) vistas.set(o.w,o);
@@ -630,16 +698,26 @@ function sugerirFiltros(t){
     const nota=t.split(' ')[0], esNota=Object.values(NOMBRE_NOTA).some(v=>v[0]===nota);
     for(const k of TONOS) if((!esNota||nota!==t||k.length===1)&&nombresTono(k).some(n=>n.startsWith(t)&&(t.length>=3||n===t))) x('tonalidad',k,tonoLargo(k));
     // ordenar: primero las tonalidades cuyo nombre de nota coincide exactamente (sol → sol mayor / sol menor)
-    for(const [v,txt] of [['M','modo mayor'],['m','modo menor']]) if(txt.startsWith(t)||txt.slice(5).startsWith(t)) x('modo',v,txt,txt.slice(5).startsWith(t)&&t.length>=3||t.startsWith('modo '));
-    for(const e of EPOCAS) if(OBRAS.some(o=>o.per===e)&&norm(e).startsWith(t)) x('epoca',e,e);
+    for(const [v,es,en] of [['M','modo mayor','major mode'],['m','modo menor','minor mode']]){
+      const pal=[es,en,es.slice(5),en.slice(0,5)];
+      if(pal.some(w=>w.startsWith(t))) x('modo',v,trd(es,en),pal.slice(2).some(w=>w.startsWith(t))&&t.length>=3||t.startsWith('modo ')||/ mode$/.test(t));
+    }
+    for(const e of EPOCAS){const v=VOC.periodos[e]||{};if(OBRAS.some(o=>o.per===e)&&[e,v.es,v.en,...(v.sin_es||[]),...(v.sin_en||[])].filter(Boolean).some(w=>norm(w).startsWith(t))) x('epoca',e,perTxt(e))}
     for(const f of FUENTES) if(f.al.some(a=>a.startsWith(t))) x('fuente',f.v,f.txt);
+    // forma: sección (nivel 1) o zona (nivel 2); las siglas de la teoría de la sonata, escritas enteras
+    if(t.length>=3||/^(p|s|c|tr|rt)$/.test(t)) for(const k of FORMA_ORDEN){
+      const v=VOC.forma[k], niv=v.nivel; if(!FORMA_PRESENTE[niv].has(k)) continue;
+      const nombres=[v.es,v.en,...v.sin_es,...v.sin_en].map(norm);
+      if(nombres.some(w=>w.startsWith(t)||(t.length>=4&&w.includes(t)))||v.siglas.includes(t)) x(niv===1?'seccion':'zona',k,formaTxt(k));
+    }
   }
   return out;
 }
-const TIPO_FILTRO={compositor:'Compositor',obraSel:'Obra',tonalidad:'Tonalidad',modo:'Modo',epoca:'Época',fuente:'Fuente'};
+const TIPO_FILTRO=EN?{compositor:'Composer',obraSel:'Work',tonalidad:'Key',modo:'Mode',epoca:'Period',fuente:'Source',seccion:'Form · section',zona:'Form · zone'}
+  :{compositor:'Compositor',obraSel:'Obra',tonalidad:'Tonalidad',modo:'Modo',epoca:'Época',fuente:'Fuente',seccion:'Forma · sección',zona:'Forma · zona'};
 // combinar condiciones de pasaje: la nueva sustituye a la de su mismo grupo
 const combinar=ids=>{if(actual?.t!=='f') return ids; const m={}; for(const id of [...actual.ids,...ids]) m[FAC[id].g]=id; return ORDEN_G.map(g=>m[g]).filter(Boolean)};
-const textoOpcion=o=>o.t==='x'?o.txt:o.t==='c'?NOMBRE(o.k):o.t==='o'?(o.comp?'obras de '+o.comp:'todas las obras'):o.t==='p'?'progresión '+o.q.join(' – '):etiquetaFacetas(o.ids);
+const textoOpcion=o=>o.t==='x'?o.txt:o.t==='c'?NOMBRE(o.k):o.t==='o'?(o.comp?trd('obras de ','works by ')+o.comp:trd('todas las obras','all works')):o.t==='p'?trd('progresión ','progression ')+o.q.join(' – '):etiquetaFacetas(o.ids);
 const obrasDe=(comp,f)=>OBRAS.filter(o=>(!comp||o.c===comp)&&pasaObra(o,{...f,comp:''}));
 // ---- progresiones de cifrados romanos
 function tokensProg(texto){
@@ -704,26 +782,49 @@ function resaltar(nombre,t){
   if(i<0) return esc(nombre);
   return esc(nombre.slice(0,i))+'<mark>'+esc(nombre.slice(i,i+t.length))+'</mark>'+esc(nombre.slice(i+t.length));
 }
-const tc=t=>t.replace(/^(todas las )?obras( de| del)? ?/,'').trim();
+const tc=t=>t.replace(/^(todas las )?obras( de| del)? ?/,'').replace(/^(all )?works( by)? ?/,'').trim();
+// «sexta alemana en el desarrollo», «German sixth in the development»: la parte de forma se aplica como filtro
+let formaPendiente=null;
+function extraerForma(texto){
+  const t=' '+norm(texto).trim()+' '; let mejor=null;
+  for(const k of FORMA_ORDEN){
+    const v=VOC.forma[k]; if(!FORMA_PRESENTE[v.nivel].has(k)) continue;
+    const cands=[v.es,v.en,...v.sin_es,...v.sin_en].map(x=>norm(x).trim()).filter(x=>x.length>=3);
+    for(const c of cands){const i=t.indexOf(' '+c+' '); if(i>=0&&(!mejor||c.length>mejor.c.length)) mejor={k,c,i,niv:v.nivel}}
+    for(const sg of v.siglas){const m=String(texto).match(new RegExp('(^|\\s)'+sg.toUpperCase()+'(\\s|$)')); if(m&&!mejor) mejor={k,c:sg,i:t.indexOf(' '+sg+' '),niv:v.nivel}}
+  }
+  if(!mejor||mejor.i<0) return null;
+  let antes=t.slice(0,mejor.i).trim(), despues=t.slice(mejor.i+mejor.c.length+1).trim();
+  antes=antes.replace(/(^| )(en|durante|dentro de|in|during|within)( (el|la|los|las|the))?$/,'').replace(/(^| )(del|de la|de|of the|of)$/,'').trim();
+  return {campo:mejor.niv===1?'seccion':'zona',valor:mejor.k,resto:(antes+' '+despues).trim()};
+}
+function aplicarFormaPendiente(){
+  const fp=formaPendiente; formaPendiente=null; if(!fp) return;
+  const sel=$('#'+fp.campo);
+  if(![...sel.options].some(op=>op.value===fp.valor)){const op=document.createElement('option');op.value=fp.valor;op.textContent=formaTxt(fp.valor);sel.append(op)}
+  sel.value=fp.valor; cuentaCache.clear();
+}
 function abrir(){
   const t=norm(q.value).trim();
-  opciones=sugerir(q.value);
+  const fp=extraerForma(q.value); formaPendiente=fp&&fp.resto?fp:null;
+  opciones=sugerir(formaPendiente?formaPendiente.resto:q.value);
   activa=opciones.length?0:-1;
   let html='', previo=null;
   const ultima=t.split(' ').pop();
   opciones.forEach((o,i)=>{
-    const g=o.t==='x'?TIPO_FILTRO[o.campo]:o.t==='c'?(GRUPO_DE[o.k]||''):o.t==='o'?'Compositores':o.t==='p'?'Progresión':'Pasajes por tipo de acorde';
+    const g=o.t==='x'?TIPO_FILTRO[o.campo]:o.t==='c'?grupoTxt(GRUPO_DE[o.k]||''):o.t==='o'?trd('Compositores','Composers'):o.t==='p'?trd('Progresión','Progression'):trd('Pasajes por tipo de acorde','Passages by chord type');
     if(t&&g!==previo){html+=`<li class="g" role="presentation">${esc(g)}</li>`;previo=g}
     let desc,cnt;
-    if(o.t==='c'){const m=META.conceptos[o.k];desc=m.desc;cnt=m.n.toLocaleString('es')}
-    else if(o.t==='o'){const l=obrasDe(o.comp,filtros());desc='todas sus obras';cnt=new Set(l.map(x=>x.w)).size}
-    else if(o.t==='p'){desc='sucesión de cifrados romanos';cnt=''}
-    else if(o.t==='x'){desc=actual&&actual.t!=='o'?'limita la búsqueda actual':'añade el filtro';cnt=''}
-    else{const ids=combinar(o.ids);const fa=FAC[o.nueva||o.ids[o.ids.length-1]];desc=fa.desc;const n=contarPasajes(ids);cnt=n==null?'…':n.toLocaleString('es')}
+    if(o.t==='c'){const m=META.conceptos[o.k];desc=DESC(o.k);cnt=m.n.toLocaleString(LOC)}
+    else if(o.t==='o'){const l=obrasDe(o.comp,filtros());desc=trd('todas sus obras','all their works');cnt=new Set(l.map(x=>x.w)).size}
+    else if(o.t==='p'){desc=trd('sucesión de cifrados romanos','succession of Roman numerals');cnt=''}
+    else if(o.t==='x'){desc=actual&&actual.t!=='o'?trd('limita la búsqueda actual','narrows the current search'):trd('añade el filtro','adds the filter');cnt=''}
+    else{const ids=combinar(o.ids);const fa=FAC[o.nueva||o.ids[o.ids.length-1]];desc=fa.desc;const n=contarPasajes(ids);cnt=n==null?'…':n.toLocaleString(LOC)}
     const nombre=o.t==='f'&&actual?.t==='f'?'+ '+FAC[o.nueva||o.ids[o.ids.length-1]].label:textoOpcion(o);
     html+=`<li role="option" id="op${i}" aria-selected="${i===activa}" title="${esc(desc)}"><span class="n">${resaltar(nombre,o.t==='c'?t:o.t==='x'?tc(t):ultima)}</span><span class="c">${cnt}</span></li>`;
   });
-  if(t&&!opciones.length) html='<li class="vacia" role="presentation">Sin coincidencias</li>';
+  if(formaPendiente) html=`<li class="g" role="presentation">${esc(trd('Con el filtro de forma: ','With the form filter: ')+formaTxt(formaPendiente.valor))}</li>`+html;
+  if(t&&!opciones.length) html=`<li class="vacia" role="presentation">${trd('Sin coincidencias','No matches')}</li>`;
   if(!t){cerrar();return}
   lista.innerHTML=html; lista.hidden=false; q.setAttribute('aria-expanded','true');
   q.setAttribute('aria-activedescendant',activa>=0?'op'+activa:'');
@@ -737,6 +838,7 @@ function marcar(i){
 }
 function elegir(o){
   q.value=''; cerrar();
+  if(o.t!=='x') aplicarFormaPendiente(); else formaPendiente=null;
   if(o.t==='x'){
     if(o.campo==='obraSel'){const ob=OBRAS.find(x=>String(x.w)===o.valor);$('#compositor').value=ob.c;rellenarObras()}
     if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
@@ -748,7 +850,8 @@ function elegir(o){
   if(o.t==='o'&&o.comp){$('#compositor').value=o.comp;rellenarObras()}
   ejecutar(o);
 }
-const hayFiltros=()=>['compositor','obraSel','fuente','epoca','tonalidad','modo'].some(id=>$('#'+id).value);
+const CAMPOS=['compositor','obraSel','tonalidad','modo','epoca','fuente','seccion','zona'];
+const hayFiltros=()=>CAMPOS.some(id=>$('#'+id).value);
 // vuelve a buscar tras cambiar las etiquetas; sin procedimiento, lista las obras que cumplen los filtros
 function relanzar(){
   if(actual&&actual.t!=='o') return ejecutar(actual);
@@ -767,43 +870,44 @@ function quitar(campo){
 }
 function pintarEtiquetas(){
   const ch=[];
-  if(actual&&actual.t!=='o') ch.push({campo:'principal',txt:textoOpcion(actual),tp:actual.t==='p'?'progresión':actual.t==='f'?'':''});
-  else if(actual&&!hayFiltros()) ch.push({campo:'principal',txt:'todas las obras',tp:''});
-  for(const id of ['compositor','obraSel','tonalidad','modo','epoca','fuente']){
+  if(actual&&actual.t!=='o') ch.push({campo:'principal',txt:textoOpcion(actual),tp:actual.t==='p'?trd('progresión','progression'):''});
+  else if(actual&&!hayFiltros()) ch.push({campo:'principal',txt:trd('todas las obras','all works'),tp:''});
+  for(const id of CAMPOS){
     const v=$('#'+id).value; if(!v) continue;
     const txt=id==='compositor'?v:id==='obraSel'?(OBRAS.find(o=>String(o.w)===v)||{}).ob:id==='tonalidad'?tonoLargo(v)
-      :id==='modo'?(v==='M'?'modo mayor':'modo menor'):id==='fuente'?(v==='wir'?'When in Rome':'DCML'):v;
-    ch.push({campo:id,txt});
+      :id==='modo'?(v==='M'?trd('modo mayor','major mode'):trd('modo menor','minor mode')):id==='fuente'?(v==='wir'?'When in Rome':'DCML')
+      :id==='epoca'?perTxt(v):id==='seccion'||id==='zona'?formaTxt(v):v;
+    ch.push({campo:id,txt,tp:id==='seccion'||id==='zona'?trd('forma','form'):''});
   }
-  $('#chips').innerHTML=ch.map(c=>`<span class="chip${c.campo==='principal'?' principal':''}">${c.tp?`<span class="tp">${esc(c.tp)}</span>`:''}<span class="tx">${esc(c.txt)}</span><button type="button" data-quitar="${c.campo}" aria-label="Quitar ${esc(c.txt)}">×</button></span>`).join('');
+  $('#chips').innerHTML=ch.map(c=>`<span class="chip${c.campo==='principal'?' principal':''}">${c.tp?`<span class="tp">${esc(c.tp)}</span>`:''}<span class="tx">${esc(c.txt)}</span><button type="button" data-quitar="${c.campo}" aria-label="${trd('Quitar','Remove')} ${esc(c.txt)}">×</button></span>`).join('');
   $('#chips').querySelectorAll('[data-quitar]').forEach(b=>b.onclick=e=>{e.stopPropagation();quitar(b.dataset.quitar)});
   $('#limpiar').hidden=!ch.length;
-  q.placeholder=ch.length?(actual&&actual.t!=='o'?'Añadir filtro…':'Añadir procedimiento…'):'Procedimiento, compositor, tonalidad…';
+  q.placeholder=ch.length?(actual&&actual.t!=='o'?trd('Añadir filtro…','Add a filter…'):trd('Añadir procedimiento…','Add a device…')):trd('Procedimiento, compositor, tonalidad…','Device, composer, key…');
   $('#ajustesProg').hidden=actual?.t!=='p';
   $('#ajustesPasaje').hidden=actual?.t!=='f';
   $('#limite').hidden=true;
 
 }
 $('#caja').addEventListener('click',e=>{if(!e.target.closest('button'))q.focus()});
-$('#limpiar').onclick=()=>{for(const id of ['compositor','obraSel','tonalidad','modo','epoca','fuente']) $('#'+id).value=''; rellenarObras(); q.value=''; reiniciar(); q.focus()};
+$('#limpiar').onclick=()=>{for(const id of CAMPOS) $('#'+id).value=''; rellenarObras(); q.value=''; reiniciar(); q.focus()};
 $('#todosEj').addEventListener('change',()=>{$('#unaPorObra').checked=!$('#todosEj').checked;if(actual)ejecutar(actual)});
 // barra de categorías: Armonía · Compositor · Período · Tonalidad (siempre visible)
-const PERIODOS=[['Renacimiento','hasta 1600'],['Barroco','1600–1750'],['Clasicismo','1750–1820'],['Romanticismo','1820–1900'],['Siglo XX','desde 1900']];
+const PERIODOS=EPOCAS.map(p=>[p,(VOC.periodos[p]||{})['desc_'+LANG]||'']);
 function pintarInicio(){
   const corto=(g,k)=>{const n=NOMBRE(k);
-    if(g==='Cadencias') return n.replace(/^cadencia /,'');
-    if(g==='Modulación') return n==='modulación'?'cualquiera':n.replace(/^modulación /,'');
+    if(g==='Cadencias') return EN?n.replace(/ cadence$/,''):n.replace(/^cadencia /,'');
+    if(g==='Modulación') return k==='modulacion'?trd('cualquiera','any'):EN?n.replace(/^modulation to the /,'').replace(/ modulation$/,''):n.replace(/^modulación /,'');
     return n};
   const FAM=[
     ['Cadencias',GRUPOS['Cadencias'].map(k=>({k}))],
-    ['Acordes alterados',['napolitana','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','intercambio_modal','acorde_vecino_cromatico'].map(k=>({k}))],
+    ['Acordes alterados',['napolitana','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','intercambio_modal'].map(k=>({k}))],
     ['Dominantes secundarias',GRUPOS['Dominantes secundarias'].map(k=>({k}))],
     ['Modulación',GRUPOS['Modulación'].map(k=>({k}))],
     ['Otros recursos',['acorde_disminuido','quinta_aumentada','sexta_anadida','secuencia_quintas','pedal_de_dominante'].map(k=>({k}))],
     ['Tipos de acorde',['tri','cua','fund','inv1','inv2','inv3','pres','sec','alt','conmod'].map(f=>({f}))],
     ['Progresiones',['I IV V I','ii6 V7 I','I vi IV V','iv6 V','I6 ii6 V'].map(p=>({p}))],
   ];
-  const item=(fam,x)=>x.k?(META.conceptos[x.k]?`<button type="button" data-k="${x.k}" title="${esc(META.conceptos[x.k].desc)}">${esc(corto(fam,x.k))}</button>`:'')
+  const item=(fam,x)=>x.k?(META.conceptos[x.k]?`<button type="button" data-k="${x.k}" title="${esc(DESC(x.k))}">${esc(corto(fam,x.k))}</button>`:'')
     :x.f?`<button type="button" data-f="${x.f}" title="${esc(FAC[x.f].desc)}">${esc(FAC[x.f].label)}</button>`
     :`<button type="button" class="mono" data-p="${x.p}">${x.p}</button>`;
   // compositores agrupados por período, con su número de obras
@@ -814,26 +918,32 @@ function pintarInicio(){
   let compH='';
   for(const [per] of PERIODOS){
     const cs=comps.filter(c=>perPrincipal(c)===per); if(!cs.length) continue;
-    compH+=`<div class="sec" data-sec><h3>${per}</h3>${cs.map(c=>`<button type="button" data-c="${esc(c)}" data-n="${esc(norm(c))}"><span>${esc(porApellido(c))}</span><span class="c">${nObras.get(c).size}</span></button>`).join('')}</div>`;
+    compH+=`<div class="sec" data-sec><h3>${esc(perTxt(per))}</h3>${cs.map(c=>`<button type="button" data-c="${esc(c)}" data-n="${esc(norm(c))}"><span>${esc(porApellido(c))}</span><span class="c">${nObras.get(c).size}</span></button>`).join('')}</div>`;
   }
   const obrasPer=per=>new Set(OBRAS.filter(o=>o.per===per).map(o=>o.w)).size;
-  const NOTAS=[['C','do'],['D','re'],['E','mi'],['F','fa'],['G','sol'],['A','la'],['B','si']];
+  const NOTAS=[['C','do'],['D','re'],['E','mi'],['F','fa'],['G','sol'],['A','la'],['B','si']].map(([l,n])=>[l,EN?l:n]);
+  const formaItems=niv=>FORMA_ORDEN.filter(k=>FORMA_PRESENTE[niv].has(k)).map(k=>`<button type="button" data-forma="${k}" data-niv="${niv}">${esc(formaTxt(k))}</button>`).join('');
   $('#inicio').innerHTML=
-   `<details id="catArm"><summary>Armonía</summary><div class="menu ancho">
-      <div class="tabs" role="tablist">${FAM.map(([n],i)=>`<button type="button" role="tab" data-tab="${i}" aria-selected="${i===0}">${esc(n)}</button>`).join('')}</div>
-      ${FAM.map(([n,xs],i)=>`<div class="items" data-panel="${i}" ${i?'hidden':''}>${xs.map(x=>item(n,x)).join('')}${n==='Progresiones'?'<p class="pista">O escribe la tuya en la caja: «vi ii V I»</p>':''}</div>`).join('')}
+   `<details id="catArm"><summary>${trd('Armonía','Harmony')}</summary><div class="menu ancho">
+      <div class="tabs" role="tablist">${FAM.map(([n],i)=>`<button type="button" role="tab" data-tab="${i}" aria-selected="${i===0}">${esc(grupoTxt(n))}</button>`).join('')}</div>
+      ${FAM.map(([n,xs],i)=>`<div class="items" data-panel="${i}" ${i?'hidden':''}>${xs.map(x=>item(n,x)).join('')}${n==='Progresiones'?`<p class="pista">${trd('O escribe la tuya en la caja: «vi ii V I»','Or type your own in the box: “vi ii V I”')}</p>`:''}</div>`).join('')}
     </div></details>`+
-   `<details id="catComp"><summary>Compositor</summary><div class="menu">
-      <input type="search" class="filtro" placeholder="Buscar compositor" aria-label="Buscar compositor">
-      <div class="lista">${compH}<p class="pista vacia" hidden>Ningún compositor coincide</p></div>
+   `<details id="catComp"><summary>${trd('Compositor','Composer')}</summary><div class="menu">
+      <input type="search" class="filtro" placeholder="${trd('Buscar compositor','Find a composer')}" aria-label="${trd('Buscar compositor','Find a composer')}">
+      <div class="lista">${compH}<p class="pista vacia" hidden>${trd('Ningún compositor coincide','No composer matches')}</p></div>
     </div></details>`+
-   `<details id="catPer"><summary>Período</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${p} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}</div></details>`+
-   `<details id="catTon"><summary>Tonalidad</summary><div class="menu tono">
+   `<details id="catPer"><summary>${trd('Período','Period')}</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${esc(perTxt(p))} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}</div></details>`+
+   `<details id="catTon"><summary>${trd('Tonalidad','Key')}</summary><div class="menu tono">
       <div class="col notas">${NOTAS.map(([l,n])=>`<button type="button" data-nota="${l}">${n}</button>`).join('')}</div>
-      <div class="col alts">${[['-','♭','bemol'],['','♮','becuadro'],['#','♯','sostenido']].map(([v,sm,t])=>`<button type="button" data-alt="${v}" title="${t}" aria-pressed="${v===''}">${sm}</button>`).join('')}</div>
-      <div class="col modos"><button type="button" data-modo="M">mayor</button><button type="button" data-modo="m">menor</button></div>
-      <p class="pista">Elige nota, alteración y modo. Solo el modo: todas las tonalidades mayores o menores.</p>
-    </div></details>`;
+      <div class="col alts">${[['-','♭',trd('bemol','flat')],['','♮',trd('becuadro','natural')],['#','♯',trd('sostenido','sharp')]].map(([v,sm,t])=>`<button type="button" data-alt="${v}" title="${t}" aria-pressed="${v===''}">${sm}</button>`).join('')}</div>
+      <div class="col modos"><button type="button" data-modo="M">${trd('mayor','major')}</button><button type="button" data-modo="m">${trd('menor','minor')}</button></div>
+      <p class="pista">${trd('Elige nota, alteración y modo. Solo el modo: todas las tonalidades mayores o menores.','Pick a note, accidental and mode. Mode alone: every major or minor key.')}</p>
+    </div></details>`+
+   (FORMA_PRESENTE[1].size?`<details id="catForma"><summary>${trd('Forma','Form')}</summary><div class="menu ancho forma">
+      <div><h3>${trd('Sección','Section')}</h3><div class="items">${formaItems(1)}</div></div>
+      <div><h3>${trd('Zona','Zone')}</h3><div class="items">${formaItems(2)}</div></div>
+      <p class="pista">${trd(`Solo los ${Object.keys(FORMA).length} movimientos con la forma anotada (sonatas para piano de Beethoven y Mozart, según Taking Form). Combínalo con cualquier procedimiento: «sexta alemana en el desarrollo».`,`Only the ${Object.keys(FORMA).length} movements with annotated form (Beethoven and Mozart piano sonatas, from Taking Form). Combine it with any device: “German sixth in the development”.`)}</p>
+    </div></details>`:'');
   const menus=[...$('#inicio').querySelectorAll('details')];
   const cerrarMenus=()=>menus.forEach(d=>d.open=false);
   document.addEventListener('click',e=>{const mio=e.target.closest('#inicio details');menus.forEach(d=>{if(d!==mio)d.open=false})});
@@ -861,7 +971,10 @@ function pintarInicio(){
   fil.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=[...cp.querySelectorAll('[data-c]')].find(x=>!x.hidden&&!x.closest('[data-sec]').hidden);if(b)b.click()}});
   cp.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cerrarMenus();elegir({t:'x',campo:'compositor',valor:b.dataset.c,txt:b.dataset.c})});
   // Período
-  $('#catPer').querySelectorAll('[data-per]').forEach(b=>b.onclick=()=>{cerrarMenus();elegir({t:'x',campo:'epoca',valor:b.dataset.per,txt:b.dataset.per})});
+  $('#catPer').querySelectorAll('[data-per]').forEach(b=>b.onclick=()=>{cerrarMenus();elegir({t:'x',campo:'epoca',valor:b.dataset.per,txt:perTxt(b.dataset.per)})});
+  // Forma
+  const cf=$('#catForma'); if(cf) cf.querySelectorAll('[data-forma]').forEach(b=>b.onclick=()=>{cerrarMenus();
+    elegir({t:'x',campo:b.dataset.niv==='1'?'seccion':'zona',valor:b.dataset.forma,txt:formaTxt(b.dataset.forma)})});
   // Tonalidad: nota + alteración + modo
   const tn=$('#catTon'); let nota=null, alt='';
   const marcarTon=()=>{tn.querySelectorAll('[data-nota]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.nota===nota)));
@@ -871,7 +984,7 @@ function pintarInicio(){
   tn.querySelectorAll('[data-alt]').forEach(b=>b.onclick=()=>{alt=b.dataset.alt;marcarTon()});
   tn.querySelectorAll('[data-modo]').forEach(b=>b.onclick=()=>{
     const M=b.dataset.modo==='M'; cerrarMenus();
-    if(!nota){$('#tonalidad').value='';return elegir({t:'x',campo:'modo',valor:b.dataset.modo,txt:M?'modo mayor':'modo menor'})}
+    if(!nota){$('#tonalidad').value='';return elegir({t:'x',campo:'modo',valor:b.dataset.modo,txt:M?trd('modo mayor','major mode'):trd('modo menor','minor mode')})}
     const k=(M?nota:nota.toLowerCase())+alt; $('#modo').value='';
     elegir({t:'x',campo:'tonalidad',valor:k,txt:tonoLargo(k)});
   });
@@ -891,21 +1004,46 @@ document.addEventListener('click',e=>{if(!e.target.closest('.buscador'))cerrar()
 $('#form').addEventListener('submit',e=>{e.preventDefault();enviar()});
 function enviar(){
   if(!lista.hidden&&activa>=0) return elegir(opciones[activa]);
-  const P=parsearFacetas(norm(q.value).trim());
+  const fp=extraerForma(q.value);
+  if(fp&&!fp.resto) return elegir({t:'x',campo:fp.campo,valor:fp.valor,txt:formaTxt(fp.valor)});
+  formaPendiente=fp; const texto=fp?fp.resto:q.value;
+  const P=parsearFacetas(norm(texto).trim());
   if(P.ids.length&&!P.libres.length) return elegir({t:'f',ids:P.ids});
-  const tp=tokensProg(q.value); if(tp) return elegir({t:'p',q:tp});
-  const k=interpretar(q.value); if(k) return elegir({t:'c',k});
-  if(/^(todas las )?obras$/.test(norm(q.value).trim())) return elegir({t:'o',comp:''});
-  cerrar(); if(q.value.trim()){$('#estado').textContent='Sin coincidencias para «'+q.value.trim()+'»'}
+  const tp=tokensProg(texto); if(tp) return elegir({t:'p',q:tp});
+  const k=interpretar(texto); if(k) return elegir({t:'c',k});
+  if(/^((todas las )?obras|(all )?works)$/.test(norm(texto).trim())) return elegir({t:'o',comp:''});
+  formaPendiente=null;
+  cerrar(); if(q.value.trim()){$('#estado').textContent=trd('Sin coincidencias para «','No matches for “')+q.value.trim()+trd('»','”')}
 }
 cargarCompases().then(()=>{if(!lista.hidden)abrir()});
 
 // ============ búsqueda y resultados ============
 let hitsCache={}, actual=null, pagina=0, filas=[]; const POR_PAG=40;
 const NOTA={C:'do',D:'re',E:'mi',F:'fa',G:'sol',A:'la',B:'si'};
+// tonalidad para mostrar: «si♭ M» / «sol m» en español, «B♭ major» / «G minor» en inglés
 function tonoEs(t){
   const m=String(t||'').match(/^([a-gA-G])([#-]*)$/); if(!m) return t||'';
-  return NOTA[m[1].toUpperCase()]+m[2].replace(/-/g,'♭').replace(/#/g,'♯')+(m[1]===m[1].toUpperCase()?' M':' m');
+  const alt=m[2].replace(/-/g,'♭').replace(/#/g,'♯'), may=m[1]===m[1].toUpperCase();
+  if(EN) return m[1].toUpperCase()+alt+(may?' major':' minor');
+  return NOTA[m[1].toUpperCase()]+alt+(may?' M':' m');
+}
+// rótulo de tonalidad sobre los cifrados: «Si♭ M:» / «B♭:» (en inglés, minúscula = menor: «g:»)
+const tonoCorto=t=>{const m=String(t||'').match(/^([a-gA-G])([#-]*)$/);if(!m)return t||'';return EN?m[1]+m[2].replace(/-/g,'♭').replace(/#/g,'♯'):tonoEs(t)};
+// textos de las coincidencias (se generan en español al exportar): en inglés se traducen aquí
+const SOLFEO={do:'C',re:'D',mi:'E',fa:'F',sol:'G',la:'A',si:'B'};
+const notaEn=x=>x.replace(/\b(do|re|mi|fa|sol|la|si)([♭♯𝄫𝄪]*)/g,(a,n,alt)=>SOLFEO[n]+alt);
+const TIPO_MOD={'diatónica':['diatónica','pivot-chord'],'cromática':['cromática','chromatic'],'enarmónica':['enarmónica','enharmonic'],'directa':['directa','direct']};
+function etqTxt(e){
+  if(!EN||!e) return e||'';
+  return e.replace(/tiple en el (♭|♯)?(\d)\.º grado/,(a,alt,g)=>'soprano on scale degree '+(alt||'')+g)
+    .replace(/ · (diatónica|cromática|enarmónica|directa) · /,(a,t)=>' · '+TIPO_MOD[t][1]+' · ')
+    .replace(/pivote alterado: /,'altered pivot: ').replace(/pivote: /,'pivot: ')
+    .replace(/acorde alterado común: /,'common altered chord: ')
+    .replace(/semitono cromático (.*)$/,(a,x)=>'chromatic semitone '+notaEn(x))
+    .replace(/sin acorde pivote; nota común (.*)$/,(a,x)=>'no pivot chord; common tone '+notaEn(x))
+    .replace(/sin acorde pivote ni nota común/,'no pivot chord or common tone')
+    .replace(/ \(semicadencia\)/,' (half cadence)')
+    .replace(/ en ([A-Ga-g][#-]*)/g,' in $1');
 }
 for(const t of TONOS){const op=document.createElement('option');op.value=t;op.textContent=tonoEs(t);$('#tonalidad').append(op)}
 function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
@@ -919,38 +1057,43 @@ async function ejecutar(o){
   actual=o; pagina=0; cuentaCache.clear(); abiertosC.clear(); abiertos.clear(); masObras.clear(); masEj.clear();
   pref('ultimo',JSON.stringify(o)); pintarEtiquetas();
   const f=filtros();
-  $('#estado').textContent='Buscando…';
+  $('#estado').textContent=trd('Buscando…','Searching…');
+  const nn=n=>n.toLocaleString(LOC);
   if(o.t==='o'){
     await cargarCompases();
     const vistos=new Set();
     filas=obrasDe(o.comp,f).filter(ob=>!vistos.has(ob.m)&&vistos.add(ob.m)).map(ob=>{
-      const cs=COMP.obras[ob.id]||[], ini=cs.length?cs[0][0]:1, fin=cs.length?cs[cs.length-1][0]:ob.n;
-      return {frag:true,obraEntera:true,obra:ob.id,ini,fin:Math.min(fin,ini+f.L-1),primero:ini,ultimo:fin,tono:cs.length?COMP.tonos[cs[0][14]]:''};
+      const cs=COMP.obras[ob.id]||[]; let ini=cs.length?cs[0][0]:1, fin=cs.length?cs[cs.length-1][0]:ob.n;
+      // con filtro de forma, el movimiento se abre por esa sección
+      const fz=(f.sec||f.zona)?inicioForma(ob.m,f):null;
+      const tono0=fz?((cs.find(c=>c[0]>=fz.ini)||cs[0]||[])[14]):(cs.length?cs[0][14]:null);
+      if(fz) ini=fz.ini;
+      return {frag:true,obraEntera:true,obra:ob.id,ini,fin:Math.min(fin,ini+f.L-1),primero:cs.length?cs[0][0]:1,ultimo:fin,tono:tono0!=null?COMP.tonos[tono0]:''};
     }).filter(h=>pasaTono(h.tono,f)).sort((a,b)=>{const oa=porId.get(a.obra),ob=porId.get(b.obra);return apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.ob.localeCompare(ob.ob,'es',{numeric:true})||String(oa.mv||'').localeCompare(String(ob.mv||''),'es',{numeric:true})});
-    $('#estado').textContent=`${new Set(filas.map(x=>porId.get(x.obra).w)).size.toLocaleString('es')} obras · ${filas.length.toLocaleString('es')} movimientos`;
+    $('#estado').textContent=`${nn(new Set(filas.map(x=>porId.get(x.obra).w)).size)} ${trd('obras','works')} · ${nn(filas.length)} ${trd('movimientos','movements')}`;
   } else if(o.t==='c'){
     const k=o.k;
     if(!hitsCache[k]) hitsCache[k]=await (await fetch(`data/hits/${k}.json`)).json();
     const cuenta={}; filas=[];
     for(const h of hitsCache[k]){
-      const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)) continue;
+      const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)||!pasaForma(ob,f,h[1],h[2])) continue;
       cuenta[ob.w]=(cuenta[ob.w]||0)+1; if(cuenta[ob.w]>f.lim) continue;
       filas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6]});
     }
     filas=intercalar(filas);
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
-    $('#estado').textContent=`${filas.length.toLocaleString('es')} ejemplos · ${nObras.toLocaleString('es')} obras`;
+    $('#estado').textContent=`${nn(filas.length)} ${trd('ejemplos','examples')} · ${nn(nObras)} ${trd('obras','works')}`;
   } else if(o.t==='p'){
-    $('#estado').textContent='Buscando la progresión en todo el corpus…';
-    filas=intercalar(await buscarProgresion(o.q,f));
+    $('#estado').textContent=trd('Buscando la progresión en todo el corpus…','Searching the whole corpus for the progression…');
+    filas=intercalar((await buscarProgresion(o.q,f)).filter(h=>pasaForma(porId.get(h.obra),f,h.compas,h.parte,h.fin,null)));
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
-    $('#estado').textContent=`${filas.length.toLocaleString('es')} pasajes · ${nObras.toLocaleString('es')} obras`;
+    $('#estado').textContent=`${nn(filas.length)} ${trd('pasajes','passages')} · ${nn(nObras)} ${trd('obras','works')}`;
   } else {
     await cargarCompases();
-    filas=intercalar(pasajes(o.ids,f,false).filter(h=>pasaTono(h.tono,f)));
+    filas=intercalar(pasajes(o.ids,f,false).filter(h=>pasaTono(h.tono,f)&&pasaForma(porId.get(h.obra),f,h.ini,1,h.fin,null)));
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
     const cond=o.ids.map(id=>FAC[id].desc).join(' · ');
-    $('#estado').textContent=`${filas.length.toLocaleString('es')} pasajes · ${nObras.toLocaleString('es')} obras`;
+    $('#estado').textContent=`${nn(filas.length)} ${trd('pasajes','passages')} · ${nn(nObras)} ${trd('obras','works')}`;
   }
   pintar();
 }
@@ -968,18 +1111,26 @@ function pintarResumen(frag,modoObras){
   const r=$('#resumen');
   if(!filas.length){r.hidden=true;return}
   const ob=h=>porId.get(h.obra);
-  const unidad=modoObras?'movimientos':frag?'pasajes':'ejemplos';
+  const unidad=modoObras?trd('movimientos','movements'):frag?trd('pasajes','passages'):trd('ejemplos','examples');
   const porComp=contar(filas,h=>ob(h).c), porPer=contar(filas,h=>ob(h).per), porModo=contar(filas,h=>h.tono?(h.tono[0]===h.tono[0].toUpperCase()?'M':'m'):null);
   const max=Math.max(...porComp.map(x=>x[1]),1), maxP=Math.max(...porPer.map(x=>x[1]),1), maxM=Math.max(...porModo.map(x=>x[1]),1);
-  const barra=(campo,valor,txt,n,mx)=>`<button type="button" data-campo="${campo}" data-valor="${esc(valor)}" title="Filtrar: ${esc(txt)}"><span>${esc(txt)}</span><span class="b" style="width:${Math.max(4,Math.round(56*n/mx))}px"></span><span class="c">${n.toLocaleString('es')}</span></button>`;
+  const barra=(campo,valor,txt,n,mx)=>`<button type="button" data-campo="${campo}" data-valor="${esc(valor)}" title="${trd('Filtrar','Filter')}: ${esc(txt)}"><span>${esc(txt)}</span><span class="b" style="width:${Math.max(4,Math.round(56*n/mx))}px"></span><span class="c">${n.toLocaleString(LOC)}</span></button>`;
   const verTodos=r.dataset.todos==='1', comps=verTodos?porComp:porComp.slice(0,8);
-  let h=`<p class="tit"><strong>${filas.length.toLocaleString('es')}</strong> ${unidad} en <strong>${new Set(filas.map(x=>ob(x).w)).size.toLocaleString('es')}</strong> obras de <strong>${porComp.length}</strong> compositor${porComp.length>1?'es':''}</p>`;
-  if(porComp.length>1&&!$('#compositor').value) h+=`<div class="fila-b"><span class="et">Compositor</span><div>${comps.map(([c,n])=>barra('compositor',c,apellido(c),n,max)).join('')}${porComp.length>8?`<button type="button" class="mas-b" data-todos>${verTodos?'menos':'+'+(porComp.length-8)+' más'}</button>`:''}</div></div>`;
-  if(porPer.length>1&&!$('#epoca').value) h+=`<div class="fila-b"><span class="et">Período</span><div>${porPer.map(([p,n])=>barra('epoca',p,p,n,maxP)).join('')}</div></div>`;
-  if(porModo.length>1&&!$('#modo').value&&!$('#tonalidad').value) h+=`<div class="fila-b"><span class="et">Modo</span><div>${porModo.map(([m,n])=>barra('modo',m,m==='M'?'mayor':'menor',n,maxM)).join('')}</div></div>`;
+  const nW=new Set(filas.map(x=>ob(x).w)).size;
+  let h=EN?`<p class="tit"><strong>${filas.length.toLocaleString(LOC)}</strong> ${unidad} in <strong>${nW.toLocaleString(LOC)}</strong> work${nW>1?'s':''} by <strong>${porComp.length}</strong> composer${porComp.length>1?'s':''}</p>`
+    :`<p class="tit"><strong>${filas.length.toLocaleString(LOC)}</strong> ${unidad} en <strong>${nW.toLocaleString(LOC)}</strong> obras de <strong>${porComp.length}</strong> compositor${porComp.length>1?'es':''}</p>`;
+  if(porComp.length>1&&!$('#compositor').value) h+=`<div class="fila-b"><span class="et">${trd('Compositor','Composer')}</span><div>${comps.map(([c,n])=>barra('compositor',c,apellido(c),n,max)).join('')}${porComp.length>8?`<button type="button" class="mas-b" data-todos>${verTodos?trd('menos','fewer'):'+'+(porComp.length-8)+trd(' más',' more')}</button>`:''}</div></div>`;
+  if(porPer.length>1&&!$('#epoca').value) h+=`<div class="fila-b"><span class="et">${trd('Período','Period')}</span><div>${porPer.map(([p,n])=>barra('epoca',p,perTxt(p),n,maxP)).join('')}</div></div>`;
+  if(porModo.length>1&&!$('#modo').value&&!$('#tonalidad').value) h+=`<div class="fila-b"><span class="et">${trd('Modo','Mode')}</span><div>${porModo.map(([m,n])=>barra('modo',m,m==='M'?trd('mayor','major'):trd('menor','minor'),n,maxM)).join('')}</div></div>`;
+  // forma: en qué sección caen los ejemplos de los movimientos con forma anotada
+  if(!modoObras&&!$('#seccion').value){
+    const porSec=contar(filas,x=>{const fz=formaEn(ob(x).m,x.compas??x.ini,x.parte??1);return fz&&fz[0]?fz[0]:null});
+    if(porSec.length>1){const mxS=Math.max(...porSec.map(x=>x[1]));
+      h+=`<div class="fila-b"><span class="et">${trd('Forma','Form')}</span><div>${porSec.sort((a,b)=>FORMA_ORDEN.indexOf(a[0])-FORMA_ORDEN.indexOf(b[0])).map(([k,n])=>barra('seccion',k,formaTxt(k),n,mxS)).join('')}</div></div>`}
+  }
   r.innerHTML=h; r.hidden=false;
   r.querySelectorAll('[data-campo]').forEach(b=>b.onclick=()=>{const c=b.dataset.campo,v=b.dataset.valor;
-    elegir({t:'x',campo:c,valor:v,txt:c==='modo'?(v==='M'?'modo mayor':'modo menor'):v})});
+    elegir({t:'x',campo:c,valor:v,txt:c==='modo'?(v==='M'?trd('modo mayor','major mode'):trd('modo menor','minor mode')):c==='epoca'?perTxt(v):c==='seccion'?formaTxt(v):v})});
   const t=r.querySelector('[data-todos]'); if(t) t.onclick=()=>{r.dataset.todos=verTodos?'0':'1';pintarResumen(frag,modoObras)};
 }
 function pintarDestacados(frag,modoObras){
@@ -992,9 +1143,9 @@ function pintarDestacados(frag,modoObras){
     const h=cands.slice().sort((a,b)=>((a.fin-a.ini)-(b.fin-b.ini)))[0];
     elegidos.push(h); if(elegidos.length===4) break;
   }
-  d.innerHTML=`<p class="et">Para empezar</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
-    const donde=h.frag?`cc. ${h.ini}–${h.fin}`:`c. ${h.compas}`;
-    const cif=(h.etq||'').split(' · ')[0];
+  d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
+    const donde=h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}`;
+    const cif=etqTxt((h.etq||'').split(' · ')[0]);
     return `<button type="button" data-i="${i}"><span class="cp">${esc(apellido(o.c))}</span><span class="ob">${esc(o.ob)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''}</span><span class="dn">${donde} · ${esc(tonoEs(h.tono))}${cif?' · <code>'+esc(cif)+'</code>':''}</span></button>`}).join('')}</div>`;
   d.hidden=false;
   d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const h=elegidos[+b.dataset.i];
@@ -1004,10 +1155,12 @@ function pintarDestacados(frag,modoObras){
 function pintar(){
   const frag=!!actual&&(actual.t==='f'||actual.t==='p'), modoObras=!!actual&&actual.t==='o';
   pintarResumen(frag,modoObras); pintarDestacados(frag,modoObras);
-  $('#cabecera').innerHTML=modoObras?'<th>Movimiento</th><th>Compases</th><th>Tono inicial</th>':frag?'<th>Movimiento · fuente</th><th>Compases</th><th>Tono</th><th>Progresión</th>'
-                               :'<th>Movimiento · fuente</th><th>Compás</th><th>Parte</th><th>Tono</th><th>Cifrado</th>';
+  $('#cabecera').innerHTML=EN?(modoObras?'<th>Movement</th><th>Bars</th><th>Opening key</th>':frag?'<th>Movement · source</th><th>Bars</th><th>Key</th><th>Progression</th>'
+                               :'<th>Movement · source</th><th>Bar</th><th>Beat</th><th>Key</th><th>Analysis</th>')
+    :(modoObras?'<th>Movimiento</th><th>Compases</th><th>Tono inicial</th>':frag?'<th>Movimiento · fuente</th><th>Compases</th><th>Tono</th><th>Progresión</th>'
+                               :'<th>Movimiento · fuente</th><th>Compás</th><th>Parte</th><th>Tono</th><th>Cifrado</th>');
   const cuerpo=$('#cuerpo'); cuerpo.innerHTML='';
-  const ncol=modoObras?3:frag?4:5, unidad=n=>modoObras?(n===1?'movimiento':'movimientos'):frag?(n===1?'pasaje':'pasajes'):(n===1?'ejemplo':'ejemplos');
+  const ncol=modoObras?3:frag?4:5, unidad=n=>modoObras?(n===1?trd('movimiento','movement'):trd('movimientos','movements')):frag?(n===1?trd('pasaje','passage'):trd('pasajes','passages')):(n===1?trd('ejemplo','example'):trd('ejemplos','examples'));
   // compositor → obras → ejemplos
   const porC=new Map();
   for(const h of filas){const o=porId.get(h.obra);if(!porC.has(o.c))porC.set(o.c,new Map());const m=porC.get(o.c);if(!m.has(o.w))m.set(o.w,[]);m.get(o.w).push(h)}
@@ -1016,7 +1169,7 @@ function pintar(){
   for(const [c,obras] of comps){
     const n=[...obras.values()].reduce((s,x)=>s+x.length,0), abiertoC=unico||abiertosC.has(c);
     const tr=document.createElement('tr'); tr.className='comp'; tr.tabIndex=0; tr.setAttribute('aria-expanded',String(abiertoC));
-    tr.innerHTML=`<td colspan="${ncol}"><span class="fl">${abiertoC?'▾':'▸'}</span> <span class="gt">${esc(porApellido(c))}</span> <span class="gs">— ${n.toLocaleString('es')} ${unidad(n)} en ${obras.size} obra${obras.size>1?'s':''}</span></td>`;
+    tr.innerHTML=`<td colspan="${ncol}"><span class="fl">${abiertoC?'▾':'▸'}</span> <span class="gt">${esc(porApellido(c))}</span> <span class="gs">— ${n.toLocaleString(LOC)} ${unidad(n)} ${trd('en','in')} ${obras.size} ${obras.size>1?trd('obras','works'):trd('obra','work')}</span></td>`;
     const alternar=()=>{abiertosC.has(c)?abiertosC.delete(c):abiertosC.add(c);pintar()};
     if(!unico){tr.onclick=alternar;tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();alternar()}}}
     cuerpo.append(tr);
@@ -1035,12 +1188,12 @@ function pintar(){
         const todos=masEj.has(w)||items.length<=EJ_VISIBLES+1;
         for(const h of todos?items:items.slice(0,EJ_VISIBLES)) cuerpo.append(filaHit(h,modoObras,frag));
         if(!todos){const m=document.createElement('tr');m.className='mas';
-          m.innerHTML=`<td colspan="${ncol}" style="padding-left:44px">ver los ${items.length-EJ_VISIBLES} ${unidad(2)} restantes</td>`;
+          m.innerHTML=`<td colspan="${ncol}" style="padding-left:44px">${EN?`show the other ${items.length-EJ_VISIBLES} ${unidad(2)}`:`ver los ${items.length-EJ_VISIBLES} ${unidad(2)} restantes`}</td>`;
           m.onclick=()=>{masEj.add(w);pintar()};cuerpo.append(m)}
       }
     }
     if(lw.length>lim){const mas=document.createElement('tr');mas.className='mas';
-      mas.innerHTML=`<td colspan="${ncol}">ver ${Math.min(OBRAS_VISIBLES,lw.length-lim)} obras más de ${esc(apellido(c))} (quedan ${lw.length-lim})</td>`;
+      mas.innerHTML=`<td colspan="${ncol}">${EN?`show ${Math.min(OBRAS_VISIBLES,lw.length-lim)} more works by ${esc(apellido(c))} (${lw.length-lim} left)`:`ver ${Math.min(OBRAS_VISIBLES,lw.length-lim)} obras más de ${esc(apellido(c))} (quedan ${lw.length-lim})`}</td>`;
       mas.onclick=()=>{masObras.set(c,lim+OBRAS_VISIBLES);pintar()}; cuerpo.append(mas)}
   }
   $('#tabla').hidden=!filas.length;
@@ -1066,28 +1219,28 @@ function celdaCifrado(h){
   if(p.length===3&&TIPOS[p[1]]){
     const [desde,hasta]=p[0].split(' → '), v=ver(), conRN=/ en /.test(p[2]);
     let det='';
-    if(v.rom||!conRN) det+=`<span class="det">${esc(p[2])}</span>`;
-    if(v.int&&conRN) det+=`<span class="det" style="color:var(--int)">${esc(traducir(p[2],h.tono,'int'))}</span>`;
-    if(v.fun&&conRN) det+=`<span class="det" style="color:var(--fun)">${esc(traducir(p[2],h.tono,'fun'))}</span>`;
-    return `<span class="lin rom">${esc(tonoEs(desde))} → ${esc(tonoEs(hasta))}</span><span class="tipo ${TIPOS[p[1]]}">${p[1]}</span>${det}`;
+    if(v.rom||!conRN) det+=`<span class="det">${esc(etqTxt(p[2]))}</span>`;
+    if(v.int&&conRN) det+=`<span class="det" style="color:var(--int)">${esc(etqTxt(traducir(p[2],h.tono,'int')))}</span>`;
+    if(v.fun&&conRN) det+=`<span class="det" style="color:var(--fun)">${esc(etqTxt(traducir(p[2],h.tono,'fun')))}</span>`;
+    return `<span class="lin rom">${esc(tonoEs(desde))} → ${esc(tonoEs(hasta))}</span><span class="tipo ${TIPOS[p[1]]}">${EN?TIPO_MOD[p[1]][1]:p[1]}</span>${det}`;
   }
   return lineas(h.etq,h.tono);
 }
 function resumen(s){
-  const tc=[]; if(s.tri) tc.push(`${s.tri} tríadas`); if(s.cua) tc.push(`${s.cua} cuatríadas`); if(s.otro) tc.push(`${s.otro} otros`);
-  const inv=[]; if(s.i1) inv.push(`${s.i1}× 1ª`); if(s.i2) inv.push(`${s.i2}× 2ª`); if(s.i3) inv.push(`${s.i3}× 3ª`);
-  const p=[`${s.nAc} acordes`,tc.join(', '),inv.length?'inversiones: '+inv.join(', '):'sin inversiones'];
-  if(s.prest) p.push(`${s.prest} prestados`); if(s.sec) p.push(`${s.sec} secundarias`); if(s.alt) p.push(`${s.alt} alterados`);
+  const tc=[]; if(s.tri) tc.push(`${s.tri} ${trd('tríadas','triads')}`); if(s.cua) tc.push(`${s.cua} ${trd('cuatríadas','seventh chords')}`); if(s.otro) tc.push(`${s.otro} ${trd('otros','other')}`);
+  const inv=[]; if(s.i1) inv.push(`${s.i1}× ${trd('1ª','1st')}`); if(s.i2) inv.push(`${s.i2}× ${trd('2ª','2nd')}`); if(s.i3) inv.push(`${s.i3}× ${trd('3ª','3rd')}`);
+  const p=[`${s.nAc} ${trd('acordes','chords')}`,tc.join(', '),inv.length?trd('inversiones: ','inversions: ')+inv.join(', '):trd('sin inversiones','no inversions')];
+  if(s.prest) p.push(`${s.prest} ${trd('prestados','borrowed')}`); if(s.sec) p.push(`${s.sec} ${trd('secundarias','secondary')}`); if(s.alt) p.push(`${s.alt} ${trd('alterados','chromatic')}`);
   return esc(p.join(' · '));
 }
 function progresion(ac,h){
   const dentro=ac.filter(a=>a.compas>=h.ini&&a.compas<=h.fin), v=ver();
-  const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="pasaje al unísono u octava">${esc(fn(a))}</span>`:esc(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
+  const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="${trd('pasaje al unísono u octava','unison or octave passage')}">${esc(fn(a))}</span>`:esc(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
   let out='';
   if(v.rom) out+=fila('rom',a=>a.rn);
   if(v.int) out+=fila('int',a=>cifInterv(parseRN(a.rn)));
   if(v.fun) out+=fila('fun',a=>cifFunc(parseRN(a.rn),a.tono));
-  return out||'<span class="lin" style="color:var(--muted)">(cifrados ocultos)</span>';
+  return out||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
 }
 $('#prev').onclick=()=>{pagina--;pintar();$('#tabla').scrollIntoView({block:'start'})};
 $('#next').onclick=()=>{pagina++;pintar();$('#tabla').scrollIntoView({block:'start'})};
@@ -1107,7 +1260,7 @@ function toolkit(){
   if(!tkCargando) tkCargando=new Promise((ok,ko)=>{
     const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/verovio@6.3.0/dist/verovio-toolkit-wasm.js';
     s.onload=()=>{verovio.module.onRuntimeInitialized=()=>{tk=new verovio.toolkit();ok(tk)}};
-    s.onerror=()=>{tkCargando=null;ko(new Error('no se pudo cargar el renderizador'))};
+    s.onerror=()=>{tkCargando=null;ko(new Error(trd('no se pudo cargar el renderizador','the score renderer could not be loaded')))};
     document.head.append(s);
   });
   return tkCargando;
@@ -1360,7 +1513,7 @@ function metro(mei){
 }
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
-  const donde=h.frag?`cc. ${h.ini}–${h.fin}`:`c. ${h.compas}, parte ${h.parte}`;
+  const donde=h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${h.parte}`;
   $('#nav').hidden=!h.frag;
   if(h.obraEntera){$('#atras').disabled=h.ini<=h.primero;$('#adelante').disabled=h.fin>=h.ultimo}
   else{$('#atras').disabled=$('#adelante').disabled=false}
@@ -1372,9 +1525,9 @@ async function mostrar(h){
   const primero=ac.length?Math.min(...ac.map(x=>x.compas)):0;
   const [a,b]=rango(h,primero), dentro=ac.filter(x=>x.compas>=a&&x.compas<=b);
   pintarSelector(h); pintarFicha(h,ac); if(comparando) pintarComparacion(h,a,b); else $('#comparar').hidden=true;
-  if(!o.pq){cont.innerHTML='<div class="vacio">Esta obra tiene análisis pero no partitura en el corpus.</div>';pintarTira(h,dentro);return}
+  if(!o.pq){cont.innerHTML=`<div class="vacio">${trd('Esta obra tiene análisis pero no partitura en el corpus.','This work has an analysis but no score in the corpus.')}</div>`;pintarTira(h,dentro);return}
   $('#tira').hidden=true;
-  cont.innerHTML='<div class="vacio">Cargando la partitura…</div>';
+  cont.innerHTML=`<div class="vacio">${trd('Cargando la partitura…','Loading the score…')}</div>`;
   try{
     const [t,xml]=await Promise.all([toolkit(),xmlDe(o),fuentesListas]);
     if(seleccion!==h) return;
@@ -1382,7 +1535,7 @@ async function mostrar(h){
     // no se adivina; se muestran los cifrados sin partitura y se explica
     const numsPart=numerosCompas(o.m,xml), objetivo=h.frag?[...Array(h.fin-h.ini+1)].map((_,i)=>String(h.ini+i)):[String(h.compas)];
     if(!objetivo.some(n=>numsPart.includes(n))){
-      cont.innerHTML='<div class="vacio">El análisis numera este pasaje con las repeticiones desplegadas y la partitura no lo escribe con esos números; se muestran solo los cifrados.</div>';
+      cont.innerHTML=`<div class="vacio">${trd('El análisis numera este pasaje con las repeticiones desplegadas y la partitura no lo escribe con esos números; se muestran solo los cifrados.','The analysis numbers this passage with its repeats written out, and the score does not use those numbers; only the analysis is shown.')}</div>`;
       pintarTira(h,dentro); return;
     }
     const pos=posiciones(numsPart,a,b);
@@ -1392,7 +1545,7 @@ async function mostrar(h){
         ...GRABADO});
       t.select({measureRange:pos.sel}); t.loadData(xml);
       if(seleccion!==h) return;
-      if(t.getPageCount()<1){cont.innerHTML='<div class="vacio">No encuentro esos compases en la partitura.</div>';pintarTira(h,dentro);return}
+      if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
       // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
@@ -1422,7 +1575,7 @@ async function mostrar(h){
         r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.22');r.setAttribute('rx','40');m.parentNode.insertBefore(r,m)}
     }
     $('#copiarSVG').disabled=$('#copiarPNG').disabled=false;
-  }catch(e){cont.innerHTML=`<div class="vacio">No se pudo mostrar la partitura (${esc(e.message||e)}).</div>`;pintarTira(h,dentro)}
+  }catch(e){cont.innerHTML=`<div class="vacio">${trd('No se pudo mostrar la partitura','The score could not be shown')} (${esc(e.message||e)}).</div>`;pintarTira(h,dentro)}
 }
 const NS='http://www.w3.org/2000/svg', FUENTE="Academico, 'Times New Roman', Times, 'Segoe UI Symbol', 'DejaVu Serif', Georgia, serif";
 const SUP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+'}, SUB={'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9'};
@@ -1574,7 +1727,7 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   }
   const sistema=svg.querySelector('g.system').getBBox(), abajo=sistema.y+sistema.height;
   const g=document.createElementNS(NS,'g'); g.setAttribute('class','cifrados'); pm.append(g);
-  const etiquetaTono=t=>{const e=tonoEs(t);return (t[0]===t[0].toUpperCase()?e[0].toUpperCase()+e.slice(1):e)+':'};
+  const etiquetaTono=t=>{if(EN)return tonoCorto(t)+':';const e=tonoEs(t);return (t[0]===t[0].toUpperCase()?e[0].toUpperCase()+e.slice(1):e)+':'};
   // acorde pivote: en cada cambio de tonalidad, lectura del acorde en la tonalidad de partida (si es diatónico allí)
   const pivotes=puestos.map((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono?reinterpretar(z.c.rn,z.c.tono,puestos[i-1].c.tono):null);
   function dibujar(f){
@@ -1593,7 +1746,7 @@ function anotar(svg,acordes,compasDom,primero,reducir){
       if(filas.rom!=null){
         const gg=document.createElementNS(NS,'g'); g.append(gg);
         w=grabarRomano(gg,c.rn,0,0,f); gg.setAttribute('transform',`translate(${x-w/2},${filas.rom})`);
-        if(c.u){gg.setAttribute('opacity','0.4');const tt=document.createElementNS(NS,'title');tt.textContent='Pasaje al unísono u octava: no cuenta en las búsquedas';gg.append(tt)}
+        if(c.u){gg.setAttribute('opacity','0.4');const tt=document.createElementNS(NS,'title');tt.textContent=trd('Pasaje al unísono u octava: no cuenta en las búsquedas','Unison or octave passage: not counted in searches');gg.append(tt)}
       }
       if(filas.int!=null&&p) cifInterv(p).split('/').forEach((n,k)=>{const t=texto(g,n,x,filas.int+k*f*0.8,f*0.74,{'text-anchor':'middle'});if(c.u)t.setAttribute('opacity','0.4');w=Math.max(w,ancho(t))});
       if(filas.fun!=null){
@@ -1644,11 +1797,11 @@ function pintarTira(h,dentro){
   if((!v.rom&&!v.int&&!v.fun)||!dentro.length){tira.hidden=true;return}
   const foco=x=>h.frag?(x.compas>=h.ini&&x.compas<=h.fin):(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6);
   let prev=null; const nc=dentro.map(x=>{const r=x.compas!==prev;prev=x.compas;return r});
-  let html='<table><thead><tr><th class="rot"></th>'+dentro.map((x,i)=>`<th class="${nc[i]?'nc':''}">${nc[i]?'c. '+x.compas:'·'}</th>`).join('')+'</tr></thead><tbody>';
+  let html='<table><thead><tr><th class="rot"></th>'+dentro.map((x,i)=>`<th class="${nc[i]?'nc':''}">${nc[i]?trd('c. ','b. ')+x.compas:'·'}</th>`).join('')+'</tr></thead><tbody>';
   const fila=(cls,nom,fn)=>`<tr class="${cls}"><td class="rot">${nom}</td>`+dentro.map((x,i)=>`<td class="${nc[i]?'nc ':''}${foco(x)?'foco':''}">${esc(fn(x))}</td>`).join('')+'</tr>';
-  if(v.rom) html+=fila('rom','Romano',x=>x.rn);
-  if(v.int) html+=fila('int','Interv.',x=>cifInterv(parseRN(x.rn)));
-  if(v.fun) html+=fila('fun','Func.',x=>cifFunc(parseRN(x.rn),x.tono));
+  if(v.rom) html+=fila('rom',trd('Romano','Roman'),x=>x.rn);
+  if(v.int) html+=fila('int',trd('Interv.','Fig.'),x=>cifInterv(parseRN(x.rn)));
+  if(v.fun) html+=fila('fun',trd('Func.','Func.'),x=>cifFunc(parseRN(x.rn),x.tono));
   tira.innerHTML=html+'</tbody></table>'; tira.hidden=false;
 }
 // ---- exportar ----
@@ -1671,10 +1824,10 @@ $('#copiarSVG').onclick=async()=>{
     if(window.ClipboardItem&&ClipboardItem.supports&&ClipboardItem.supports('image/svg+xml')){
       await navigator.clipboard.write([new ClipboardItem({'image/svg+xml':new Blob([s.texto],{type:'image/svg+xml'}),'text/plain':new Blob([s.texto],{type:'text/plain'})})]);
     } else await navigator.clipboard.writeText(s.texto);
-    aviso('SVG copiado: pégalo en tu editor');
+    aviso(trd('SVG copiado: pégalo en tu editor','SVG copied: paste it into your editor'));
   }catch(e){
-    try{await navigator.clipboard.writeText(s.texto);aviso('SVG copiado como texto')}
-    catch(_){aviso('El navegador no deja copiar aquí')}
+    try{await navigator.clipboard.writeText(s.texto);aviso(trd('SVG copiado como texto','SVG copied as text'))}
+    catch(_){aviso(trd('El navegador no deja copiar aquí','The browser does not allow copying here'))}
   }
 };
 $('#copiarPNG').onclick=async()=>{
@@ -1687,15 +1840,15 @@ $('#copiarPNG').onclick=async()=>{
     URL.revokeObjectURL(url);
     const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
     await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    aviso('Imagen copiada');
-  }catch(e){aviso('El navegador no deja copiar imágenes aquí; usa «Copiar SVG»')}
+    aviso(trd('Imagen copiada','Image copied'));
+  }catch(e){aviso(trd('El navegador no deja copiar imágenes aquí; usa «Copiar SVG»','The browser does not allow copying images here; use “Copy SVG”'))}
 };
 $('#margen').addEventListener('input',()=>{$('#margenV').textContent=$('#margen').value;if(seleccion){clearTimeout(temporizador);temporizador=setTimeout(()=>mostrar(seleccion),250)}});
 $('#copiar').onclick=async()=>{
   if(!seleccion) return; const o=porId.get(seleccion.obra);
-  const donde=seleccion.frag?`cc. ${seleccion.ini}–${seleccion.fin}`:`c. ${seleccion.compas} (parte ${seleccion.parte})`;
-  const txt=`${o.c}, ${o.t}, ${donde}, ${tonoEs(seleccion.tono)}`+(seleccion.etq?`: ${seleccion.etq.split(' · ')[0]}`:'');
-  try{await navigator.clipboard.writeText(txt);aviso('Cita copiada')}catch(e){const r=document.createRange();r.selectNodeContents($('#cab'));const s=getSelection();s.removeAllRanges();s.addRange(r);aviso('Selecciona el texto y cópialo')}
+  const donde=seleccion.frag?`${trd('cc.','bb.')} ${seleccion.ini}–${seleccion.fin}`:`${trd('c.','b.')} ${seleccion.compas} (${trd('parte','beat')} ${seleccion.parte})`;
+  const txt=`${o.c}, ${o.t}, ${donde}, ${tonoEs(seleccion.tono)}`+(seleccion.etq?`: ${etqTxt(seleccion.etq.split(' · ')[0])}`:'');
+  try{await navigator.clipboard.writeText(txt);aviso(trd('Cita copiada','Citation copied'))}catch(e){const r=document.createRange();r.selectNodeContents($('#cab'));const s=getSelection();s.removeAllRanges();s.addRange(r);aviso(trd('Selecciona el texto y cópialo','Select the text and copy it'))}
 };
 // ============ selector de análisis, comparador y ficha ============
 let comparando=false, ctxN=3;
@@ -1703,8 +1856,8 @@ function pintarSelector(h){
   const o=porId.get(h.obra), alts=porMov.get(o.m)||[o], el=$('#selAnalisis');
   if(alts.length<2){el.hidden=true;comparando=false;return}
   el.hidden=false;
-  el.innerHTML='<span>Análisis:</span>'+alts.map(x=>`<button class="btn" type="button" data-id="${x.id}" aria-pressed="${x.id===o.id}" title="${esc(x.src.autores||'')}">${badge(x.f)} ${esc((x.src.autores||NFUENTE[x.f]).split(/[,|·(]/)[0].trim().slice(0,28))}</button>`).join('')
-    +`<button class="btn" type="button" id="btnComparar" aria-pressed="${comparando}">Comparar análisis</button>`;
+  el.innerHTML=`<span>${trd('Análisis:','Analyses:')}</span>`+alts.map(x=>`<button class="btn" type="button" data-id="${x.id}" aria-pressed="${x.id===o.id}" title="${esc(x.src.autores||'')}">${badge(x.f)} ${esc((x.src.autores||NFUENTE[x.f]).split(/[,|·(]/)[0].trim().slice(0,28))}</button>`).join('')
+    +`<button class="btn" type="button" id="btnComparar" aria-pressed="${comparando}">${trd('Comparar análisis','Compare analyses')}</button>`;
   el.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{const x=porId.get(+b.dataset.id);mostrar({...h,obra:x.id})});
   $('#btnComparar').onclick=()=>{comparando=!comparando;mostrar(h)};
 }
@@ -1730,17 +1883,21 @@ async function pintarComparacion(h,a,b){
     else igual++;
     return `<tr><td class="num">${r.compas} · ${r.parte}</td>`+cs.map(c=>`<td class="${cls}">${c?(c.cambio?`<span class="k">${esc(tonoEs(c.tono))}:</span> `:'')+esc(c.orig):'<span style="color:var(--muted)">—</span>'}</td>`).join('')+'</tr>';
   }).join('');
-  const notas=alts.filter(x=>x.src.origen).map(x=>`${badge(x.f)} indica que procede de ${esc(x.src.origen)}`).join('<br>');
-  caja.innerHTML=`<div class="res">${filasC.length} posiciones · ${igual} coinciden · ${difCif} cifrado distinto · ${difTono} tonalidad distinta · ${difSeg} segmentación distinta (un análisis pone acorde y el otro no)${notas?'<br>'+notas:''}<br>Cada análisis se muestra con sus propias convenciones; la tabla no decide cuál es correcto.</div>`
-    +`<table><thead><tr><th>Compás · parte</th>${alts.map(x=>`<th>${badge(x.f)} ${esc((x.src.autores||'').split(/[,|·(]/)[0].slice(0,24))}</th>`).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>`;
+  const notas=alts.filter(x=>x.src.origen).map(x=>`${badge(x.f)} ${trd('indica que procede de','says it comes from')} ${esc(x.src.origen)}`).join('<br>');
+  caja.innerHTML=(EN?`<div class="res">${filasC.length} positions · ${igual} agree · ${difCif} different chord · ${difTono} different key · ${difSeg} different segmentation (one analysis has a chord and the other does not)${notas?'<br>'+notas:''}<br>Each analysis is shown with its own conventions; the table does not decide which is right.</div>`
+    :`<div class="res">${filasC.length} posiciones · ${igual} coinciden · ${difCif} cifrado distinto · ${difTono} tonalidad distinta · ${difSeg} segmentación distinta (un análisis pone acorde y el otro no)${notas?'<br>'+notas:''}<br>Cada análisis se muestra con sus propias convenciones; la tabla no decide cuál es correcto.</div>`)
+    +`<table><thead><tr><th>${trd('Compás · parte','Bar · beat')}</th>${alts.map(x=>`<th>${badge(x.f)} ${esc((x.src.autores||'').split(/[,|·(]/)[0].slice(0,24))}</th>`).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>`;
   caja.hidden=false;
 }
 function descripcionBusqueda(){
   if(!actual) return {nombre:'—',tipo:'',criterio:''};
-  if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:'Derivado por regla a partir del cifrado romano',criterio:m.criterio||m.desc||''}}
-  if(actual.t==='f') return {nombre:etiquetaFacetas(actual.ids),tipo:'Derivado por regla a partir del cifrado romano',criterio:actual.ids.map(id=>FAC[id].desc).join(' · ')+` (pasajes de ${filtros().L} compases)`};
-  if(actual.t==='p') return {nombre:'progresión '+actual.q.join(' – '),tipo:'Coincidencia de sucesión de cifrados',criterio:`${$('#progInv').checked?'sin tener en cuenta inversiones':'con inversiones exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
-  return {nombre:'obra completa',tipo:'',criterio:''};
+  const regla=trd('Derivado por regla a partir del cifrado romano','Derived by rule from the Roman-numeral analysis');
+  if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:regla,criterio:EN?DESC(actual.k):(m.criterio||m.desc||'')}}
+  if(actual.t==='f') return {nombre:etiquetaFacetas(actual.ids),tipo:regla,criterio:actual.ids.map(id=>FAC[id].desc).join(' · ')+trd(` (pasajes de ${filtros().L} compases)`,` (${filtros().L}-bar passages)`)};
+  if(actual.t==='p') return {nombre:trd('progresión ','progression ')+actual.q.join(' – '),tipo:trd('Coincidencia de sucesión de cifrados','Matching succession of chords'),
+    criterio:EN?`${$('#progInv').checked?'ignoring inversions':'with exact inversions'}; up to ${$('#progGap').value} chords in between; at least ${$('#progMin').value||actual.q.length} chords; repeated chords count as one`
+      :`${$('#progInv').checked?'sin tener en cuenta inversiones':'con inversiones exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
+  return {nombre:trd('obra completa','whole work'),tipo:'',criterio:''};
 }
 function pintarFicha(h,ac){
   const o=porId.get(h.obra), d=descripcionBusqueda(), s=o.src;
@@ -1750,18 +1907,19 @@ function pintarFicha(h,ac){
   let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else if(h.etq&&/→/.test(h.etq)&&!/ · /.test(h.etq)){i0=Math.max(0,i0-(h.etq.split('→').length-1))}
   const desde=Math.max(0,i0-ctxN), hasta=Math.min(ac.length-1,i1+ctxN);
   let ctx='', tPrev=null;
-  for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(tonoEs(c.tono))}:</span> `; tPrev=c.tono;
+  for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;
     const t=esc(c.orig)+(c.cad?` <span class="k">${esc(c.cad)}</span>`:''); ctx+=(i>=i0&&i<=i1?`<span class="f">${t}</span>`:t)+(i<hasta?' → ':'')}
   const fila=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
+  const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+' <span class="k" style="color:var(--muted)">(Taking Form)</span>':'';
   $('#fichaCuerpo').innerHTML=`
-    <dl>${fila('Procedimiento',esc(d.nombre))}${fila('Identificación',esc(d.tipo))}${fila('Criterio',esc(d.criterio))}
-      ${fila('Obra',esc(o.ob)+(o.cat?` (${esc(o.cat)})`:''))}${fila('Compositor',esc(o.c)+(o.per?` · ${esc(o.per)}`:''))}${fila('Movimiento',movDe(o)!=='—'?esc(movDe(o)):'')}
-      ${fila('Posición',h.frag?`cc. ${h.ini}–${h.fin}`:`c. ${h.compas}, parte ${h.parte}`)}${fila('Tonalidad',esc(tonoEs(h.tono)))}</dl>
-    <div><span class="k" style="color:var(--muted)">Contexto</span> <button class="btn" type="button" id="ctxMenos" aria-label="Menos contexto">−</button> <button class="btn" type="button" id="ctxMas" aria-label="Más contexto">+</button>
+    <dl>${fila(trd('Procedimiento','Device'),esc(d.nombre))}${fila(trd('Identificación','Detection'),esc(d.tipo))}${fila(trd('Criterio','Criterion'),esc(d.criterio))}
+      ${fila(trd('Obra','Work'),esc(o.ob)+(o.cat?` (${esc(o.cat)})`:''))}${fila(trd('Compositor','Composer'),esc(o.c)+(o.per?` · ${esc(perTxt(o.per))}`:''))}${fila(trd('Movimiento','Movement'),movDe(o)!=='—'?esc(movDe(o)):'')}
+      ${fila(trd('Posición','Position'),h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${h.parte}`)}${fila(trd('Tonalidad','Key'),esc(tonoEs(h.tono)))}${fila(trd('Forma','Form'),formaV)}</dl>
+    <div><span class="k" style="color:var(--muted)">${trd('Contexto','Context')}</span> <button class="btn" type="button" id="ctxMenos" aria-label="${trd('Menos contexto','Less context')}">−</button> <button class="btn" type="button" id="ctxMas" aria-label="${trd('Más contexto','More context')}">+</button>
       <div class="ctx">${ctx||'—'}</div></div>
-    <dl>${fila('Fuente',`${badge(o.f)} ${esc(o.col)}`)}${fila('Análisis',esc(s.autores||'—'))}${fila('Estándar',esc(s.anot||''))}
-      ${fila('Licencia',esc(s.licencia||''))}${fila('Versión',esc(s.version||''))}${fila('Archivo',s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.archivo)}</a>`:esc(s.archivo||''))}
-      ${fila('Partitura',esc(s.partitura||''))}${fila('Referencia',esc(s.ref||''))}${fila('Procedencia declarada',esc(s.origen||''))}</dl>
+    <dl>${fila(trd('Fuente','Source'),`${badge(o.f)} ${esc(o.col)}`)}${fila(trd('Análisis','Analysis'),esc(s.autores||'—'))}${fila(trd('Estándar','Standard'),esc(s.anot||''))}
+      ${fila(trd('Licencia','Licence'),esc(s.licencia||''))}${fila(trd('Versión','Version'),esc(s.version||''))}${fila(trd('Archivo','File'),s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.archivo)}</a>`:esc(s.archivo||''))}
+      ${fila(trd('Partitura','Score'),esc(s.partitura||''))}${fila(trd('Referencia','Reference'),esc(s.ref||''))}${fila(trd('Procedencia declarada','Stated origin'),esc(s.origen||''))}</dl>
     <div id="zonaGuardar"></div>`;
   $('#ctxMenos').onclick=()=>{ctxN=Math.max(0,ctxN-2);pintarFicha(h,ac)};
   $('#ctxMas').onclick=()=>{ctxN=Math.min(20,ctxN+2);pintarFicha(h,ac)};
@@ -1785,15 +1943,15 @@ function pintarGuardar(h){
   const o=porId.get(h.obra);
   const ya=guardados.filter(g=>g.analisis===o.src.clave&&g.compas===(h.compas||h.ini)&&g.fin===(h.fin||h.compas));
   const cols=[...new Set(guardados.map(g=>g.coleccion).filter(Boolean))];
-  z.innerHTML=(ya.length?`<p class="k" style="color:var(--muted)">Guardado en: ${ya.map(g=>esc(g.coleccion||'—')).join(', ')}</p>`:'')+`<button class="btn" type="button" id="abrirGuardar">Guardar en una colección</button>
+  z.innerHTML=(ya.length?`<p class="k" style="color:var(--muted)">${trd('Guardado en:','Saved in:')} ${ya.map(g=>esc(g.coleccion||'—')).join(', ')}</p>`:'')+`<button class="btn" type="button" id="abrirGuardar">${trd('Guardar en una colección','Save to a collection')}</button>
   <form class="guardar" id="formGuardar" hidden>
-    <input id="gCol" list="gCols" placeholder="Colección (p. ej. Tema 7 · Napolitana)" required>
+    <input id="gCol" list="gCols" placeholder="${trd('Colección (p. ej. Tema 7 · Napolitana)','Collection (e.g. Unit 7 · Neapolitan)')}" required>
     <datalist id="gCols">${cols.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
-    <textarea id="gCom" rows="2" placeholder="Comentario"></textarea>
-    <input id="gEtq" placeholder="Etiquetas, separadas por comas">
-    <div class="estrellas" id="gVal" data-v="0" aria-label="Utilidad didáctica">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} de 5">★</button>`).join('')}</div>
-    <textarea id="gObs" rows="2" placeholder="Observaciones analíticas"></textarea>
-    <button class="btn" type="submit">Guardar</button>
+    <textarea id="gCom" rows="2" placeholder="${trd('Comentario','Comment')}"></textarea>
+    <input id="gEtq" placeholder="${trd('Etiquetas, separadas por comas','Tags, separated by commas')}">
+    <div class="estrellas" id="gVal" data-v="0" aria-label="${trd('Utilidad didáctica','Teaching value')}">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" aria-label="${n} ${trd('de','of')} 5">★</button>`).join('')}</div>
+    <textarea id="gObs" rows="2" placeholder="${trd('Observaciones analíticas','Analytical notes')}"></textarea>
+    <button class="btn" type="submit">${trd('Guardar','Save')}</button>
   </form>`;
   $('#abrirGuardar').onclick=()=>{$('#formGuardar').hidden=false;$('#abrirGuardar').hidden=true;$('#gCol').focus()};
   $('#gVal').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('#gVal').dataset.v=b.dataset.n;$('#gVal').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.n<=+b.dataset.n))});
@@ -1803,26 +1961,26 @@ function pintarGuardar(h){
     const doc={coleccion:$('#gCol').value.trim(),comentario:$('#gCom').value.trim(),etiquetas:$('#gEtq').value.split(',').map(x=>x.trim()).filter(Boolean),
       valoracion:+$('#gVal').dataset.v||null,observaciones:$('#gObs').value.trim(),analisis:o.src.clave,obra:o.ob,compositor:o.c,movimiento:movDe(o),
       compas:h.compas||h.ini,parte:h.parte||null,ini:h.ini||h.compas,fin:h.fin||h.compas,tono:h.tono||'',frag:!!h.frag,procedimiento:d.nombre,etiqueta:h.etq||'',creado:Date.now()};
-    try{await DB.collection('data/users/'+UID).add(doc);aviso('Guardado en «'+doc.coleccion+'»')}catch(err){aviso('No se pudo guardar')}
+    try{await DB.collection('data/users/'+UID).add(doc);aviso(trd('Guardado en «','Saved in “')+doc.coleccion+trd('»','”'))}catch(err){aviso(trd('No se pudo guardar','Could not save'))}
   };
 }
 function pintarColecciones(){
   const caja=$('#colecciones');
-  if(!guardados.length){caja.innerHTML='<h2>Colecciones</h2><p style="color:var(--muted)">Aún no has guardado ejemplos. Abre uno y pulsa «Guardar en una colección».</p>';return}
-  const por=new Map(); for(const g of guardados.sort((a,b)=>b.creado-a.creado)){const k=g.coleccion||'Sin colección';if(!por.has(k))por.set(k,[]);por.get(k).push(g)}
-  caja.innerHTML='<h2>Colecciones</h2>'+[...por].map(([c,l])=>`<details open><summary><b>${esc(c)}</b> <span style="color:var(--muted)">${l.length}</span></summary>${l.map(g=>`
-    <div class="col-item"><div><b>${esc(g.obra)}</b>${g.movimiento&&g.movimiento!=='—'?' · '+esc(g.movimiento):''} <span style="color:var(--muted)">${esc(g.compositor)} · ${g.frag?`cc. ${g.ini}–${g.fin}`:`c. ${g.compas}`}</span></div>
+  if(!guardados.length){caja.innerHTML=`<h2>${trd('Colecciones','Collections')}</h2><p style="color:var(--muted)">${trd('Aún no has guardado ejemplos. Abre uno y pulsa «Guardar en una colección».','You have not saved any examples yet. Open one and press “Save to a collection”.')}</p>`;return}
+  const por=new Map(); for(const g of guardados.sort((a,b)=>b.creado-a.creado)){const k=g.coleccion||trd('Sin colección','No collection');if(!por.has(k))por.set(k,[]);por.get(k).push(g)}
+  caja.innerHTML=`<h2>${trd('Colecciones','Collections')}</h2>`+[...por].map(([c,l])=>`<details open><summary><b>${esc(c)}</b> <span style="color:var(--muted)">${l.length}</span></summary>${l.map(g=>`
+    <div class="col-item"><div><b>${esc(g.obra)}</b>${g.movimiento&&g.movimiento!=='—'?' · '+esc(g.movimiento):''} <span style="color:var(--muted)">${esc(g.compositor)} · ${g.frag?`${trd('cc.','bb.')} ${g.ini}–${g.fin}`:`${trd('c.','b.')} ${g.compas}`}</span></div>
       <div style="color:var(--muted);font-size:13px">${esc(g.procedimiento||'')}${g.valoracion?' · '+'★'.repeat(g.valoracion):''}${g.etiquetas&&g.etiquetas.length?' · '+g.etiquetas.map(esc).join(', '):''}</div>
       ${g.comentario?`<div>${esc(g.comentario)}</div>`:''}${g.observaciones?`<div style="font-size:13px"><i>${esc(g.observaciones)}</i></div>`:''}
-      <div class="acc"><button class="btn" type="button" data-abrir="${esc(g.id)}">Abrir</button><button class="btn" type="button" data-borrar="${esc(g.id)}">Eliminar</button></div></div>`).join('')}</details>`).join('');
+      <div class="acc"><button class="btn" type="button" data-abrir="${esc(g.id)}">${trd('Abrir','Open')}</button><button class="btn" type="button" data-borrar="${esc(g.id)}">${trd('Eliminar','Delete')}</button></div></div>`).join('')}</details>`).join('');
   caja.querySelectorAll('[data-abrir]').forEach(b=>b.onclick=()=>{
     const g=guardados.find(x=>x.id===b.dataset.abrir), o=g&&porClave.get(g.analisis);
-    if(!o){aviso('Ese análisis ya no está en el corpus');return}
+    if(!o){aviso(trd('Ese análisis ya no está en el corpus','That analysis is no longer in the corpus'));return}
     mostrar(g.frag?{frag:true,obra:o.id,ini:g.ini,fin:g.fin,tono:g.tono}:{obra:o.id,compas:g.compas,parte:g.parte,ini:g.ini,fin:g.fin,tono:g.tono,etq:g.etiqueta});
   });
   caja.querySelectorAll('[data-borrar]').forEach(b=>b.onclick=async()=>{
-    if(b.dataset.seguro!=='1'){b.dataset.seguro='1';b.textContent='¿Eliminar? Pulsa otra vez';return}
-    try{await DB.collection('data/users/'+UID).doc(b.dataset.borrar).delete()}catch(e){aviso('No se pudo eliminar')}
+    if(b.dataset.seguro!=='1'){b.dataset.seguro='1';b.textContent=trd('¿Eliminar? Pulsa otra vez','Delete? Press again');return}
+    try{await DB.collection('data/users/'+UID).doc(b.dataset.borrar).delete()}catch(e){aviso(trd('No se pudo eliminar','Could not delete'))}
   });
 }
 $('#verColecciones').onclick=()=>{const c=$('#colecciones');c.hidden=!c.hidden;if(!c.hidden)pintarColecciones()};
@@ -1837,10 +1995,24 @@ function moverVista(d){
 $('#atras').onclick=()=>moverVista(-1); $('#adelante').onclick=()=>moverVista(1);
 function aviso(t){const el=$('#toast');el.textContent=t;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1600)}
 
-// ============ estado inicial: vacío ============
+// ============ idioma: el botón recarga la página en el otro idioma con la misma búsqueda y los mismos filtros
+$('#idioma').onclick=()=>{
+  try{sessionStorage.setItem('restaurar',JSON.stringify({actual,filtros:Object.fromEntries(CAMPOS.map(id=>[id,$('#'+id).value]))}))}catch(e){}
+  pref('idioma',EN?'es':'en'); location.reload();
+};
+// ============ estado inicial: vacío (o la búsqueda que había antes de cambiar de idioma)
 pintarInicio(); pintarEtiquetas();
+(()=>{let r=null;try{r=JSON.parse(sessionStorage.getItem('restaurar')||'null');sessionStorage.removeItem('restaurar')}catch(e){}
+  if(!r) return;
+  for(let [id,v] of Object.entries(r.filtros||{})){if(!v)continue;const sel=$('#'+id); if(id==='compositor'&&COMP_OTRO[v]&&!comps.includes(v)) v=COMP_OTRO[v];
+    if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===v)){const op=document.createElement('option');op.value=v;sel.append(op)}
+    sel.value=v; if(id==='compositor') rellenarObras()}
+  if(r.filtros&&r.filtros.obraSel) $('#obraSel').value=r.filtros.obraSel;
+  if(r.actual) ejecutar(r.actual); else if(hayFiltros()) relanzar();
+})();
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,acordesDe,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,acordesDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
+  fijarTexto:t=>{q.value=t},get actual(){return actual},
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
 </script>
