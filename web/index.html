@@ -1703,22 +1703,67 @@ function estructura(id,xml){
     else{lista.push({pos:[i],acum:dur});k=lista.length-1}
     E.etq.push(etq);E.n.push(num);E.occ.push(k);E.dur.push(dur);E.metro.push({c,u,full});
   }
+  // ataques de nota de cada compás, en todas las partes (en milésimas de negra desde el comienzo del compás)
+  E.ataques=E.n.map(()=>new Set());
+  if(E.metro.some(m=>m.c%3===0)){                             // solo hacen falta para decidir la unidad de los ternarios
+    for(const pt of xml.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)){
+      let i=0, dv=1;
+      for(const m of pt[1].matchAll(/<measure\b[^>]*>([\s\S]*?)<\/measure>/g)){
+        if(i>=E.n.length) break;
+        const d=m[1].match(/<divisions>(\d+)/); if(d) dv=+d[1]||1;
+        let t=0, prev=0;
+        for(const tok of m[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
+          const du=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
+          if(tok.startsWith('<backup')){t-=du;continue}
+          if(tok.startsWith('<forward')){t+=du;continue}
+          if(/<grace\b/.test(tok)) continue;
+          const acorde=/<chord\b/.test(tok), t0=acorde?t-prev:t;
+          if(!/<rest\b/.test(tok)&&!/<tie\b[^>]*type="stop"/.test(tok)) E.ataques[i].add(Math.round(t0/dv*1000));
+          if(!acorde){prev=du;t+=du}
+        }
+        i++;
+      }
+    }
+  }
   estrCache.set(id,E); return E;
 }
-// duración de una parte del análisis, en negras. When in Rome cuenta como music21 (3/8 = tres corcheas;
-// compuestos solo 6/8, 9/8, 12/8…); el adaptador del DCML trata también 3/8 y 3/16 como una parte con puntillo.
-function parteDe(m,fuente){const comp=m.c%3===0&&(m.c>3||(fuente==='dcml'&&m.u>=8));return comp?12/m.u:4/m.u}
+// duración de una parte del análisis, en negras. Por defecto: When in Rome cuenta 3/8 en corcheas y el adaptador
+// del DCML como una parte con puntillo; 6/8, 9/8, 12/8, 6/4… son compuestos. Pero los analistas no siempre siguen
+// la convención (el Op. 130/4 de Beethoven cuenta el 3/8 como una parte; el Op. 1 n.º 3 de Corelli, el 6/4 en
+// blancas), así que en los compases ternarios cada análisis puede llevar su propia unidad («unidad»: compás → 1, 2
+// o 3 veces la figura del denominador), elegida en alinear() según encajen sus acordes con los ataques de nota.
+function parteDe(m,fuente,unidad){
+  const k=unidad&&unidad.get(m.c+'/'+m.u);
+  if(k) return k*4/m.u;
+  const comp=m.c%3===0&&(m.c>3||(fuente==='dcml'&&m.u>=8));
+  return comp?12/m.u:4/m.u;
+}
 // Algunas partituras numeran por separado los dos trozos de un compás partido (corales: «5» de 3 partes + «6» de 1)
 // y el análisis los cuenta como un solo compás; desde ahí, sus números van uno por delante. Se unen solo si el
 // análisis pide más partes de las que tiene ese compás y uno de los dos trozos está incompleto.
 const alinCache=new Map();
 function alinear(E,ac,id,fuente){
   const clave=id+'|'+fuente; if(alinCache.has(clave)) return alinCache.get(clave);
+  // unidad de parte de cada compás ternario: la que hace caer más acordes sobre ataques de nota de la partitura
+  // (y ninguno fuera de su compás); en caso de empate, la convención de la fuente
+  const ternarios=[...new Set(E.metro.filter(m=>m.c%3===0).map(m=>m.c+'/'+m.u))];
+  if(ternarios.length){
+    const occ0=ocurrencias(ac,E);
+    for(const clv of ternarios){
+      const nota=X=>{let v=0;
+        ac.forEach((c,j)=>{const z=situar(X,c,occ0[j],fuente); if(!z) return; const m=X.metro[z.p]; if(m.c+'/'+m.u!==clv) return;
+          if(z.q>X.dur[z.p]+1e-6) v-=2; else{const r=Math.round(z.q*1000),A=X.ataques[z.p]; for(let e=-3;e<=3;e++) if(A.has(r+e)){v++;break}}});
+        return v};
+      let mejor=E, vm=nota(E);
+      for(const k of [1,2,3]){const X={...E,unidad:new Map([...(E.unidad||[]),[clv,k]])}, v=nota(X); if(v>vm){mejor=X;vm=v}}
+      E=mejor;
+    }
+  }
   // hasta dónde llega el análisis en cada compás (en negras desde su comienzo)
   const pide=new Map();
   for(const c of ac){
     const oc=(E.ocs.get(c.compas)||[])[0], m=E.metro[oc?oc.pos[0]:0]||{c:4,u:4,full:4};
-    pide.set(c.compas,Math.max(pide.get(c.compas)??0,(c.parte-1)*parteDe(m,fuente)*(E.escala||1)));
+    pide.set(c.compas,Math.max(pide.get(c.compas)??0,(c.parte-1)*parteDe(m,fuente,E.unidad)*(E.escala||1)));
   }
   const n=[], junta=[];
   let off=0, acum=0, ini=0;                          // compás del análisis en curso: duración acumulada y primera posición
@@ -1757,7 +1802,7 @@ function escalar(E,ac,clave,fuente){
 function situar(E,c,occ,fuente){
   const oc=(E.ocs.get(c.compas)||[])[occ]; if(!oc) return null;
   const ps=oc.pos, mt=E.metro[ps[0]];
-  let q=(c.parte-1)*parteDe(mt,fuente)*(E.escala||1);
+  let q=(c.parte-1)*parteDe(mt,fuente,E.unidad)*(E.escala||1);
   if(ps[0]===0&&oc.acum<mt.full-1e-6) q-=mt.full-oc.acum;          // anacrusa inicial
   q=Math.max(0,q);
   let k=0;
@@ -2024,7 +2069,7 @@ function anotar(svg,acordes,occ,E,pos,reducir){
   function dibujar(f){
     g.innerHTML='';
     const hayCambios=puestos.some((z,i)=>i>0&&z.c.tono!==puestos[i-1].c.tono), hayPivote=v.rom&&pivotes.some(Boolean);
-    let y=abajo+f*1.4+(hayCambios?f*0.95:0)+(hayPivote?f*1.3:0); const filas={}, anchos=[];
+    let y=abajo+f*1.4+(hayCambios?f*0.95:0)+(hayPivote?f*1.3:0); const filas={}, anchos=ultAnchos=[];
     let finEtiqueta=-Infinity;
     if(v.rom){filas.rom=y;y+=f*1.6}
     if(v.int){filas.int=y-f*0.2;y+=f*1.85}
@@ -2071,8 +2116,16 @@ function anotar(svg,acordes,occ,E,pos,reducir){
     }
     return factor;
   }
-  const f0=sp*2.2, r=dibujar(f0);
-  if(reducir&&r<0.98) dibujar(f0*Math.max(0.5,r));
+  let ultAnchos=[], f=sp*2.2;
+  const r=dibujar(f);
+  if(reducir&&r<0.98){f*=Math.max(0.5,r);dibujar(f)}
+  // acordes tan juntos (a distancia de semicorchea) que no caben ni con la letra al mínimo: se separan lo justo,
+  // en orden, para que ninguna etiqueta pise a otra
+  if(reducir||r>=0.9){
+    let dcha=-Infinity, mueve=false;
+    ultAnchos.forEach((a,i)=>{const izq=puestos[i].x-a.w/2, min=dcha+f*0.2; if(izq<min){puestos[i].x+=min-izq;mueve=true} dcha=puestos[i].x+a.w/2});
+    if(mueve) dibujar(f);
+  }
   const gb=g.getBBox(), vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
   const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
   const alto=Math.max(vb[3],+tr[2]+gb.y+gb.height+sp*1.5-vb[1]);
