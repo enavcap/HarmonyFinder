@@ -2079,7 +2079,11 @@ function pintarFicha(h,ac){
   // contexto: acordes antes y después
   let i0=ac.findIndex(x=>h.frag?x.compas>=h.ini:(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6));
   if(i0<0) i0=ac.findIndex(x=>x.compas>=(h.compas||h.ini));
-  let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else if(h.etq&&/→/.test(h.etq)&&!/ · /.test(h.etq)){i0=Math.max(0,i0-(h.etq.split('→').length-1))}
+  let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else if(h.etq&&/→/.test(h.etq.split(' · ')[0])){
+    // cadena «A → B → C»: el acorde del ejemplo es el último (cadencias) o el primero (6/4 cadencial, secuencias…);
+    // solo se resalta si los acordes coinciden con la etiqueta (en las modulaciones la cadena son tonalidades)
+    const toks=h.etq.split(' · ')[0].split('→').map(x=>x.trim()), k=toks.length-1, es=(j,t)=>!!ac[j]&&(ac[j].orig===t||ac[j].rn===t);
+    if(es(i0,toks[0])&&es(i0+k,toks[k])) i1=i0+k; else if(es(i0,toks[k])&&es(i0-k,toks[0])) i0-=k}
   const desde=Math.max(0,i0-ctxN), hasta=Math.min(ac.length-1,i1+ctxN);
   let ctx='', tPrev=null;
   for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;

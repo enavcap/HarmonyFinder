@@ -112,6 +112,7 @@ NUEVOS = {
     "cadencia_rota": (cadencias.cadencia_rota, "V → VI al final de frase", "derivado"),
     "cadencia_frigia": (cadencias.cadencia_frigia, "iv6 → V en menor, bajo 6.º → 5.º", "derivado"),
     "cadencia_plagal": (cadencias.cadencia_plagal, "IV → I al final de frase", "derivado"),
+    "sexta_cuarta_cadencial": (cadencias.sexta_cuarta_cadencial, "I64 → V → I al final de frase", "derivado"),
     "acorde_disminuido": (acorde_disminuido, "tríadas y séptimas disminuidas diatónicas", "derivado"),
     "quinta_aumentada": (quinta_aumentada, "acordes aumentados (III+, V+…)", "derivado"),
     "sexta_anadida": (sexta_anadida, "acorde con sexta añadida ([add6] / +6)", "derivado"),

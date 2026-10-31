@@ -199,6 +199,33 @@ def cadencia_plagal(ac):
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
+def sexta_cuarta_cadencial(ac):
+    """6/4 cadencial: I en segunda inversión → V(7) → I, con el I de llegada al final de frase.
+    El 6/4 está acentuado (en una parte al menos tan fuerte como el V que lo resuelve, o más largo que él)
+    y el 5.º grado está en el bajo. Un I64 de paso, de bordadura o arpegiado, sin cadencia detrás, no cuenta."""
+    out = []
+    for i in range(len(ac) - 2):
+        a = ac[i]
+        if a["secundaria"] or not buscar._es_64_cadencial(a):
+            continue
+        j = i + 1                                        # V, V7… (en estado fundamental) que siguen al 6/4
+        while j < len(ac) and ac[j]["tono"] == a["tono"] and buscar._es_V(ac[j]) and ac[j]["inversion"] == 0:
+            j += 1
+        if j == i + 1 or j >= len(ac):
+            continue
+        v, b = ac[j - 1], ac[j]
+        if b["tono"] != a["tono"] or not buscar._es_I(b) or b["inversion"] != 0 or not _llegada(v, b):
+            continue
+        ra, rv = a.get("r"), ac[i + 1].get("r")
+        if ra and rv:
+            if ra["peso"] < rv["peso"] and ra["dur"] <= rv["dur"]:
+                continue                                  # 6/4 sin acento (ni métrico ni de duración) y V acentuado
+            t5 = (_tonica(a["tono"]) + 7) % 12
+            if ra["bajo"] is not None and rv["bajo"] is not None and t5 not in (ra["bajo"], rv["bajo"]):
+                continue                                  # el 5.º grado tiene que estar en el bajo (del 6/4 o del V)
+        out.append((i, " → ".join(x["cifrado"] for x in ac[i:j + 1]), j - i + 1))
+    return out
+
 DETECTORES = {
     "cadencia_autentica_perfecta": cadencia_autentica_perfecta,
     "cadencia_autentica_imperfecta": cadencia_autentica_imperfecta,

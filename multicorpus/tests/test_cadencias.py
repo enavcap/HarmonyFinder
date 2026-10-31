@@ -96,3 +96,27 @@ def test_conceptos_usan_las_cadencias_nuevas():
     c = buscar_mc.conceptos()
     for k, f in cadencias.DETECTORES.items():
         assert c[k][0] is f
+
+
+# ---------------------------------------------------------------- 6/4 cadencial
+I64 = [43, 60, 64, 72]       # do/sol: I en segunda inversión con el sol en el bajo
+I6 = [52, 55, 60, 67]
+
+def test_sexta_cuarta_cadencial_con_cadencia():
+    # | I  IV | I64 V7 | I |: 6/4 en parte fuerte, V7, I de llegada en el compás siguiente
+    s = partitura([[(I_3, 2), (IV, 2)], [(I64, 2), (V7, 2)], [(I_8, 4)]])
+    ac = _con_rasgos([_ac("I", 1, 1), _ac("IV", 1, 3), _ac("I64", 2, 1), _ac("V7", 2, 3), _ac("I", 3, 1)], s)
+    h = cadencias.sexta_cuarta_cadencial(ac)
+    assert [x[0] for x in h] == [2] and h[0][1] == "I64 → V7 → I"
+
+def test_sexta_cuarta_de_paso_no_es_cadencial():
+    # | I  V64  I6 | IV ...: el 6/4 de paso entre I e I6 no va seguido de V–I
+    s = partitura([[(I_3, 1), (I64, 1), (I6, 2)], [(IV, 4)]])
+    ac = _con_rasgos([_ac("I", 1, 1), _ac("I64", 1, 2), _ac("I6", 1, 3), _ac("IV", 2, 1)], s)
+    assert not cadencias.sexta_cuarta_cadencial(ac)
+
+def test_sexta_cuarta_sin_llegada_no_es_cadencial():
+    # I64 → V → I con el I en parte débil y más corto: no hay final de frase
+    s = partitura([[(I64, 2), (V, 1), (I_8, 1)], [(IV, 4)]])
+    ac = _con_rasgos([_ac("I64", 1, 1), _ac("V", 1, 3), _ac("I", 1, 4), _ac("IV", 2, 1)], s)
+    assert not cadencias.sexta_cuarta_cadencial(ac)

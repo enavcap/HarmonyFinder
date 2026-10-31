@@ -47,7 +47,7 @@ CONCEPTOS = {
         ["amen cadence"]),
     "sexta_cuarta_cadencial": T(
         "sexta y cuarta cadencial", "cadential six-four",
-        "I64 → V", "I64 → V",
+        "I64 → V → I al final de frase", "I64 → V → I at a phrase end",
         ["sexta y cuarta cadencial", "64 cadencial", "cuarta y sexta cadencial", "i64 v", "sexta cuarta"],
         ["cadential 6/4", "cadential 64", "cad64", "six-four"]),
     "napolitana": T(
