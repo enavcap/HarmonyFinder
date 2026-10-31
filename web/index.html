@@ -1391,6 +1391,7 @@ async function mostrar(h){
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
       // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
+      despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       if(cargado.obra!==o.m){cargado.obra=o.m;cargado.metro=metro(t.getMEI())}
       svg=cont.querySelector('svg');
@@ -1485,6 +1486,37 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
     return num+marca+(p.dig||'');
   }
   return null;
+}
+// Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
+// líneas adicionales, plicas, barras, tresillos o indicaciones, se sube por encima de todas ellas.
+function despejarNumeros(svg){
+  const pm=svg&&svg.querySelector('g.page-margin'), inner=svg&&svg.querySelector('svg.definition-scale'); if(!pm||!inner) return;
+  const nums=[...pm.querySelectorAll('g.mNum')]; if(!nums.length) return;
+  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse';
+  const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
+  let minY=Infinity;
+  for(const g of nums){
+    let nb; try{nb=g.getBBox()}catch(_){continue}
+    const pad=nb.height*0.25, x0=nb.x-pad, x1=nb.x+nb.width+pad;
+    let dy=0;
+    for(let vuelta=0;vuelta<20;vuelta++){
+      const y0=nb.y+dy-pad, y1=nb.y+nb.height+dy+pad;
+      const choque=cajas.filter(b=>b.x<x1&&b.x+b.width>x0&&b.y<y1&&b.y+b.height>y0);
+      if(!choque.length) break;
+      dy=Math.min(...choque.map(b=>b.y))-pad-(nb.y+nb.height);   // justo encima del elemento más alto que choca
+    }
+    if(dy<0) g.setAttribute('transform',`translate(0,${dy})`);
+    minY=Math.min(minY,nb.y+dy);
+  }
+  // ampliar el lienzo por arriba si algún número ha quedado fuera
+  const vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
+  const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
+  const arriba=+tr[2]+minY-80;
+  if(arriba<vb[1]){
+    const nvb=[vb[0],arriba,vb[2],vb[3]+(vb[1]-arriba)];
+    inner.setAttribute('viewBox',nvb.join(' '));
+    svg.setAttribute('viewBox',`${ovb[0]} ${ovb[1]} ${ovb[2]} ${ovb[3]*nvb[3]/vb[3]}`);
+  }
 }
 function anotar(svg,acordes,compasDom,primero,reducir){
   const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
@@ -1594,7 +1626,7 @@ function anotar(svg,acordes,compasDom,primero,reducir){
   if(reducir&&r<0.98) dibujar(f0*Math.max(0.5,r));
   const gb=g.getBBox(), vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
   const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
-  const alto=Math.max(vb[3],+tr[2]+gb.y+gb.height+sp*1.5);
+  const alto=Math.max(vb[3],+tr[2]+gb.y+gb.height+sp*1.5-vb[1]);
   const sobraIzq=Math.max(0,-(+tr[1]+gb.x)+sp*0.5);
   const nvb=[vb[0]-sobraIzq,vb[1],vb[2]+sobraIzq,alto];
   inner.setAttribute('viewBox',nvb.join(' '));
