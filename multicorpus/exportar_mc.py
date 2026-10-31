@@ -209,12 +209,12 @@ def main(argv=None):
         grupos[aid // 50][aid], compases[aid], hs = datos_analisis(ac, aid, ti, CONC)
         for k, v in hs.items():
             hits[k].extend(v)
-    print(f"{n_uni} acordes en pasajes al unísono u octava · {len(formas)} movimientos con secciones")
-    json.dump(formas, open(WEB / "data" / "forma.json", "w", encoding="utf-8"), separators=(",", ":"))
+    print(f"{n_uni} acordes en pasajes al unísono u octava · {len(formas)} movimientos con secciones de Taking Form")
     # forma global de cada movimiento y número tradicional de sonatas y cuartetos (forma_global.py)
     td = forma_global.titulos_dcml(DATOS / "fuentes" / "dcml_meta" / "beethoven_piano_sonatas" / "metadata.tsv",
                                    DATOS / "fuentes" / "dcml_meta" / "mozart_piano_sonatas" / "metadata.tsv")
     rev = forma_global.revisadas(RAIZ / "multicorpus" / "formas_revisadas.tsv")
+    mepc = forma_global.mepc(DATOS / "fuentes" / "mepc" / "dataset.tsv")   # clon de github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus
     fglob, numeros = {}, {}
     for e in entradas:
         n = forma_global.numero(e["c"], e["ob"], e["cat"])
@@ -228,11 +228,16 @@ def main(argv=None):
             mv = None
         extra = td.get(("Beethoven" if "Beethoven" in e["c"] else "Mozart", n, mv)) if n and mv and "Sonata para piano" in e["ob"] else None
         clave = e["src"]["archivo"].rsplit("/", 1)[0] if e["f"] == "wir" else e["src"]["archivo"]
+        experto = forma_global.experta(e["c"], e["ob"], e["cat"], mv, mepc)
         f, fu = forma_global.asignar({"fuente": e["f"], "subcorpus": e["col"].split(" · ", 1)[1], "compositor": e["c"],
                                       "titulo": e["t"], "clave": clave},
-                                     [x[2] for x in formas.get(e["m"], [])], extra, rev)
+                                     [x[2] for x in formas.get(e["m"], [])], extra, rev, experto)
         if f:
             fglob[e["m"]] = [f, fu]
+        if experto[1] == "MEPC" and e["m"] not in formas:          # exposición del MEPC donde Taking Form no llega
+            m_ = re.search(r"K\.?\s*(\d+)", e["cat"] or e["ob"])
+            formas[e["m"]] = forma_global.secciones_mepc(*mepc[(int(m_.group(1)), mv)])
+    json.dump(formas, open(WEB / "data" / "forma.json", "w", encoding="utf-8"), separators=(",", ":"))
     json.dump(fglob, open(WEB / "data" / "formas.json", "w", encoding="utf-8"), separators=(",", ":"))
     json.dump(numeros, open(WEB / "data" / "numeros.json", "w", encoding="utf-8"), separators=(",", ":"))
     print(f"{len(fglob)} movimientos con forma global")

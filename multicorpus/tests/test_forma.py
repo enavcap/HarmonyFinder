@@ -85,3 +85,30 @@ def test_tempo_di_menuetto_no_es_forma():
 def test_rondeaux_y_minueto_con_variaciones():
     assert G.desde_titulo("Rondeaux") == "rondo"
     assert G.desde_titulo("Minuetto con variazione") == "tema_variaciones"
+
+
+# ---------------------------------------------------------------- BPSD y MEPC
+def test_bpsd_primeros_movimientos():
+    from multicorpus import forma_global as g
+    assert len(g.BPSD_PRIMEROS) == len(g.BEETHOVEN_SONATAS) == 32
+    assert g.experta("Ludwig van Beethoven", "Sonata para piano, Op. 13(Pathetique)", "Op. 13(Pathetique)", 1) == ("forma_sonata", "BPSD")
+    assert g.experta("Ludwig van Beethoven", "Sonata para piano, Op. 26", "Op. 26", 1) == ("tema_variaciones", "BPSD")
+    assert g.experta("Ludwig van Beethoven", "Sonata para piano, Op. 27 No. 2", "Op. 27 No. 2", 1) == (None, None)
+    assert g.experta("Ludwig van Beethoven", "Sonata para piano, Op. 13(Pathetique)", "Op. 13(Pathetique)", 2) == (None, None)
+
+def test_mepc(tmp_path):
+    from multicorpus import forma_global as g
+    p = tmp_path / "dataset.tsv"
+    p.write_bytes("k_id\twork\tk\tgenre\tmov\texp_beg\texp_len\n"
+                  "279\tSonata\t279 (189d)\tPiano sonata\tIII\t1\t56\n"
+                  "279\tSonata\t279 (189d)\tPiano sonata\tIII\t1\t56\n"
+                  "533\tSonata \x81\t533 and 494\tPiano sonata\tI\t1\t102\n".encode("latin-1"))
+    d = g.mepc(p)
+    assert d == {(279, 3): (1, 56), (533, 1): (1, 102)}
+    assert g.experta("Wolfgang Amadeus Mozart", "Sonata para piano, K. 279", "K. 279", 3, d) == ("forma_sonata", "MEPC")
+    assert g.experta("Wolfgang Amadeus Mozart", "Sonata para piano, K. 279", "K. 279", 2, d) == (None, None)
+    assert g.secciones_mepc(1, 56) == [[0, 0.0, "exposicion", None], [57, 1.0, None, None]]
+    # Taking Form manda; luego el experto; luego el título
+    mov = {"fuente": "wir", "subcorpus": "Piano_Sonatas", "compositor": "Mozart", "titulo": "Rondo", "clave": "x"}
+    assert g.asignar(mov, ["exposicion", "desarrollo"], None, {}, ("forma_sonata", "MEPC"))[1] == "Taking Form"
+    assert g.asignar(mov, None, None, {}, ("forma_sonata", "MEPC")) == ("forma_sonata", "MEPC")

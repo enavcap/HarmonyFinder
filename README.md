@@ -43,7 +43,7 @@ La web está **en español y en inglés** (botón junto al título). El buscador
   - **Compositor**: buscador y lista por período.
   - **Período**.
   - **Tonalidad**: nota + ♭ ♮ ♯ + mayor/menor.
-  - **Forma**: la forma global del movimiento (forma sonata, rondó, minueto con trío, scherzo con trío, tema con variaciones, forma binaria, ternaria, fuga, coral). Se combina con compositor, tonalidad y procedimiento: «forma sonata» + «Mozart» + «la menor» da la sonata n.º 8, K. 310; «sexta napolitana en forma sonata» busca dentro de esos movimientos. Solo se asigna cuando una fuente lo dice (Taking Form, el título del movimiento o el género de la colección); el resto queda sin forma hasta revisarlo (`multicorpus/formas_revisadas.tsv`).
+  - **Forma**: la forma global del movimiento (forma sonata, rondó, minueto con trío, scherzo con trío, tema con variaciones, forma binaria, ternaria, fuga, coral). Se combina con compositor, tonalidad y procedimiento: «forma sonata» + «Mozart» + «la menor» da la sonata n.º 8, K. 310; «sexta napolitana en forma sonata» busca dentro de esos movimientos. Solo se asigna cuando una fuente lo dice (Taking Form, BPSD, el Mozart Expositional Punctuation Corpus, el título del movimiento o el género de la colección); el resto queda sin forma hasta revisarlo (`multicorpus/formas_revisadas.tsv`).
   - **Secciones**: sección (exposición, desarrollo, reexposición, coda, trío…) y zona (primer grupo temático, transición, segundo grupo temático, zona conclusiva, retransición…). Se combina con cualquier procedimiento, también escribiéndolo: «sexta alemana en el desarrollo», «modulación diatónica en la exposición». Acepta las siglas de la teoría de la sonata (P, TR, S, C).
 - **Resultados que se leen de un vistazo**:
   - resumen con barras por compositor, período y modo (pulsar una barra filtra);
@@ -78,6 +78,8 @@ Las partituras se dibujan en el navegador con [Verovio](https://www.verovio.org)
 | [When in Rome](https://github.com/MarkGotham/When-in-Rome) (Gotham et al., RomanText) | 1834 | CC BY-SA 4.0 |
 | [Distant Listening Corpus](https://github.com/DCMLab/distant_listening_corpus) (DCML, EPFL), 28 subcorpus | 746 | CC BY-NC-SA 4.0 |
 | [Taking Form](https://github.com/MarkGotham/Taking-Form) (Gotham e Ireland), forma | 54 movimientos | MIT |
+| [BPSD](https://transactions.ismir.net/articles/196) (Zeitler et al.), estructura de los primeros movimientos de las sonatas de Beethoven (tabla 3 del artículo) | 32 movimientos | CC BY 4.0 |
+| [Mozart Expositional Punctuation Corpus](https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus) (Rom, Raz y Chawin), exposiciones en forma sonata de Mozart | 298 movimientos | CC0 |
 
 - **Modelo común** obra → movimiento → análisis. Una obra puede tener análisis de las dos fuentes.
 - **Identificación de obras en tres niveles**:
@@ -89,6 +91,7 @@ Las partituras se dibujan en el navegador con [Verovio](https://www.verovio.org)
   - los campos derivados están marcados;
   - cada análisis guarda archivo, commit, autores y licencia.
 - **Forma**: [Taking Form](https://github.com/MarkGotham/Taking-Form) (Gotham e Ireland, ISMIR 2019; MIT), con la forma de las sonatas para piano de Beethoven y de los primeros movimientos de Mozart. Se usan sección y zona. Un movimiento entra solo si su numeración se puede comprobar con la partitura: el último compás anotado coincide con el de la partitura, o el primer acorde de la reexposición coincide con el de la exposición. Así entran 54 movimientos; 13 se dejan fuera.
+- **Forma global de expertos**: [BPSD](https://transactions.ismir.net/articles/196) (Zeitler et al., TISMIR 2024) da la estructura del primer movimiento de las 32 sonatas de Beethoven (E-D-R → forma sonata; Op. 26 → tema con variaciones). El [Mozart Expositional Punctuation Corpus](https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus) (Rom, Raz y Chawin, EMR 2021; CC0) lista los movimientos de Mozart en forma sonata-allegro con el inicio y la longitud de la exposición; donde Taking Form no llega, la exposición pasa también a «Secciones». En los 15 movimientos que tienen ambas fuentes, el final de la exposición coincide compás a compás. El MEPC deja fuera los movimientos lentos y los rondós-sonata, así que no estar en él no significa no ser forma sonata. Los datos de compases de BPSD (secciones) están en un zip de 2 GB con audio en Zenodo y aún no se usan.
 - **Vocabulario**: cada término (procedimientos, tipos de acorde, filtros, forma) tiene una clave interna y su nombre, descripción y sinónimos en español e inglés (`multicorpus/vocabulario.py`, exportado a `web/data/vocab.json`).
 - **Partituras**:
   - las de When in Rome vienen de OpenScore y music21;
@@ -130,6 +133,7 @@ python -m multicorpus.importar wir
 python -m multicorpus.importar dcml
 python -m multicorpus.auditar            # posibles duplicados
 git clone https://github.com/MarkGotham/Taking-Form datos/fuentes/taking_form   # secciones
+git clone https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus datos/fuentes/mepc   # exposiciones de Mozart
 # títulos de movimiento de Beethoven y Mozart (forma global): metadata.tsv de DCMLab/beethoven_piano_sonatas
 # y DCMLab/mozart_piano_sonatas en datos/fuentes/dcml_meta/<repositorio>/metadata.tsv
 python -m multicorpus.exportar_mc        # genera web/data y web/scores
@@ -147,7 +151,7 @@ python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan 
 
 ## Licencias y créditos
 
-- Análisis: **When in Rome** (CC BY-SA 4.0) y **Distant Listening Corpus, DCML** (CC BY-NC-SA 4.0). Forma: **Taking Form** (MIT). Por la licencia del DCML, los datos de `web/` solo pueden usarse sin fines comerciales, con atribución y compartiendo igual.
+- Análisis: **When in Rome** (CC BY-SA 4.0) y **Distant Listening Corpus, DCML** (CC BY-NC-SA 4.0). Forma: **Taking Form** (MIT), **BPSD** (CC BY 4.0) y **Mozart Expositional Punctuation Corpus** (CC0). Por la licencia del DCML, los datos de `web/` solo pueden usarse sin fines comerciales, con atribución y compartiendo igual.
 - Partituras: OpenScore, corpus de music21 y reconstrucciones a partir de las tablas del DCML.
 - Fuentes: Bravura y Academico (Steinberg, SIL Open Font License 1.1).
 - Grabado: Verovio (LGPL).

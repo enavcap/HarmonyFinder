@@ -320,7 +320,7 @@ footer a{color:var(--accent)}
 </aside>
 </main>
 
-<footer><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></footer>
+<footer><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT), <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> (CC BY 4.0), <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a> (CC0) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -953,11 +953,11 @@ function pintarInicio(){
       <p class="pista">${trd('Elige nota, alteración y modo. Solo el modo: todas las tonalidades mayores o menores.','Pick a note, accidental and mode. Mode alone: every major or minor key.')}</p>
     </div></details>`+
    `<details id="catFormaG"><summary>${trd('Forma','Form')}</summary><div class="menu">${FORMAG_ORDEN.filter(k=>FORMAG_N[k]).map(k=>`<button type="button" data-fg="${k}" title="${esc(VOC.formas_globales[k]['desc_'+LANG])}"><span>${esc(formaGTxt(k))}</span><span class="c">${FORMAG_N[k]}</span></button>`).join('')}
-      <p class="pista">${trd(`Forma de cada movimiento. Por ahora la tienen ${Object.keys(FORMAS).length} de ${porMov.size}: la que indica Taking Form, el título o el género de la colección. Combínala con compositor, tonalidad y procedimiento: «forma sonata» + «Mozart» + «la menor».`,`Form of each movement. So far ${Object.keys(FORMAS).length} of ${porMov.size} have one: from Taking Form, the title or the genre of the collection. Combine it with composer, key and device: “sonata form” + “Mozart” + “A minor”.`)}</p></div></details>`+
+      <p class="pista">${trd(`Forma de cada movimiento. Por ahora la tienen ${Object.keys(FORMAS).length} de ${porMov.size}: la que indican Taking Form, BPSD (Beethoven) y el Mozart Expositional Punctuation Corpus, el título o el género de la colección. Combínala con compositor, tonalidad y procedimiento: «forma sonata» + «Mozart» + «la menor».`,`Form of each movement. So far ${Object.keys(FORMAS).length} of ${porMov.size} have one: from Taking Form, BPSD (Beethoven) and the Mozart Expositional Punctuation Corpus, the title or the genre of the collection. Combine it with composer, key and device: “sonata form” + “Mozart” + “A minor”.`)}</p></div></details>`+
    (FORMA_PRESENTE[1].size?`<details id="catForma"><summary>${trd('Secciones','Sections')}</summary><div class="menu ancho forma">
       <div><h3>${trd('Sección','Section')}</h3><div class="items">${formaItems(1)}</div></div>
       <div><h3>${trd('Zona','Zone')}</h3><div class="items">${formaItems(2)}</div></div>
-      <p class="pista">${trd(`Solo los ${Object.keys(FORMA).length} movimientos con las secciones anotadas (sonatas para piano de Beethoven y Mozart, según Taking Form). Combínalo con cualquier procedimiento: «sexta alemana en el desarrollo».`,`Only the ${Object.keys(FORMA).length} movements with annotated sections (Beethoven and Mozart piano sonatas, from Taking Form). Combine it with any device: “German sixth in the development”.`)}</p>
+      <p class="pista">${trd(`Solo los ${Object.keys(FORMA).length} movimientos con las secciones anotadas (sonatas para piano de Beethoven y Mozart, según Taking Form; en algunos finales de Mozart solo la exposición, según el Mozart Expositional Punctuation Corpus). Combínalo con cualquier procedimiento: «sexta alemana en el desarrollo».`,`Only the ${Object.keys(FORMA).length} movements with annotated sections (Beethoven and Mozart piano sonatas, from Taking Form; for some Mozart finales only the exposition, from the Mozart Expositional Punctuation Corpus). Combine it with any device: “German sixth in the development”.`)}</p>
     </div></details>`:'');
   const menus=[...$('#inicio').querySelectorAll('details')];
   const cerrarMenus=()=>menus.forEach(d=>d.open=false);
@@ -1936,8 +1936,8 @@ function pintarFicha(h,ac){
   for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;
     const t=esc(c.orig)+(c.cad?` <span class="k">${esc(c.cad)}</span>`:''); ctx+=(i>=i0&&i<=i1?`<span class="f">${t}</span>`:t)+(i<hasta?' → ':'')}
   const fila=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
-  const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+' <span class="k" style="color:var(--muted)">(Taking Form)</span>':'';
-  const FUENTE_FG={'Taking Form':'Taking Form','título':trd('título','title'),'colección':trd('colección','collection'),'revisión':trd('revisión','review')};
+  const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+` <span class="k" style="color:var(--muted)">(${FORMAS[o.m]?.[1]==='MEPC'?'Mozart Expositional Punctuation Corpus':'Taking Form'})</span>`:'';
+  const FUENTE_FG={'Taking Form':'Taking Form','título':trd('título','title'),'colección':trd('colección','collection'),'revisión':trd('revisión','review'),'BPSD':'BPSD','MEPC':'Mozart Expositional Punctuation Corpus'};
   const fg=FORMAS[o.m], formaGV=fg?esc(formaGTxt(fg[0]))+` <span class="k" style="color:var(--muted)">(${esc(FUENTE_FG[fg[1]]||fg[1])})</span>`:'';
   $('#fichaCuerpo').innerHTML=`
     <dl>${fila(trd('Procedimiento','Device'),esc(d.nombre))}${fila(trd('Identificación','Detection'),esc(d.tipo))}${fila(trd('Criterio','Criterion'),esc(d.criterio))}

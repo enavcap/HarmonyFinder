@@ -6,8 +6,16 @@ Solo se asigna una forma cuando hay una fuente que la diga; si no, el movimiento
 
   1. revisión   asignada a mano (multicorpus/formas_revisadas.tsv: movimiento → forma)
   2. Taking Form   deducida de sus secciones (exposición + desarrollo/reexposición → forma sonata, …)
-  3. título     el título del movimiento lo dice («Menuetto and Trio», «Rondo: Allegretto», «Fuga»…)
-  4. colección  el género de la colección lo fija (corales de Bach, danzas de las suites, sonatas de Scarlatti)
+  3. BPSD / MEPC   datasets de análisis experto:
+       BPSD   estructura de los primeros movimientos de las 32 sonatas para piano de Beethoven
+              (Zeitler et al., TISMIR 7, 2024, tabla 3; CC BY 4.0)
+       MEPC   Mozart Expositional Punctuation Corpus: todos los movimientos instrumentales de Mozart en
+              forma sonata-allegro, con el inicio y la longitud de la exposición (Rom, Raz y Chawin,
+              Empirical Musicology Review 16, 2021; CC0; github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus).
+              Deja fuera a propósito los movimientos lentos y los rondós-sonata: no estar en él no
+              significa no ser forma sonata.
+  4. título     el título del movimiento lo dice («Menuetto and Trio», «Rondo: Allegretto», «Fuga»…)
+  5. colección  el género de la colección lo fija (corales de Bach, danzas de las suites, sonatas de Scarlatti)
 
 También da la numeración tradicional de las sonatas para piano de Beethoven y Mozart y de los
 cuartetos de Beethoven («Sonata n.º 8»), para buscarlas por número.
@@ -99,6 +107,59 @@ def numero(compositor, titulo_obra, catalogo):
         return MOZART_SONATAS.get(int(m.group(1))) if m else None
     return None
 
+# ------------------------------------------------------------------ 3. datasets de análisis experto
+# BPSD, tabla 3: estructura del primer movimiento de cada sonata, en el orden de BEETHOVEN_SONATAS.
+# E exposición, D desarrollo, R reexposición, C coda, I introducción, T tema, V variación; las demás
+# (Op. 27, Op. 54) no son formas de la lista y se quedan sin forma.
+BPSD_PRIMEROS = ["E-E-D-R", "E-E-D-R", "E-E-D-R-C", "E-E-D-R-C", "E-E-D-R", "E-E-D-R", "E-E-D-R-C", "I-E-E-D-R-C",
+                 "E-E-D-R-C", "E-E-D-R-C", "E-E-D-R", "T-V1-V2-V3-V4-V5", "An-Al-T1", "P1-P2-P3-C", "E-E-D-R-C",
+                 "E-E-D-R-C", "E-E-D-R-C", "E-E-D-R-C", "E-E-D-R-C", "E-E-D-R", "E-E-D-R-C", "M1-Tr1-M2-Tr2-M3-C",
+                 "E-D-R-C", "I-E-E-D-R-D-R", "E-E-D-R-D-R-C", "I-E-E-D-R-C", "E-D-R-C", "E-D-R-C", "E-E-D-R-C",
+                 "E-D-R-C", "E-D-R-C", "I-E-E-D-R-C"]
+
+def desde_bpsd(estructura):
+    p = (estructura or "").split("-")
+    if "E" in p and "D" in p and "R" in p:
+        return "forma_sonata"
+    if p and p[0] == "T" and all(re.fullmatch(r"V\d+", x) for x in p[1:]) and len(p) > 1:
+        return "tema_variaciones"
+    return None
+
+def mepc(ruta):
+    """{(número Köchel, movimiento): (compás inicial, compases) de la exposición} del Mozart Expositional
+    Punctuation Corpus (dataset.tsv)."""
+    out = {}
+    if not ruta or not Path(ruta).exists():
+        return out
+    romanos = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6}
+    for r in csv.DictReader(open(ruta, encoding="latin-1"), delimiter="\t"):   # el TSV mezcla codificaciones
+        k = re.match(r"\d+", r.get("k") or "")
+        mv = romanos.get((r.get("mov") or "").strip())
+        if k and mv and r.get("exp_beg", "").isdigit() and r.get("exp_len", "").isdigit():
+            out.setdefault((int(k.group()), mv), (int(r["exp_beg"]), int(r["exp_len"])))
+    return out
+
+def secciones_mepc(ini, longitud):
+    """Secciones (formato de forma.json) que se saben por el MEPC: solo la exposición."""
+    return [[0 if ini == 1 else ini, 0.0 if ini == 1 else 1.0, "exposicion", None], [ini + longitud, 1.0, None, None]]
+
+def experta(compositor, titulo_obra, catalogo, mv, datos_mepc=None):
+    """(forma, fuente) según BPSD o MEPC, o (None, None)."""
+    t = titulo_obra or ""
+    if "Sonata para piano" not in t or not mv:
+        return None, None
+    if "Beethoven" in (compositor or "") and mv == 1:
+        op = _op(catalogo)
+        if op in BEETHOVEN_SONATAS:
+            f = desde_bpsd(BPSD_PRIMEROS[BEETHOVEN_SONATAS.index(op)])
+            if f:
+                return f, "BPSD"
+    if "Mozart" in (compositor or "") and datos_mepc:
+        m = re.search(r"K\.?\s*(\d+)", catalogo or t)
+        if m and (int(m.group(1)), mv) in datos_mepc:
+            return "forma_sonata", "MEPC"
+    return None, None
+
 # ------------------------------------------------------------------ títulos de movimiento del DCML (Beethoven y Mozart)
 def titulos_dcml(meta_beethoven=None, meta_mozart=None):
     """Títulos de movimiento del DCML («Menuetto and Trio: Allegretto», «Rondo. Allegro»…), por
@@ -125,15 +186,17 @@ def revisadas(ruta):
                 out[r[0].strip()] = r[1].strip() or None
     return out
 
-def asignar(mov, secciones_tf=None, titulo_extra=None, revision=None):
+def asignar(mov, secciones_tf=None, titulo_extra=None, revision=None, experto=None):
     """(forma, fuente) de un movimiento. mov: dict con fuente, subcorpus, compositor, titulo (de la entrada),
-    clave (para la revisión)."""
+    clave (para la revisión). experto: (forma, fuente) de experta()."""
     if revision and mov.get("clave") in revision:
         return revision[mov["clave"]], "revisión"
     if secciones_tf:
         f = desde_secciones(secciones_tf)
         if f:
             return f, "Taking Form"
+    if experto and experto[0]:
+        return tuple(experto)
     col = desde_coleccion(mov.get("fuente"), mov.get("subcorpus"), mov.get("compositor"), mov.get("titulo"))
     for t in (titulo_extra, mov.get("titulo")):
         f = desde_titulo(t)
