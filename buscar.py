@@ -315,6 +315,21 @@ def _enarmonica_por_resolucion(A, k1, B, k2):
             return None
     return f'{A["cifrado"]} en {k1} = {fig} en {k2}', fig
 
+def _resuelve_en(X, A, k1):
+    """True si A es la resolución normal, en k1, del acorde ambiguo X.
+    Si la sonoridad ya ha resuelto en la tonalidad de partida, no puede ser el pivote
+    de la modulación (p. ej. F: viio7 → I, d: viio7 → i es una secuencia, no una enarmonía)."""
+    iX, iA = _info(X["cifrado"], k1), _info(A["cifrado"], k1)
+    if not iX or not iA or not iX[3] or not _es_resolucion(iA):
+        return False
+    rX, rA = iX[0], iA[0]
+    if iX[3] == "dim7":
+        return rA == (rX + 1) % 12                     # vii°7 → acorde medio tono arriba
+    if X["cifrado"].startswith(("Ger", "Fr", "It", "Sw")):
+        k = _key(k1)                                   # +6 → V, o → 6/4 cadencial
+        return rA == k.pitchFromDegree(5).pitchClass or (rA == k.tonic.pitchClass and iA[1] == 2)
+    return rA == (rX + 5) % 12                         # V7 → I
+
 def _enarmonica_por_doble_cifrado(X, kx, B, k2):
     """El analista cifra la misma sonoridad ambigua en las dos tonalidades con distinta grafía."""
     iX, iB = _info(X["cifrado"], kx), _info(B["cifrado"], k2)
@@ -407,9 +422,14 @@ def clasificar_modulacion(ac, i):
 
     # 1. enarmónica: una 7ª disminuida o un V7/Ger6 escrito en k1 resuelve según su lectura
     #    enarmónica en k2, o el analista cifra la misma sonoridad en las dos tonalidades
+    #    Si A2 ya resolvió en k1 (A es su resolución), A2 no es pivote: la sonoridad vuelve
+    #    en B, y solo hay enarmonía si B está escrito con la grafía de k1 (se comprueba en B).
+    X2 = A2
+    if A2 and _resuelve_en(A2, A, k1):
+        X2 = dict(B, cifrado=A2["cifrado"])
     for X, r in ((A, _enarmonica_por_resolucion(A, k1, B, k2)),
                  (A, _enarmonica_por_doble_cifrado(A, k1, B, k2)),
-                 (A2, A2 and _enarmonica_por_doble_cifrado(A2, k1, B, k2))):
+                 (X2, A2 and _enarmonica_por_doble_cifrado(A2, k1, B, k2))):
         if r and _grafia_confirma(X, k1, r[1], k2):
             return "enarmonica", r[0]
 
