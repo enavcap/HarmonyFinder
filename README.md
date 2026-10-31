@@ -31,16 +31,19 @@ Eliges un procedimiento armónico (una napolitana, una cadencia rota, una modula
 
 El fragmento se copia como **SVG** o imagen para pegarlo en un libro o una presentación.
 
+La web está **en español y en inglés** (botón junto al título). El buscador entiende los dos idiomas sea cual sea el de la interfaz, y una búsqueda da exactamente los mismos resultados en uno y otro: «sexta alemana en el desarrollo» y «German sixth in the development» son la misma búsqueda.
+
 ## Cómo se busca
 
 <img src="docs/img/inicio.png" alt="Caja de búsqueda con los desplegables Armonía, Compositor, Período y Tonalidad" width="100%">
 
 - **Una sola caja con etiquetas.** Escribes y eliges: `napolitana` + `Mozart` + `modo menor`. Cada elección queda como etiqueta que se puede quitar.
-- **Cuatro desplegables** para explorar sin conocer el vocabulario:
+- **Cinco desplegables** para explorar sin conocer el vocabulario:
   - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, tipos de acorde y progresiones.
   - **Compositor**: buscador y lista por período.
   - **Período**.
   - **Tonalidad**: nota + ♭ ♮ ♯ + mayor/menor.
+  - **Forma**: sección (exposición, desarrollo, reexposición, coda, trío…) y zona (primer grupo temático, transición, segundo grupo temático, zona conclusiva, retransición…). Se combina con cualquier procedimiento, también escribiéndolo: «sexta alemana en el desarrollo», «modulación diatónica en la exposición». Acepta las siglas de la teoría de la sonata (P, TR, S, C).
 - **Resultados que se leen de un vistazo**:
   - resumen con barras por compositor, período y modo (pulsar una barra filtra);
   - cuatro ejemplos destacados;
@@ -54,7 +57,7 @@ El fragmento se copia como **SVG** o imagen para pegarlo en un libro o una prese
 | Familia | Conceptos |
 |---|---|
 | Cadencias | auténtica perfecta e imperfecta, rota, semicadencia, frigia, plagal, 6/4 cadencial |
-| Acordes alterados | napolitana (y → V), sextas aumentadas italiana / francesa / alemana (y → 6/4), intercambio modal, acorde vecino cromático |
+| Acordes alterados | napolitana (y → V), sextas aumentadas italiana / francesa / alemana (y → 6/4), intercambio modal |
 | Dominantes secundarias | dominante secundaria (resuelta o no), dominante de la dominante, séptima disminuida secundaria |
 | Modulación | diatónica, cromática, enarmónica (verificada con la grafía de la partitura), directa; a relativo, dominante, homónimo, tercera |
 | Otros | secuencia de quintas, pedal de dominante, acorde disminuido, aumentado, sexta añadida |
@@ -73,6 +76,7 @@ Las partituras se dibujan en el navegador con [Verovio](https://www.verovio.org)
 |---|---|---|
 | [When in Rome](https://github.com/MarkGotham/When-in-Rome) (Gotham et al., RomanText) | 1834 | CC BY-SA 4.0 |
 | [Distant Listening Corpus](https://github.com/DCMLab/distant_listening_corpus) (DCML, EPFL), 28 subcorpus | 746 | CC BY-NC-SA 4.0 |
+| [Taking Form](https://github.com/MarkGotham/Taking-Form) (Gotham e Ireland), forma | 54 movimientos | MIT |
 
 - **Modelo común** obra → movimiento → análisis. Una obra puede tener análisis de las dos fuentes.
 - **Identificación de obras en tres niveles**:
@@ -83,6 +87,8 @@ Las partituras se dibujan en el navegador con [Verovio](https://www.verovio.org)
   - se conserva la etiqueta original de cada analista;
   - los campos derivados están marcados;
   - cada análisis guarda archivo, commit, autores y licencia.
+- **Forma**: [Taking Form](https://github.com/MarkGotham/Taking-Form) (Gotham e Ireland, ISMIR 2019; MIT), con la forma de las sonatas para piano de Beethoven y de los primeros movimientos de Mozart. Se usan sección y zona. Un movimiento entra solo si su numeración se puede comprobar con la partitura: el último compás anotado coincide con el de la partitura, o el primer acorde de la reexposición coincide con el de la exposición. Así entran 54 movimientos; 13 se dejan fuera.
+- **Vocabulario**: cada término (procedimientos, tipos de acorde, filtros, forma) tiene una clave interna y su nombre, descripción y sinónimos en español e inglés (`multicorpus/vocabulario.py`, exportado a `web/data/vocab.json`).
 - **Partituras**:
   - las de When in Rome vienen de OpenScore y music21;
   - las del DCML se reconstruyen desde sus tablas de notas (sin dinámicas ni articulaciones).
@@ -95,9 +101,13 @@ multicorpus/          catálogo multicorpus (modelo, identificación, adaptadore
   adaptadores/        When in Rome (RomanText) y DCML (TSV)
   tests/              pruebas automáticas (pytest)
   README.md           uso del catálogo · INFORME.md: informe técnico
+  vocabulario.py      términos en español e inglés (claves canónicas, sinónimos, forma)
+  cadencias.py        cadencias como finales de frase (rasgos de partitura)
+  unisonos.py         pasajes al unísono u octava
+  forma.py            forma de Taking Form, alineada con las partituras
 buscar.py             detectores armónicos sobre la secuencia de acordes
 indexar.py            lectura de RomanText con music21
-herramientas/         conversión de tablas DCML y Humdrum a MusicXML
+herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_idiomas.py (mismos resultados en los dos idiomas)
 web/                  aplicación estática (index.html + data/ + scores/ + fonts/)
 docs/img/             imágenes de esta portada
 ```
@@ -117,8 +127,10 @@ pip install music21 pytest
 python -m multicorpus.importar wir
 python -m multicorpus.importar dcml
 python -m multicorpus.auditar            # posibles duplicados
+git clone https://github.com/MarkGotham/Taking-Form datos/fuentes/taking_form   # forma
 python -m multicorpus.exportar_mc        # genera web/data y web/scores
 python -m pytest -q multicorpus/tests
+python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan lo mismo
 ```
 
 ## Limitaciones
@@ -131,7 +143,7 @@ python -m pytest -q multicorpus/tests
 
 ## Licencias y créditos
 
-- Análisis: **When in Rome** (CC BY-SA 4.0) y **Distant Listening Corpus, DCML** (CC BY-NC-SA 4.0). Por la licencia del DCML, los datos de `web/` solo pueden usarse sin fines comerciales, con atribución y compartiendo igual.
+- Análisis: **When in Rome** (CC BY-SA 4.0) y **Distant Listening Corpus, DCML** (CC BY-NC-SA 4.0). Forma: **Taking Form** (MIT). Por la licencia del DCML, los datos de `web/` solo pueden usarse sin fines comerciales, con atribución y compartiendo igual.
 - Partituras: OpenScore, corpus de music21 y reconstrucciones a partir de las tablas del DCML.
 - Fuentes: Bravura y Academico (Steinberg, SIL Open Font License 1.1).
 - Grabado: Verovio (LGPL).

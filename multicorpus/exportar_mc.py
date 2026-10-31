@@ -7,6 +7,7 @@ web/data/obras.json        una entrada por ANÁLISIS (con su movimiento y su obr
 web/data/meta.json         conceptos (con tipo y criterio), sinónimos, fuentes y licencias
 web/data/hits/<c>.json     coincidencias por concepto: [análisis, compás, parte, tono, etiqueta, ini, fin]
 web/data/compases.json     rasgos por compás (búsqueda por tipo de acorde)
+web/data/forma.json        sección y zona de cada movimiento con forma (Taking Form): {mov: [[compás, parte, sección, zona]…]}
 web/data/acordes/<n>.json  acordes por análisis (progresiones, contexto, comparador, cifrados);
                            un 7.º campo 1 marca los acordes de un pasaje al unísono u octava
 web/scores/<p>.json        partituras MusicXML (base64), por compositor, indexadas por movimiento
@@ -16,7 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .buscar_mc import conectar, acordes, conceptos, sinonimos, RAIZ, DATOS
-from . import unisonos, cadencias
+from . import unisonos, cadencias, vocabulario, forma
 import buscar
 
 WEB = RAIZ / "web"
@@ -188,6 +189,9 @@ def main(argv=None):
     CONC = conceptos()
     hits = {k: [] for k in CONC}
     n_uni = 0
+    TF = DATOS / "fuentes" / "taking_form" / "corpus"          # clon de github.com/MarkGotham/Taking-Form
+    archivos_tf = {forma.carpeta_wir(f.name): f for f in TF.glob("*_Sonatas/*.csv")} if TF.exists() else {}
+    formas = {}
     for r in filas:
         aid = ids_an[r["id"]]
         ac = acordes(con, r["id"])
@@ -195,10 +199,18 @@ def main(argv=None):
         marcar_unisonos(ac, ruta.read_bytes() if ruta.exists() else None,
                         unisonos.continuo_sin_realizar(r["subcorpus"], instrumentos(r), r["nombre"]))
         n_uni += sum(a["unisono"] for a in ac)
+        tf = archivos_tf.get((r["archivo"] or "").rsplit("/", 1)[0]) if r["fuente"] == "wir" else None
+        mid = ids_mov[r["mid"]]
+        if tf and mid not in formas and ruta.exists():
+            _, compases_p = unisonos.leer(ruta.read_bytes())
+            F = forma.alinear(tf, [c[0] for c in compases_p], [(a["compas"], a["parte"], a["tono"], a["cifrado"]) for a in ac])
+            if F:
+                formas[mid] = [list(x) for x in F]
         grupos[aid // 50][aid], compases[aid], hs = datos_analisis(ac, aid, ti, CONC)
         for k, v in hs.items():
             hits[k].extend(v)
-    print(f"{n_uni} acordes en pasajes al unísono u octava")
+    print(f"{n_uni} acordes en pasajes al unísono u octava · {len(formas)} movimientos con forma")
+    json.dump(formas, open(WEB / "data" / "forma.json", "w", encoding="utf-8"), separators=(",", ":"))
     for g, d in grupos.items():
         json.dump({"tonos": tonos, "obras": d}, open(WEB / "data" / "acordes" / f"{g}.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     json.dump({"tonos": tonos, "obras": compases}, open(WEB / "data" / "compases.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
@@ -214,7 +226,8 @@ def main(argv=None):
     for r in con.execute("SELECT fuente, subcorpus, licencia, MAX(version) v, MAX(referencia) ref, COUNT(*) n FROM analisis GROUP BY 1,2"):
         fuentes.setdefault(r["fuente"], []).append({"sub": r["subcorpus"], "licencia": r["licencia"], "version": (r["v"] or "")[:12], "ref": r["ref"], "n": r["n"]})
     vidas = {r["nombre"]: [r["nacimiento"], r["muerte"]] for r in con.execute("SELECT nombre, nacimiento, muerte FROM compositores")}
-    json.dump({"compositores": vidas, "conceptos": resumen, "sinonimos": sinonimos(), "requiere": buscar.REQUIERE,
+    json.dump(vocabulario.exportar(), open(WEB / "data" / "vocab.json", "w", encoding="utf-8"), ensure_ascii=False)
+    json.dump({"compositores": vidas, "conceptos": resumen, "sinonimos": sinonimos(), "requiere": vocabulario.REQUIERE,
                "n_obras": len(ids_obra), "n_mov": len(ids_mov), "n_analisis": len(entradas),
                "n_acordes": sum(len(v) for d in grupos.values() for v in d.values()), "fuentes": fuentes},
               open(WEB / "data" / "meta.json", "w", encoding="utf-8"), ensure_ascii=False)

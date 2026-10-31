@@ -18,6 +18,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 import buscar                                            # detectores existentes
 from . import cadencias                                  # cadencias con rasgos de partitura
+from . import vocabulario                                # nombres y sinónimos en español e inglés
 
 DB = RAIZ / "datos" / "catalogo.sqlite"
 DATOS = RAIZ / "datos"
@@ -125,10 +126,12 @@ SINONIMOS_NUEVOS = {
 }
 
 def conceptos():
-    """{clave: (detector, descripción, tipo)} — existentes (derivados) + nuevos."""
+    """{clave: (detector, descripción, tipo)} — existentes (derivados) + nuevos, solo los del vocabulario
+    canónico (vocabulario.py), con su descripción en español."""
     d = {k: (f, desc, "derivado") for k, (f, desc) in buscar.CONCEPTOS.items()}
     d.update(NUEVOS)
-    return d
+    return {k: (f, vocabulario.CONCEPTOS[k]["desc_es"], t) for k, (f, _, t) in d.items() if k in vocabulario.CONCEPTOS}
 
 def sinonimos():
-    s = dict(buscar.SINONIMOS); s.update(SINONIMOS_NUEVOS); return s
+    """Sinónimos de cada concepto en español e inglés (el buscador acepta los dos idiomas)."""
+    return {k: vocabulario.sinonimos_concepto(k) for k in vocabulario.CONCEPTOS}

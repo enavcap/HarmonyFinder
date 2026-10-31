@@ -566,7 +566,7 @@ CONCEPTOS = {
 # Sustituible por una llamada a un LLM que devuelva uno de los nombres de CONCEPTOS.
 # ---------------------------------------------------------------------------
 SINONIMOS = {
-    "cadencia_rota": ["cadencia rota", "cadencia evitada", "cadencia interrumpida", "rota", "v vi", "quinto sexto"],
+    "cadencia_rota": ["cadencia rota", "cadencia interrumpida", "rota", "v vi", "quinto sexto"],
     "cadencia_autentica_perfecta": ["cadencia perfecta", "cadencia autentica", "cadencia conclusiva", "v i"],
     "semicadencia": ["semicadencia", "cadencia suspensiva", "media cadencia"],
     "cadencia_frigia": ["frigia", "cadencia frigia", "iv6 v"],
