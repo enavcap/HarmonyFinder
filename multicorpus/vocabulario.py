@@ -1,5 +1,5 @@
 """
-Vocabulario canónico bilingüe de HarmoFind (español / inglés).
+Vocabulario canónico bilingüe de Harmony Finder (español / inglés).
 
 Cada término tiene una clave interna y su nombre, descripción y sinónimos en los dos idiomas.
 Las búsquedas trabajan siempre con la clave; el buscador acepta los sinónimos de los dos idiomas

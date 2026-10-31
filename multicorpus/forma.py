@@ -128,7 +128,7 @@ def _reexposicion_coincide(F, acordes):
     return bool(a and b and a[0][2:] == b[0][2:])
 
 def alinear(ruta, nums_partitura, acordes):
-    """Forma de Taking Form alineada con la numeración de la partitura de HarmoFind, o None si no se puede
+    """Forma de Taking Form alineada con la numeración de la partitura de Harmony Finder, o None si no se puede
     comprobar. acordes: [(compás, parte, tono, cifrado)] de un análisis del movimiento.
     Se acepta si el último compás anotado coincide con el último número de la partitura, o si el primer
     acorde de la reexposición coincide con el de la exposición. Si la anotación acaba antes que la obra,
