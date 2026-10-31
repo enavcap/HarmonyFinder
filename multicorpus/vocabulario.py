@@ -125,7 +125,8 @@ CONCEPTOS = {
         ["sequence", "circle of fifths", "circle-of-fifths progression", "circle progression", "fifths sequence"]),
     "pedal_de_dominante": T(
         "pedal de dominante", "dominant pedal",
-        "≥3 acordes sobre la dominante en el bajo", "≥3 chords over the dominant in the bass",
+        "dominante sostenida en el bajo ≥2 compases con armonías ajenas encima",
+        "dominant held in the bass for ≥2 bars with foreign harmonies above",
         ["pedal de dominante", "pedal", "nota pedal", "bajo pedal", "pedal dominante"],
         ["pedal point", "dominant pedal point"]),
     "modulacion": T(

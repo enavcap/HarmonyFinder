@@ -529,17 +529,44 @@ def modulacion_a_tercera(ac):
             out.append((i, et, n))
     return out
 
+PEDAL_MIN_COMPASES = 2
+
+def _pedal_dura_bastante(ac, i, j, minimo=PEDAL_MIN_COMPASES):
+    """¿La dominante se mantiene en el bajo al menos `minimo` compases completos?
+    Se mide desde el primer acorde de la pedal hasta el primer acorde que la
+    abandona (o hasta el final del último compás si la obra acaba en ella)."""
+    c0, p0 = ac[i]["compas"], ac[i]["parte"] or 1
+    if j < len(ac):
+        c1, p1 = ac[j]["compas"], ac[j]["parte"] or 1
+    else:
+        c1, p1 = ac[-1]["compas"] + 1, 1
+    if c0 is None or c1 is None:
+        return False
+    return (c1 - c0) > minimo or ((c1 - c0) == minimo and p1 >= p0)
+
+def _ajeno_a_la_dominante(a):
+    """Acorde que, sobre la nota pedal, no es la propia dominante ni su 6/4 cadencial."""
+    return not _es_V(a) and not _es_64_cadencial(a)
+
 def pedal_de_dominante(ac):
-    """≥3 acordes seguidos con la dominante en el bajo (misma tonalidad)."""
+    """Dominante sostenida en el bajo ≥2 compases completos, con ≥2 cambios de acorde encima y al menos uno ajeno a V y al 6/4 cadencial.
+
+    La dominante puede estar ligada, repetida o cambiar de octava. Un simple
+    I64 → V(7), aunque el bajo salte de octava, es una cadencia 6/4 y no una pedal."""
     from music21 import key as mkey
     out, i = [], 0
     while i < len(ac):
+        if not ac[i]["bajo"]:
+            i += 1; continue
         k = mkey.Key(ac[i]["tono"]); dom = k.pitchFromDegree(5).name
         j = i
         while j < len(ac) and ac[j]["tono"] == ac[i]["tono"] and ac[j]["bajo"] == dom:
             j += 1
-        if j - i >= 3:
-            out.append((i, " ".join(x["cifrado"] for x in ac[i:j]), j - i))
+        tramo = ac[i:j]
+        cambios = sum(1 for a, b in zip(tramo, tramo[1:]) if a["cifrado"] != b["cifrado"])
+        if cambios >= 2 and any(_ajeno_a_la_dominante(a) for a in tramo) \
+           and _pedal_dura_bastante(ac, i, j):
+            out.append((i, " ".join(x["cifrado"] for x in tramo), j - i))
         i = max(j, i + 1)
     return out
 
@@ -577,7 +604,7 @@ CONCEPTOS = {
     "modulacion_a_dominante": (modulacion_a_dominante, "a la tonalidad de la dominante"),
     "modulacion_a_homonimo": (modulacion_a_homonimo, "mayor ↔ menor homónimo"),
     "modulacion_a_tercera": (modulacion_a_tercera, "a mediante / submediante"),
-    "pedal_de_dominante": (pedal_de_dominante, "≥3 acordes sobre la dominante en el bajo"),
+    "pedal_de_dominante": (pedal_de_dominante, "dominante sostenida en el bajo ≥2 compases con armonías ajenas encima"),
     "acorde_vecino_cromatico": (acorde_vecino_cromatico, "otros acordes alterados"),
 }
 
