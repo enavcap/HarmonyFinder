@@ -87,8 +87,7 @@ def marcar_unisonos(ac, partitura, continuo=False):
 def datos_analisis(ac, aid, ti, CONC):
     """(acordes para la web, rasgos por compás, {concepto: coincidencias}) de un análisis.
     Los acordes de pasajes al unísono no cuentan en los rasgos por compás ni en los detectores
-    derivados (que se ejecutan por tramos, sin cruzar esos pasajes); las cadencias anotadas por el
-    corpus sí se conservan siempre."""
+    derivados (que se ejecutan por tramos, sin cruzar esos pasajes)."""
     fila = []
     for a in ac:
         x = [a["compas"], a["parte"], ti(a["tono"]), a["cifrado"],

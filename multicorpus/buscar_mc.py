@@ -3,11 +3,10 @@ Motor de búsqueda sobre el catálogo multicorpus.
 
 Reutiliza los detectores de `buscar.py` (que trabajan sobre una lista de acordes con campos
 normalizados) y añade:
-  · cadencias ANOTADAS por el corpus (DCML: PAC, IAC, HC, DC, PC, EC) — coincidencia exacta con la fuente
   · cadencia auténtica imperfecta, acordes disminuidos, quinta aumentada, sexta añadida,
     secuencia de quintas descendentes — reglas sobre el cifrado (derivadas)
 
-Cada concepto declara su `tipo` ('anotado' | 'derivado') y su `criterio`.
+Cada concepto declara su `tipo` ('derivado') y su `criterio`.
 """
 import sqlite3, sys
 from functools import lru_cache
@@ -66,15 +65,6 @@ def acordes_de_filas(filas, aid):
     return out
 
 # ---------------------------------------------------------------- detectores nuevos
-CAD = {"PAC": "auténtica perfecta", "IAC": "auténtica imperfecta", "HC": "semicadencia", "DC": "rota",
-       "PC": "plagal", "EC": "evitada"}
-
-def _cadencia_anotada(tipo):
-    def det(ac):
-        return [(i, f'{ac[i-1]["cifrado"] + " → " if i else ""}{a["cifrado"]} · {tipo} (anotada)', 2 if i else 1)
-                for i, a in enumerate(ac) if (a.get("cadencia") or "").split(".")[0] == tipo]
-    return det
-
 def cadencia_autentica_imperfecta(ac):
     """V o vii° → I en la misma tonalidad con alguno de los dos acordes invertido (no se comprueba la voz superior)."""
     out = []
@@ -123,12 +113,6 @@ def secuencia_quintas(ac):
     return out
 
 NUEVOS = {
-    "cadencia_perfecta_anotada": (_cadencia_anotada("PAC"), "PAC anotada por el corpus", "anotado"),
-    "cadencia_imperfecta_anotada": (_cadencia_anotada("IAC"), "IAC anotada por el corpus", "anotado"),
-    "semicadencia_anotada": (_cadencia_anotada("HC"), "HC anotada por el corpus", "anotado"),
-    "cadencia_rota_anotada": (_cadencia_anotada("DC"), "DC anotada por el corpus", "anotado"),
-    "cadencia_plagal_anotada": (_cadencia_anotada("PC"), "PC anotada por el corpus", "anotado"),
-    "cadencia_evitada_anotada": (_cadencia_anotada("EC"), "EC anotada por el corpus", "anotado"),
     "cadencia_autentica_imperfecta": (cadencia_autentica_imperfecta, "V/viio → I con alguno invertido", "derivado"),
     "acorde_disminuido": (acorde_disminuido, "tríadas y séptimas disminuidas diatónicas", "derivado"),
     "quinta_aumentada": (quinta_aumentada, "acordes aumentados (III+, V+…)", "derivado"),
@@ -136,12 +120,6 @@ NUEVOS = {
     "secuencia_quintas": (secuencia_quintas, "≥4 fundamentales descendiendo por quintas", "derivado"),
 }
 SINONIMOS_NUEVOS = {
-    "cadencia_perfecta_anotada": ["cadencia perfecta anotada", "pac", "perfecta anotada"],
-    "cadencia_imperfecta_anotada": ["cadencia imperfecta anotada", "iac", "imperfecta anotada"],
-    "semicadencia_anotada": ["semicadencia anotada", "hc"],
-    "cadencia_rota_anotada": ["cadencia rota anotada", "rota anotada"],
-    "cadencia_plagal_anotada": ["cadencia plagal anotada", "plagal anotada"],
-    "cadencia_evitada_anotada": ["cadencia evitada", "evitada", "cadencia evadida"],
     "cadencia_autentica_imperfecta": ["cadencia imperfecta", "cadencia autentica imperfecta", "imperfecta"],
     "acorde_disminuido": ["acorde disminuido", "acordes disminuidos", "disminuido", "triada disminuida"],
     "quinta_aumentada": ["quinta aumentada", "acorde aumentado", "triada aumentada", "aumentado"],

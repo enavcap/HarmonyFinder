@@ -37,7 +37,7 @@ El fragmento se copia como **SVG** o imagen para pegarlo en un libro o una prese
 
 - **Una sola caja con etiquetas.** Escribes y eliges: `napolitana` + `Mozart` + `modo menor`. Cada elección queda como etiqueta que se puede quitar.
 - **Cuatro desplegables** para explorar sin conocer el vocabulario:
-  - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, cadencias anotadas, tipos de acorde y progresiones.
+  - **Armonía**: cadencias, acordes alterados, dominantes secundarias, modulación, otros recursos, tipos de acorde y progresiones.
   - **Compositor**: buscador y lista por período.
   - **Período**.
   - **Tonalidad**: nota + ♭ ♮ ♯ + mayor/menor.
@@ -53,7 +53,7 @@ El fragmento se copia como **SVG** o imagen para pegarlo en un libro o una prese
 
 | Familia | Conceptos |
 |---|---|
-| Cadencias | auténtica perfecta e imperfecta, rota, semicadencia, frigia, plagal, 6/4 cadencial; cadencias anotadas por los analistas del DCML (PAC, IAC, HC, DC, PC, EC) |
+| Cadencias | auténtica perfecta e imperfecta, rota, semicadencia, frigia, plagal, 6/4 cadencial |
 | Acordes alterados | napolitana (y → V), sextas aumentadas italiana / francesa / alemana (y → 6/4), intercambio modal, acorde vecino cromático |
 | Dominantes secundarias | dominante secundaria (resuelta o no), dominante de la dominante, séptima disminuida secundaria |
 | Modulación | diatónica, cromática, enarmónica (verificada con la grafía de la partitura), directa; a relativo, dominante, homónimo, tercera |
@@ -125,7 +125,7 @@ python -m pytest -q multicorpus/tests
 
 - No hay detectores de contrapunto, imitación ni esquemas galantes: los corpus no los anotan.
 - Las cadencias derivadas se definen por los acordes; no comprueban la voz superior.
-- **Pasajes al unísono u octava.** Cuando varias voces o instrumentos doblan la misma línea, el analista suele cifrar la armonía implícita nota a nota, a veces con cambios de tonalidad. Esos acordes se detectan en la partitura (≥2 acordes seguidos en los que solo suenan notas dobladas, salvo que la línea arpegie el propio acorde) y no cuentan en los procedimientos derivados, las progresiones ni los pasajes por tipo de acorde: ninguna detección atraviesa el pasaje. Las cadencias anotadas por el corpus se conservan. En la partitura esos cifrados se ven atenuados. No se aplica a obras con bajo continuo sin realizar (Schütz, Peri, Corelli, *Concerts royaux*), donde la partitura solo trae el bajo.
+- **Pasajes al unísono u octava.** Cuando varias voces o instrumentos doblan la misma línea, el analista suele cifrar la armonía implícita nota a nota, a veces con cambios de tonalidad. Esos acordes se detectan en la partitura (≥2 acordes seguidos en los que solo suenan notas dobladas, salvo que la línea arpegie el propio acorde) y no cuentan en los procedimientos derivados, las progresiones ni los pasajes por tipo de acorde: ninguna detección atraviesa el pasaje. En la partitura esos cifrados se ven atenuados. No se aplica a obras con bajo continuo sin realizar (Schütz, Peri, Corelli, *Concerts royaux*), donde la partitura solo trae el bajo.
 - En pasajes muy polifónicos de las partituras reconstruidas del DCML (3–4 voces en un pentagrama) puede haber choques de notas.
 - La fecha de composición solo consta en unas 190 obras; se filtra por período.
 

@@ -53,7 +53,7 @@ Cada subcorpus queda fijado a su commit, y la URL de cada análisis apunta a ese
 Dos piezas distintas de una misma fuente nunca comparten movimiento. Al confirmar una fusión se conservan todos los análisis.
 
 ## 7. Funciones de búsqueda
-- Conceptos derivados por regla y conceptos anotados por el corpus: cadencias del DCML (PAC, IAC, HC, DC, PC, EC). Cada uno muestra su tipo y su criterio.
+- Conceptos derivados por regla a partir del cifrado; cada uno muestra su criterio. (Las cadencias anotadas por el DCML se retiraron de la búsqueda: duplicaban las derivadas y solo cubrían ese corpus.)
 - Detectores nuevos sobre el modelo común:
   - cadencia auténtica imperfecta;
   - acorde disminuido;

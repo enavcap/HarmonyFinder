@@ -12,7 +12,7 @@ multicorpus/
     wir.py             When in Rome (RomanText, analysis*.txt)
     dcml.py            Distant Listening Corpus (harmonies/measures/notes/metadata.tsv)
   importar.py          importación idempotente con informe por subcorpus
-  buscar_mc.py         detectores sobre el modelo común (+ cadencias anotadas del DCML)
+  buscar_mc.py         detectores sobre el modelo común
   exportar_mc.py       genera los datos estáticos de la web (web/data, web/scores)
   tests/               pruebas automáticas (pytest)
 ```
