@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-01
+
+### Fixed
+- Modulación enarmónica: ya no se marca como enarmónica una modulación cuyo pivote es un acorde diatónico común a las dos tonalidades aunque vaya precedido de una séptima disminuida o un V7 de la tonalidad de partida (p. ej. Mozart K. 280/i, c. 82: re m VII⁴₃ = fa M V⁴₃). Cuatro pasajes pasan de enarmónica a diatónica.
+
 ## [0.3.1] - 2026-11-01
 
 ### Added
@@ -68,7 +73,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/enavcap/HarmonyFinder/compare/6e5e592...v0.3.1
 [0.3.0]: https://github.com/enavcap/HarmonyFinder/releases/tag/v0.3.0
 [0.2.0]: https://github.com/enavcap/HarmonyFinder/compare/5aee7e5...13f2a9b
