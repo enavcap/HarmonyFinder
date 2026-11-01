@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-01
+
 ### Added
 - La dirección de la página guarda la búsqueda, los filtros y el ejemplo abierto (`?c=…&compositor=…&ej=…`): recargar no pierde nada, el botón atrás del navegador (y del móvil) vuelve a la búsqueda anterior y un enlace lleva a otra persona al mismo ejemplo.
 - Tercera de picardía: V → I mayor como acorde final en tonalidad menor (al final de la obra o con calderón). 330 ejemplos, sobre todo finales de corales de Bach.
@@ -121,7 +123,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...v0.3.2
