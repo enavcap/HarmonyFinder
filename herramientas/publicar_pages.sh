@@ -5,6 +5,8 @@
 #   uso: herramientas/publicar_pages.sh   (desde la raíz del repositorio)
 set -euo pipefail
 raiz=$(git rev-parse --show-toplevel)
+# La versión mostrada en la web debe coincidir con VERSION antes de publicar.
+python3 "$raiz/herramientas/sincronizar_version.py" --comprobar
 tmp=$(mktemp -d)
 git -C "$raiz" worktree add -f "$tmp" gh-pages >/dev/null
 find "$tmp" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +

@@ -414,9 +414,12 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 </aside>
 </main>
 
-<footer><div class="autor"><span><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026 · <a href="#buzon" data-en="Report a bug or suggest an improvement">Informar de un error o proponer una mejora</a></span><button id="tema" type="button"></button></div></footer>
+<footer><div class="autor"><span><b>Harmony Finder</b> <span id="version" title="Versión (Semantic Versioning)" data-en-title="Version (Semantic Versioning)"></span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026 · <a href="#buzon" data-en="Report a bug or suggest an improvement">Informar de un error o proponer una mejora</a></span><button id="tema" type="button"></button></div></footer>
 <div class="toast" id="toast"></div>
 
+<script src="version.js"></script>
+<script>/* versión: la fuente única es el archivo VERSION de la raíz; web/version.js se genera desde él (herramientas/sincronizar_version.py) */
+(function(){const e=document.getElementById('version'),v=window.HF_VERSION;if(e&&v)e.textContent='v'+v;})();</script>
 <script src="jszip.min.js"></script>
 <script src="progresiones.js"></script>
 <script>

@@ -119,6 +119,7 @@ herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_id
                       prueba_progresiones.js (búsqueda de progresiones sobre los datos reales)
 web/                  aplicación estática (index.html + data/ + scores/ + fonts/)
 docs/img/             imágenes de esta portada
+VERSION               versión vigente (Semantic Versioning); CHANGELOG.md: historial de cambios
 ```
 
 ## Uso
@@ -145,6 +146,8 @@ python -m pytest -q multicorpus/tests
 python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan lo mismo
 node --test herramientas/prueba_progresiones.js   # progresiones: ii V I, inversiones, cualidades, sin duplicados
 ```
+
+**Versiones.** El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/lang/es/): la versión vigente está en [`VERSION`](VERSION) y el historial en [`CHANGELOG.md`](CHANGELOG.md). El pie de la web la muestra a partir de `web/version.js`, que se regenera con `herramientas/sincronizar_version.py`.
 
 ## Limitaciones
 
