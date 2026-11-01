@@ -24,7 +24,7 @@ function buscar(texto,opc={},filtro=()=>true){
     for(const r of P.buscarEnSecuencia(seq,Q,opc)){
       const tramo=seq.slice(r.i0,r.i1+1);
       out.push({obra:o.id,o,i0:r.i0,i1:r.i1,crudo,ini:tramo[0].a[0],parte:tramo[0].a[1],fin:tramo.at(-1).a[0],tono:d.tonos[tramo[0].t],
-        tramo,etq:tramo.map(z=>z.a[3]).join(' → '),h:r.h});
+        tramo,etq:tramo.map(z=>z.a[3]).join(' → '),h:r.h,caja:r.caja});
     }
   }
   return out;
@@ -151,4 +151,26 @@ test('analizar(): propiedades de los cifrados',()=>{
   assert.equal(a('-VI').acc,'b');
   assert.equal(a('V').dig,''); assert.equal(a('V').inv,null);
   assert.equal(a('xyz'),null);
+});
+
+// ---------- «¿Querías decir…?»: variantes de mayúscula/minúscula ----------
+test('conCaja() cambia solo el número romano',()=>{
+  assert.equal(P.conCaja('v7',true),'V7'); assert.equal(P.conCaja('bVI6',false),'bvi6');
+  assert.equal(P.conCaja('V65/v',true),'V65/v','la dominante secundaria no se toca');
+  assert.equal(P.conCaja('Ger65',false),'Ger65');
+});
+test('ignorarCaja amplía la búsqueda sin cambiar la búsqueda normal',()=>{
+  const estricta=buscar('ii v i'), amplia=buscar('ii v i',{ignorarCaja:true});
+  assert.ok(amplia.length>estricta.length);
+  assert.equal(buscar('ii v i',{},enK545).length,0,'v e i minúsculas siguen siendo acordes menores');
+});
+test('ii – v – i propone ii – V – I, que encuentra K. 545',()=>{
+  const v=P.variantesCaja(['ii','v','i'],buscar('ii v i',{ignorarCaja:true}),2);
+  assert.deepEqual(v[0],['ii','V','I']);
+  assert.ok(buscar(v[0].join(' '),{},enK545).some(c78));
+  const k=P.variantesCaja(['ii','v','i'],buscar('ii v i',{ignorarCaja:true},enK545),2);
+  assert.deepEqual(k[0],['ii','V','I'],'también con el filtro de obra');
+});
+test('las variantes no repiten la progresión escrita',()=>{
+  for(const t of ['ii V I','iv6 V']) for(const v of P.variantesCaja(t.split(' '),buscar(t,{ignorarCaja:true}),3)) assert.notEqual(v.join(' '),t);
 });

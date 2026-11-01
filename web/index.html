@@ -117,6 +117,10 @@ details.filtros .cuerpo{display:flex;flex-wrap:wrap;gap:8px;align-items:center;m
 .mostrar .rom{color:var(--fg)} .mostrar .int{color:var(--int)} .mostrar .fun{color:var(--fun)}
 
 .estado:empty{display:none}
+.quizas{margin:-2px 0 10px;font-size:14px;color:var(--muted)}
+.quizas button{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.quizas button strong{font-weight:600}
+.quizas .pista-caja{display:block;font-size:12.5px;margin-top:2px}
 .estado{margin:14px 0 8px;color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
 .estado strong{color:var(--fg);font-weight:500}
 .estado code{font:13px var(--mono);background:var(--accent-soft);color:var(--fg);padding:1px 6px;border-radius:4px}
@@ -380,6 +384,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 
   <div id="portada" hidden></div>
   <div class="estado" id="estado"></div>
+  <div class="quizas" id="quizas" hidden></div>
   <div class="limite" id="limite" hidden><label class="chk"><input type="checkbox" id="todosEj"> <span data-en="every example from each work">todos los ejemplos de cada obra</span></label></div>
   <div class="resumen-b" id="resumen" hidden></div>
   <div id="destacados" hidden></div>
@@ -915,24 +920,47 @@ async function cargarTodosAcordes(){
   const gs=[...new Set(OBRAS.map(o=>Math.floor(o.id/50)))];
   await Promise.all(gs.map(g=>{if(!gruposAc[g])gruposAc[g]=fetch(`data/acordes/${g}.json`).then(r=>r.json());return gruposAc[g]}));
 }
-async function buscarProgresion(toks,f){
+const seqCache=new Map();   // sucesión ya leída de cada análisis (los datos no cambian durante la sesión)
+async function buscarProgresion(toks,f,extra={}){
   await cargarTodosAcordes();
   // comparación por propiedades (web/progresiones.js): lo escrito solo exige lo que se escribe
-  const opc={sinInv:$('#progInv').checked,gap:+$('#progGap').value,min:+$('#progMin').value||0};
+  const opc={sinInv:$('#progInv').checked,gap:+$('#progGap').value,min:+$('#progMin').value||0,...extra};
   const Q=toks.map(Progresiones.consulta), out=[], cuenta={};
   for(const o of OBRAS){
     if(!pasaObra(o,f)) continue;
     const d=await gruposAc[Math.floor(o.id/50)], crudo=d.obras[o.id]; if(!crudo) continue;
-    const seq=Progresiones.secuencia(crudo,d.tonos);
+    let seq=seqCache.get(o.id); if(!seq){seq=Progresiones.secuencia(crudo,d.tonos); seqCache.set(o.id,seq)}
     for(const r of Progresiones.buscarEnSecuencia(seq,Q,opc)){
       const a0=seq[r.i0].a, a1=seq[r.i1].a, tono=d.tonos[a0[2]];
       if(!pasaTono(tono,f)) continue;
       cuenta[o.w]=(cuenta[o.w]||0)+1;
       if(cuenta[o.w]<=f.lim) out.push({frag:true,prog:true,obra:o.id,ini:a0[0],fin:a1[0],compas:a0[0],parte:a0[1],tono,
-        etq:seq.slice(r.i0,r.i1+1).map(z=>z.a[3]).join(' → '),coinciden:r.h});
+        etq:seq.slice(r.i0,r.i1+1).map(z=>z.a[3]).join(' → '),coinciden:r.h,caja:r.caja});
     }
   }
   return out;
+}
+// «¿Querías decir…?»: se prueba la progresión sin distinguir mayúsculas y se proponen las combinaciones de
+// mayúscula/minúscula que aparecen en el corpus (con los mismos filtros) cuando la escrita da pocos resultados
+// (< 10) o muchos menos que la propuesta (≥ 5 veces más). La búsqueda escrita no cambia: en cifrado romano
+// la caja es la cualidad del acorde (v ≠ V), y «iv6 V» frente a «IV6 V» no dispara nada.
+const UMBRAL_QUIZAS=10, FACTOR_QUIZAS=5;
+async function proponerCaja(o,f,n){
+  const caja=$('#quizas');
+  const pasa=h=>pasaForma(porId.get(h.obra),f,h.compas,h.parte,h.fin,null);
+  const todos=(await buscarProgresion(o.q,f,{ignorarCaja:true})).filter(pasa);
+  if(actual!==o) return;
+  const props=[];
+  for(const v of Progresiones.variantesCaja(o.q,todos)){
+    const r=(await buscarProgresion(v,f)).filter(pasa);
+    if(actual!==o) return;
+    if(r.length>n&&(n<UMBRAL_QUIZAS||r.length>=FACTOR_QUIZAS*n)) props.push({v,n:r.length});
+  }
+  if(!props.length) return;
+  caja.innerHTML=trd('¿Querías decir ','Did you mean ')+props.map((p,i)=>`<button type="button" data-i="${i}"><strong>${esc(p.v.join(' – '))}</strong></button> (${p.n.toLocaleString(LOC)} ${p.n===1?trd('pasaje','passage'):trd('pasajes','passages')})`).join(trd(' o ',' or '))+'?'
+    +` <span class="pista-caja">${trd('En cifrado romano, mayúscula = acorde mayor y minúscula = menor.','In Roman numerals, upper case = major chord and lower case = minor.')}</span>`;
+  caja.querySelectorAll('button').forEach(b=>b.onclick=()=>elegir({t:'p',q:props[+b.dataset.i].v}));
+  caja.hidden=false;
 }
 function resaltar(nombre,t){
   const n=norm(nombre), i=t?n.indexOf(t):-1;
@@ -1021,7 +1049,7 @@ function relanzar(){
 }
 function reiniciar(){
   actual=null; filas=[]; seleccion=null;
-  $('#estado').textContent=''; $('#tabla').hidden=true; $('#vista').hidden=true;
+  $('#estado').textContent=''; $('#quizas').hidden=true; $('#tabla').hidden=true; $('#vista').hidden=true;
   pintarEtiquetas();
 }
 function quitar(campo){
@@ -1262,7 +1290,7 @@ async function ejecutar(o){
   actual=o; pagina=0; cuentaCache.clear(); abiertosC.clear(); abiertos.clear(); masObras.clear(); masEj.clear();
   pref('ultimo',JSON.stringify(o)); pintarEtiquetas();
   const f=filtros();
-  $('#estado').textContent=trd('Buscando…','Searching…');
+  $('#estado').textContent=trd('Buscando…','Searching…'); $('#quizas').hidden=true;
   const nn=n=>n.toLocaleString(LOC);
   const pl=(n,es,en)=>`${nn(n)} ${n===1?trd(es[0],en[0]):trd(es[1],en[1])}`;
   if(o.t==='o'){
@@ -1294,6 +1322,7 @@ async function ejecutar(o){
     filas=intercalar((await buscarProgresion(o.q,f)).filter(h=>pasaForma(porId.get(h.obra),f,h.compas,h.parte,h.fin,null)));
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
     $('#estado').textContent=`${pl(filas.length,['pasaje','pasajes'],['passage','passages'])} · ${pl(nObras,['obra','obras'],['work','works'])}`;
+    proponerCaja(o,f,filas.length);
   } else {
     await cargarCompases();
     filas=intercalar(pasajes(o.ids,f,false).filter(h=>pasaTono(h.tono,f)&&pasaForma(porId.get(h.obra),f,h.ini,1,h.fin,null)));
