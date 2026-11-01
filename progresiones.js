@@ -74,7 +74,9 @@ function coincide(c,q,opc={}){
     return q.grado==='i'&&q.mayus&&q.acc===''&&q.tam==='tri'&&(q.inv===2||opc.sinInv)&&c.sec===q.sec&&!q.cal;
   }
   if(q.num==='Cad') return false;
-  if(c.grado!==q.grado||c.mayus!==q.mayus||c.acc!==q.acc||c.sec!==q.sec) return false;
+  if(c.grado!==q.grado||c.acc!==q.acc||c.sec!==q.sec) return false;
+  // la caja es la cualidad (v ≠ V); ignorarCaja solo se usa para proponer «¿quizá quisiste decir…?»
+  if(c.mayus!==q.mayus&&!opc.ignorarCaja) return false;
   if(q.cal&&c.cal!==q.cal) return false;
   if(q.tipo&&c.tipo!==q.tipo) return false;
   if(q.dig){
@@ -92,8 +94,9 @@ function coincide(c,q,opc={}){
 //   crudo: [[compás, parte, índice de tono, cifrado, …, …, unísono?], …]  (web/data/acordes/*.json)
 //   tonos: lista de tonalidades locales del grupo
 //   Q:     consultas (consulta())
-//   opc:   {sinInv, gap (acordes intermedios permitidos), min (mínimo de acordes que deben coincidir)}
-// Devuelve [{i0, i1, h}] con índices en la sucesión comprimida `seq` y el número de acordes coincidentes.
+//   opc:   {sinInv, gap (acordes intermedios permitidos), min (mínimo de acordes que deben coincidir), ignorarCaja}
+// Devuelve [{i0, i1, h, caja}] con índices en la sucesión comprimida `seq`, el número de acordes coincidentes
+// y, por cada consulta, si el acorde que la cumplió va en mayúscula (true), minúscula (false) o no se usó (undefined).
 const ILEGIBLE=Object.freeze({num:'?',grado:'?',mayus:null,acc:'',cal:'',tipo:'',dig:'',tam:null,inv:null,sec:'',ext:[]});
 function secuencia(crudo,tonos){
   const seq=[];
@@ -122,6 +125,7 @@ function buscarEnSecuencia(seq,Q,opc={}){
     if(seq[i].c) for(let k0=0;k0<=n-m;k0++){
       if(!ok(i,k0)) continue;
       const t=seq[i].t;
+      const caja=[]; caja[k0]=seq[i].c.mayus;
       let ult=k0+1<n?absorber(i,k0,t):i, kk=k0+1, h=1;
       while(kk<n){
         let hit=-1;
@@ -131,9 +135,10 @@ function buscarEnSecuencia(seq,Q,opc={}){
           if(ok(z,kk)){hit=z;break}
         }
         if(hit<0) break;
+        caja[kk]=seq[hit].c.mayus;
         ult=kk+1<n?absorber(hit,kk,t):hit; kk++; h++;
       }
-      if(h>=m&&(!mejor||h>mejor.h)) mejor={i0:i,i1:ult,h};
+      if(h>=m&&(!mejor||h>mejor.h)) mejor={i0:i,i1:ult,h,caja};
     }
     if(mejor){out.push(mejor); i=mejor.i1+1}
     else i++;
@@ -141,7 +146,24 @@ function buscarEnSecuencia(seq,Q,opc={}){
   return out;
 }
 
-const API={analizar,consulta,coincide,secuencia,buscarEnSecuencia,CIFRAS};
+// Cambia la mayúscula/minúscula del número romano de un cifrado escrito («v7» → «V7»), sin tocar el resto.
+function conCaja(fig,mayus){
+  return String(fig).replace(/^(bb|##|b|#|-)?([ivIV]+)/,(_,acc,num)=>(acc||'')+(mayus?num.toUpperCase():num.toLowerCase()));
+}
+// Variantes de mayúscula/minúscula de la progresión escrita, a partir de los resultados de una búsqueda con
+// ignorarCaja: las combinaciones que aparecen en el corpus, de la más frecuente a la menos, sin la escrita.
+function variantesCaja(toks,resultados,max=2){
+  const Q=toks.map(consulta), cuenta=new Map();
+  for(const r of resultados){
+    const v=toks.map((x,k)=>r.caja&&r.caja[k]!=null&&Q[k]&&Q[k].mayus!=null?conCaja(x,r.caja[k]):x);
+    const clave=v.join(' ');
+    if(clave===toks.join(' ')) continue;
+    const e=cuenta.get(clave)||{toks:v,n:0}; e.n++; cuenta.set(clave,e);
+  }
+  return [...cuenta.values()].sort((a,b)=>b.n-a.n).slice(0,max).map(e=>e.toks);
+}
+
+const API={analizar,consulta,coincide,secuencia,buscarEnSecuencia,conCaja,variantesCaja,CIFRAS};
 if(typeof module!=='undefined'&&module.exports) module.exports=API;
 else raiz.Progresiones=API;
 })(typeof globalThis!=='undefined'?globalThis:this);
