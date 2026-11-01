@@ -74,6 +74,9 @@ def analisis(rasgos=False):
             yield int(aid), ac
 
 
+MOV = {o["id"]: o["m"] for o in json.load(open(DATA / "obras.json", encoding="utf-8"))}
+
+
 def recalcular(conceptos):
     hits = {k: [] for k in conceptos}
     for aid, ac in analisis(rasgos=bool(CON_RASGOS & set(conceptos))):
@@ -96,6 +99,7 @@ def recalcular(conceptos):
         meta["conceptos"][k] = {**anterior, "tipo": tipo,
                                 "desc": vocabulario.CONCEPTOS[k]["desc_es"] if k in vocabulario.CONCEPTOS else desc,
                                 "n": len(hits[k]), "obras": len({h[0] for h in hits[k]}),
+                                "np": unisonos.pasajes_distintos(hits[k], MOV),
                                 "criterio": (det.__doc__ or desc).strip().split("\n")[0]}
         if k in vocabulario.CONCEPTOS:
             meta["sinonimos"][k] = vocabulario.sinonimos_concepto(k)

@@ -8,6 +8,30 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- La dirección de la página guarda la búsqueda, los filtros y el ejemplo abierto (`?c=…&compositor=…&ej=…`): recargar no pierde nada, el botón atrás del navegador (y del móvil) vuelve a la búsqueda anterior y un enlace lleva a otra persona al mismo ejemplo.
+- Tercera de picardía: V → I mayor como acorde final en tonalidad menor (al final de la obra o con calderón). 330 ejemplos, sobre todo finales de corales de Bach.
+- Búsqueda de un acorde suelto escrito en cifrado: `V7`, `ii7`, `IV7`, `V65/V`.
+- Progresiones: opción «sin cifra = estado fundamental» (con ella, «I6/4 V7 I» ya no acaba en I64).
+- Sinónimos: Ger+6, Gr+6, It+6, Fr+6 y +6 (también dentro de una progresión: `It+6 V`), «napolitano», «acorde napolitano», «N», °7, vii°7, ø7, viiø7.
+- Aviso en vez de «sin coincidencias» para lo que el corpus no anota: MC, EEC/ESC y estructura de frase (periodo, oración), con la búsqueda que más se acerca.
+
+### Changed
+- Un pasaje analizado por dos analistas (When in Rome y DCML, o dos análisis del mismo corpus) es un solo ejemplo, con la marca «2 análisis»; la partitura deja cambiar de análisis y compararlos. Los recuentos (resumen, sugerencias, menús) cuentan pasajes distintos.
+- Los números de los menús Compositor, Período y Forma son lo que daría elegir esa opción, en la misma unidad que el resumen (ejemplos al buscar un procedimiento, movimientos al listar obras).
+- Cifrados más legibles en tarjetas, tabla y contexto: sin las notas añadidas u omitidas (`[no3][add4]`) ni la sintaxis interna del DCML (`|PAC`, `{`, `}`, prefijos de tonalidad local); el original queda en el texto emergente.
+- Mazurcas de Chopin con opus y tonalidad («Mazurka in F♯ minor, Op. 6 No. 1») en lugar del número del catálogo Brown suelto (`multicorpus/titulos_chopin.json`, a partir de los metadatos del DCML).
+- Partituras que no caben a un tamaño legible (pasajes densos, tablet) se muestran a tamaño legible con desplazamiento horizontal, también en pantallas anchas.
+- Progresiones en menor: «bVI»/«bVII» escritos por el analista equivalen a VI/VII (mismo acorde): «VI V» los encuentra y «bVI V» queda para el préstamo en mayor.
+
+### Fixed
+- El filtro de obra (p. ej. «K. 310») se perdía al refrescar los menús y no filtraba.
+- Cambiar de idioma cerraba el ejemplo abierto.
+- Progresiones: la partitura no marcaba el pasaje encontrado y el contexto de la ficha resaltaba todos los acordes de los compases en vez de solo los de la progresión.
+- Semicadencia: un pasaje al unísono justo después de V cortaba el análisis y la dominante que continuaba se tomaba como llegada (Beethoven, Op. 2 n.º 3/i, c. 90).
+- Al limpiar la búsqueda quedaban en pantalla el resumen y los ejemplos destacados anteriores.
+- El bemol de los rótulos de tonalidad en la partitura se veía como una «b» en cursiva.
+
 ## [0.3.4] - 2026-11-01
 
 ### Changed

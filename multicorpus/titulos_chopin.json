@@ -1,0 +1,285 @@
+{
+ "_nota": "Títulos de las mazurcas de Chopin de When in Rome (carpetas por número del catálogo Brown, BI): opus y tonalidad según los metadatos del Distant Listening Corpus (github.com/DCMLab/chopin_mazurkas, metadata.tsv, columnas piece, workNumber y annotated_key).",
+ "mazurcas": {
+  "BI105-2": {
+   "titulo": "Mazurka in B minor, Op. 30 No. 2",
+   "catalogo": "Op. 30 No. 2",
+   "bi": "BI 105-2"
+  },
+  "BI105-3": {
+   "titulo": "Mazurka in D♭ major, Op. 30 No. 3",
+   "catalogo": "Op. 30 No. 3",
+   "bi": "BI 105-3"
+  },
+  "BI105-4": {
+   "titulo": "Mazurka in C♯ minor, Op. 30 No. 4",
+   "catalogo": "Op. 30 No. 4",
+   "bi": "BI 105-4"
+  },
+  "BI115-1": {
+   "titulo": "Mazurka in G♯ minor, Op. 33 No. 1",
+   "catalogo": "Op. 33 No. 1",
+   "bi": "BI 115-1"
+  },
+  "BI115-2": {
+   "titulo": "Mazurka in D major, Op. 33 No. 2",
+   "catalogo": "Op. 33 No. 2",
+   "bi": "BI 115-2"
+  },
+  "BI115-3": {
+   "titulo": "Mazurka in C major, Op. 33 No. 3",
+   "catalogo": "Op. 33 No. 3",
+   "bi": "BI 115-3"
+  },
+  "BI115-4": {
+   "titulo": "Mazurka in B minor, Op. 33 No. 4",
+   "catalogo": "Op. 33 No. 4",
+   "bi": "BI 115-4"
+  },
+  "BI122": {
+   "titulo": "Mazurka in E minor, Op. 41 No. 2",
+   "catalogo": "Op. 41 No. 2",
+   "bi": "BI 122"
+  },
+  "BI126-1": {
+   "titulo": "Mazurka in A♭ major, Op. 41 No. 4",
+   "catalogo": "Op. 41 No. 4",
+   "bi": "BI 126-1"
+  },
+  "BI126-3": {
+   "titulo": "Mazurka in C♯ minor, Op. 41 No. 1",
+   "catalogo": "Op. 41 No. 1",
+   "bi": "BI 126-3"
+  },
+  "BI126-4": {
+   "titulo": "Mazurka in B major, Op. 41 No. 3",
+   "catalogo": "Op. 41 No. 3",
+   "bi": "BI 126-4"
+  },
+  "BI134": {
+   "titulo": "Mazurka in A minor, BI 134",
+   "catalogo": "BI 134",
+   "bi": "BI 134"
+  },
+  "BI140": {
+   "titulo": "Mazurka in A minor, BI 140",
+   "catalogo": "BI 140",
+   "bi": "BI 140"
+  },
+  "BI145-1": {
+   "titulo": "Mazurka in G major, Op. 50 No. 1",
+   "catalogo": "Op. 50 No. 1",
+   "bi": "BI 145-1"
+  },
+  "BI145-2": {
+   "titulo": "Mazurka in A♭ major, Op. 50 No. 2",
+   "catalogo": "Op. 50 No. 2",
+   "bi": "BI 145-2"
+  },
+  "BI145-3": {
+   "titulo": "Mazurka in C♯ minor, Op. 50 No. 3",
+   "catalogo": "Op. 50 No. 3",
+   "bi": "BI 145-3"
+  },
+  "BI153-1": {
+   "titulo": "Mazurka in B major, Op. 56 No. 1",
+   "catalogo": "Op. 56 No. 1",
+   "bi": "BI 153-1"
+  },
+  "BI153-2": {
+   "titulo": "Mazurka in C major, Op. 56 No. 2",
+   "catalogo": "Op. 56 No. 2",
+   "bi": "BI 153-2"
+  },
+  "BI153-3": {
+   "titulo": "Mazurka in C minor, Op. 56 No. 3",
+   "catalogo": "Op. 56 No. 3",
+   "bi": "BI 153-3"
+  },
+  "BI157-1": {
+   "titulo": "Mazurka in A minor, Op. 59 No. 1",
+   "catalogo": "Op. 59 No. 1",
+   "bi": "BI 157-1"
+  },
+  "BI157-2": {
+   "titulo": "Mazurka in A♭ major, Op. 59 No. 2",
+   "catalogo": "Op. 59 No. 2",
+   "bi": "BI 157-2"
+  },
+  "BI157-3": {
+   "titulo": "Mazurka in F♯ minor, Op. 59 No. 3",
+   "catalogo": "Op. 59 No. 3",
+   "bi": "BI 157-3"
+  },
+  "BI16-1": {
+   "titulo": "Mazurka in G major, BI 16-1",
+   "catalogo": "BI 16-1",
+   "bi": "BI 16-1"
+  },
+  "BI16-2": {
+   "titulo": "Mazurka in B♭ major, BI 16-2",
+   "catalogo": "BI 16-2",
+   "bi": "BI 16-2"
+  },
+  "BI162-1": {
+   "titulo": "Mazurka in B major, Op. 63 No. 1",
+   "catalogo": "Op. 63 No. 1",
+   "bi": "BI 162-1"
+  },
+  "BI162-2": {
+   "titulo": "Mazurka in F minor, Op. 63 No. 2",
+   "catalogo": "Op. 63 No. 2",
+   "bi": "BI 162-2"
+  },
+  "BI162-3": {
+   "titulo": "Mazurka in C♯ minor, Op. 63 No. 3",
+   "catalogo": "Op. 63 No. 3",
+   "bi": "BI 162-3"
+  },
+  "BI163": {
+   "titulo": "Mazurka in A minor, Op. posth. 67 No. 4",
+   "catalogo": "Op. posth. 67 No. 4",
+   "bi": "BI 163"
+  },
+  "BI167": {
+   "titulo": "Mazurka in G minor, Op. posth. 67 No. 2",
+   "catalogo": "Op. posth. 67 No. 2",
+   "bi": "BI 167"
+  },
+  "BI168": {
+   "titulo": "Mazurka in F minor, Op. posth. 68 No. 4",
+   "catalogo": "Op. posth. 68 No. 4",
+   "bi": "BI 168"
+  },
+  "BI18": {
+   "titulo": "Mazurka in A minor, Op. posth. 68 No. 2",
+   "catalogo": "Op. posth. 68 No. 2",
+   "bi": "BI 18"
+  },
+  "BI34": {
+   "titulo": "Mazurka in F major, Op. posth. 68 No. 3",
+   "catalogo": "Op. posth. 68 No. 3",
+   "bi": "BI 34"
+  },
+  "BI38": {
+   "titulo": "Mazurka in C major, Op. posth. 68 No. 1",
+   "catalogo": "Op. posth. 68 No. 1",
+   "bi": "BI 38"
+  },
+  "BI60-1": {
+   "titulo": "Mazurka in F♯ minor, Op. 6 No. 1",
+   "catalogo": "Op. 6 No. 1",
+   "bi": "BI 60-1"
+  },
+  "BI60-2": {
+   "titulo": "Mazurka in C♯ minor, Op. 6 No. 2",
+   "catalogo": "Op. 6 No. 2",
+   "bi": "BI 60-2"
+  },
+  "BI60-3": {
+   "titulo": "Mazurka in E major, Op. 6 No. 3",
+   "catalogo": "Op. 6 No. 3",
+   "bi": "BI 60-3"
+  },
+  "BI60-4": {
+   "titulo": "Mazurka in E♭ minor, Op. 6 No. 4",
+   "catalogo": "Op. 6 No. 4",
+   "bi": "BI 60-4"
+  },
+  "BI61-1": {
+   "titulo": "Mazurka in B♭ major, Op. 7 No. 1",
+   "catalogo": "Op. 7 No. 1",
+   "bi": "BI 61-1"
+  },
+  "BI61-2": {
+   "titulo": "Mazurka in A minor, Op. 7 No. 2",
+   "catalogo": "Op. 7 No. 2",
+   "bi": "BI 61-2"
+  },
+  "BI61-3": {
+   "titulo": "Mazurka in F minor, Op. 7 No. 3",
+   "catalogo": "Op. 7 No. 3",
+   "bi": "BI 61-3"
+  },
+  "BI61-4": {
+   "titulo": "Mazurka in A♭ major, Op. 7 No. 4",
+   "catalogo": "Op. 7 No. 4",
+   "bi": "BI 61-4"
+  },
+  "BI61-5": {
+   "titulo": "Mazurka in C major, Op. 7 No. 5",
+   "catalogo": "Op. 7 No. 5",
+   "bi": "BI 61-5"
+  },
+  "BI71": {
+   "titulo": "Mazurka in D major, BI 71",
+   "catalogo": "BI 71",
+   "bi": "BI 71"
+  },
+  "BI73": {
+   "titulo": "Mazurka in B♭ major, BI 73",
+   "catalogo": "BI 73",
+   "bi": "BI 73"
+  },
+  "BI77-1": {
+   "titulo": "Mazurka in B♭ major, Op. 17 No. 1",
+   "catalogo": "Op. 17 No. 1",
+   "bi": "BI 77-1"
+  },
+  "BI77-2": {
+   "titulo": "Mazurka in E minor, Op. 17 No. 2",
+   "catalogo": "Op. 17 No. 2",
+   "bi": "BI 77-2"
+  },
+  "BI77-3": {
+   "titulo": "Mazurka in A♭ major, Op. 17 No. 3",
+   "catalogo": "Op. 17 No. 3",
+   "bi": "BI 77-3"
+  },
+  "BI77-4": {
+   "titulo": "Mazurka in A minor, Op. 17 No. 4",
+   "catalogo": "Op. 17 No. 4",
+   "bi": "BI 77-4"
+  },
+  "BI85": {
+   "titulo": "Mazurka in A♭ major, BI 85",
+   "catalogo": "BI 85",
+   "bi": "BI 85"
+  },
+  "BI89-1": {
+   "titulo": "Mazurka in G minor, Op. 24 No. 1",
+   "catalogo": "Op. 24 No. 1",
+   "bi": "BI 89-1"
+  },
+  "BI89-2": {
+   "titulo": "Mazurka in C major, Op. 24 No. 2",
+   "catalogo": "Op. 24 No. 2",
+   "bi": "BI 89-2"
+  },
+  "BI89-3": {
+   "titulo": "Mazurka in A♭ major, Op. 24 No. 3",
+   "catalogo": "Op. 24 No. 3",
+   "bi": "BI 89-3"
+  },
+  "BI89-4": {
+   "titulo": "Mazurka in B♭ minor, Op. 24 No. 4",
+   "catalogo": "Op. 24 No. 4",
+   "bi": "BI 89-4"
+  },
+  "BI93-1": {
+   "titulo": "Mazurka in G major, Op. posth. 67 No. 1",
+   "catalogo": "Op. posth. 67 No. 1",
+   "bi": "BI 93-1"
+  },
+  "BI93-2": {
+   "titulo": "Mazurka in C major, Op. posth. 67 No. 3",
+   "catalogo": "Op. posth. 67 No. 3",
+   "bi": "BI 93-2"
+  },
+  "BI105-1": {
+   "titulo": "Mazurka in C minor, Op. 30 No. 1",
+   "catalogo": "Op. 30 No. 1",
+   "bi": "BI 105-1"
+  }
+ }
+}

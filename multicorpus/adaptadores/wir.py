@@ -40,6 +40,14 @@ COLECCION_GENERO = {
     "Textbooks": ("Ejemplo de tratado", None),
 }
 
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _TITULOS_CHOPIN():
+    """{carpeta BI: {titulo, catalogo, bi}} (multicorpus/titulos_chopin.json)."""
+    f = Path(__file__).resolve().parents[1] / "titulos_chopin.json"
+    return json.loads(f.read_text(encoding="utf-8"))["mazurcas"] if f.exists() else {}
+
 def obra_y_movimiento(rel, meta, remote):
     """Deduce obra y movimiento de la ruta y los metadatos de WiR. rel = ruta de la carpeta."""
     p = Path(rel).parts
@@ -62,6 +70,12 @@ def obra_y_movimiento(rel, meta, remote):
     if col == "Early_Choral" and "Goudimel" in comp:
         return dict(obra_titulo=f"Psaume {resto[-1].lstrip('0')}", obra_catalogo=None, movimiento_numero=None,
                     movimiento_titulo=None, genero="Salmo", instrumentacion="coro")
+    # mazurcas de Chopin: las carpetas solo dan el número del catálogo Brown (BI); opus y tonalidad desde la tabla
+    if "Chopin" in comp and resto[:1] == ["Mazurkas"] and len(resto) >= 2:
+        t = _TITULOS_CHOPIN().get(resto[1])
+        if t:
+            return dict(obra_titulo=t["titulo"], obra_catalogo=t["catalogo"], movimiento_numero=None,
+                        movimiento_titulo=None, genero=genero, instrumentacion=inst)
     if col == "OpenScore-LiederCorpus":
         coleccion, cancion = (resto + ["", ""])[:2]
         m = re.match(r"0*(\d+)[_ ](.*)", cancion)

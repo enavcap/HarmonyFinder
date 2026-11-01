@@ -190,7 +190,11 @@ def continuo_sin_realizar(subcorpus, instrumentos, compositor):
             or any("continuo" in i for i in inst) or clave_con_otros)
 
 def tramos(ac):
-    """Divide la lista de acordes en tramos sin acordes al unísono: [(desplazamiento, sublista)]."""
+    """Divide la lista de acordes en tramos sin acordes al unísono: [(desplazamiento, sublista)].
+    Cada acorde guarda en "_sig" el que le sigue en la obra (aunque esté al unísono), para el último de cada tramo:
+    un detector que mira lo que viene después (la semicadencia: ¿sigue en V?) no debe tomar el corte por un final."""
+    for i, a in enumerate(ac):
+        a["_sig"] = ac[i + 1] if i + 1 < len(ac) else None
     out, ini = [], None
     for i, a in enumerate(ac):
         if a.get("unisono"):
@@ -226,3 +230,8 @@ def sin_repetidos(filas):
         if k not in vistos:
             vistos.add(k); out.append(h)
     return out
+
+def pasajes_distintos(filas, mov):
+    """Número de pasajes distintos de una lista de coincidencias: el mismo sitio (movimiento, compás y parte)
+    analizado por dos analistas cuenta una vez, como en la web (fusionarAnalisis). mov: {análisis: movimiento}."""
+    return len({(mov.get(h[0], h[0]), h[1], h[2]) for h in filas})

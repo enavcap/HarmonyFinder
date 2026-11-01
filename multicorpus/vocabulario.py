@@ -50,11 +50,17 @@ CONCEPTOS = {
         "I64 → V → I al final de frase", "I64 → V → I at a phrase end",
         ["sexta y cuarta cadencial", "64 cadencial", "cuarta y sexta cadencial", "i64 v", "sexta cuarta"],
         ["cadential 6/4", "cadential 64", "cad64", "six-four"]),
+    "tercera_picardia": T(
+        "tercera de picardía", "Picardy third",
+        "V → I mayor como acorde final en tonalidad menor", "V → major I as the final chord in a minor key",
+        ["tercera de picardia", "picardia", "tercera picarda", "picarda", "final mayor en menor"],
+        ["picardy third", "picardy", "tierce de picardie"]),
     "napolitana": T(
         "sexta napolitana", "Neapolitan sixth",
         "acorde de II rebajado", "chord on the lowered 2nd degree",
-        ["napolitana", "sexta napolitana", "segundo rebajado", "ii rebajado", "bii"],
-        ["neapolitan", "neapolitan chord", "n6"]),
+        ["napolitana", "sexta napolitana", "segundo rebajado", "ii rebajado", "bii", "napolitano", "acorde napolitano",
+         "acorde de napolitana", "acorde de sexta napolitana", "bii6", "n"],
+        ["neapolitan", "neapolitan chord", "n6", "neapolitan sixth chord"]),
     "napolitana_a_dominante": T(
         "napolitana → dominante", "Neapolitan to dominant",
         "bII6 → (I64) → V", "bII6 → (I64) → V",
@@ -64,16 +70,16 @@ CONCEPTOS = {
         "sexta aumentada", "augmented sixth chord",
         "It / Fr / Ger", "It / Fr / Ger",
         ["sexta aumentada", "sextas aumentadas", "aumentada"],
-        ["augmented sixth", "augmented sixths", "aug6"]),
+        ["augmented sixth", "augmented sixths", "aug6", "+6", "aug 6"]),
     "sexta_aumentada_italiana": T(
         "sexta italiana", "Italian sixth", "It6", "It6",
-        ["italiana", "sexta italiana"], ["italian sixth", "italian", "it6"]),
+        ["italiana", "sexta italiana"], ["italian sixth", "italian", "it6", "it+6", "it 6", "ita6"]),
     "sexta_aumentada_francesa": T(
         "sexta francesa", "French sixth", "Fr43", "Fr43",
-        ["francesa", "sexta francesa"], ["french sixth", "french", "fr43"]),
+        ["francesa", "sexta francesa"], ["french sixth", "french", "fr43", "fr+6", "fr6", "fr 4 3", "fr4/3"]),
     "sexta_aumentada_alemana": T(
         "sexta alemana", "German sixth", "Ger65", "Ger65",
-        ["alemana", "sexta alemana"], ["german sixth", "german", "ger65"]),
+        ["alemana", "sexta alemana"], ["german sixth", "german", "ger65", "ger+6", "gr+6", "ger6", "gr6", "ger 6 5", "ger6/5"]),
     "sexta_aumentada_a_64": T(
         "sexta aumentada → 6/4 cadencial", "augmented sixth to cadential six-four",
         "Ger65 → I64", "Ger65 → I64",
@@ -133,13 +139,13 @@ CONCEPTOS = {
         "acorde de séptima disminuida", "diminished seventh chord",
         "tres terceras menores: viiº7, viiº7/x", "three stacked minor thirds: viio7, viio7/x",
         ["septima disminuida", "septimas disminuidas", "acorde de septima disminuida", "cuatriada disminuida"],
-        ["diminished seventh", "diminished sevenths", "fully diminished seventh", "dim7", "o7"]),
+        ["diminished seventh", "diminished sevenths", "fully diminished seventh", "dim7", "o7", "°7", "º7", "vii°7", "viio7", "viiº7"]),
     "septima_semidisminuida": T(
         "acorde de séptima semidisminuida", "half-diminished seventh chord",
         "disminuida con 7ª menor: viiø7, iiø7…", "diminished triad with a minor 7th: viiø7, iiø7…",
         ["semidisminuida", "semidisminuido", "septima semidisminuida", "septimas semidisminuidas",
          "septima de sensible", "acorde semidisminuido", "cuatriada semidisminuida"],
-        ["half-diminished seventh", "half diminished seventh", "half-diminished", "half diminished", "m7b5",
+        ["half-diminished seventh", "half diminished seventh", "half-diminished", "half diminished", "m7b5", "ø7", "viiø7", "iiø7", "ø",
          "minor seventh flat five"]),
     "septima_menor": T(
         "acorde de séptima menor", "minor seventh chord",

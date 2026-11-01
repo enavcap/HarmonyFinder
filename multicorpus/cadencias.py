@@ -153,7 +153,7 @@ def semicadencia(ac):
     out = []
     for i in range(1, len(ac)):
         a, b = ac[i - 1], ac[i]
-        n = ac[i + 1] if i + 1 < len(ac) else None
+        n = ac[i + 1] if i + 1 < len(ac) else b.get("_sig")      # tras el corte de un unísono, lo que sigue en la obra
         if i > 1 and es_v(ac[i - 2]) and ac[i - 2]["tono"] == b["tono"] and (a["secundaria"] or a["grado"] == 1):
             continue                                      # V – V/V – V o V – I – V: prolongación del V, no llegada
         v = (buscar._es_V(b) and b["inversion"] == 0) or b["cifrado"].startswith("Cad64")
@@ -239,6 +239,23 @@ def sexta_cuarta_cadencial(ac):
         out.append((i, " → ".join(x["cifrado"] for x in ac[i:j + 1]), j - i + 1))
     return out
 
+def tercera_picardia(ac):
+    """V → I mayor como acorde final en una tonalidad menor: al final de la obra o en un final de frase con calderón."""
+    out = []
+    for i in range(1, len(ac)):
+        a, b = ac[i - 1], ac[i]
+        if not (b["modo"] == "minor" and b["grado"] == 1 and b["calidad"] == "major" and not b["secundaria"]
+                and b["inversion"] == 0 and b["tono"] == a["tono"] and buscar._es_V(a)):
+            continue
+        j = i                                              # I repetido hasta el final (I – I – I)
+        while j + 1 < len(ac) and ac[j + 1]["tono"] == b["tono"] and ac[j + 1]["cifrado"] == b["cifrado"]:
+            j += 1
+        final = j == len(ac) - 1
+        calderon = any(x.get("r") and x["r"]["calderon"] for x in ac[i:j + 1])
+        if final or calderon:
+            out.append((i, f'{a["cifrado"]} → {b["cifrado"]}', 2))
+    return out
+
 DETECTORES = {
     "cadencia_autentica_perfecta": cadencia_autentica_perfecta,
     "cadencia_autentica_imperfecta": cadencia_autentica_imperfecta,
@@ -246,4 +263,5 @@ DETECTORES = {
     "cadencia_rota": cadencia_rota,
     "cadencia_frigia": cadencia_frigia,
     "cadencia_plagal": cadencia_plagal,
+    "tercera_picardia": tercera_picardia,
 }

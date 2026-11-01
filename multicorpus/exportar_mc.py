@@ -248,6 +248,7 @@ def main(argv=None):
     for k, (det, desc, tipo) in CONC.items():
         json.dump(hits[k], open(WEB / "data" / "hits" / f"{k}.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
         resumen[k] = {"desc": desc, "n": len(hits[k]), "obras": len({h[0] for h in hits[k]}), "tipo": tipo,
+                      "np": unisonos.pasajes_distintos(hits[k], {e["id"]: e["m"] for e in entradas}),
                       "criterio": (det.__doc__ or desc).strip().split("\n")[0]}
         print(f"{k:32} {len(hits[k]):6}")
     fuentes = {}

@@ -174,3 +174,18 @@ test('ii – v – i propone ii – V – I, que encuentra K. 545',()=>{
 test('las variantes no repiten la progresión escrita',()=>{
   for(const t of ['ii V I','iv6 V']) for(const v of P.variantesCaja(t.split(' '),buscar(t,{ignorarCaja:true}),3)) assert.notEqual(v.join(' '),t);
 });
+
+test('sin cifra = estado fundamental (opción fund): «I6/4 V7 I» ya no acaba en I64', ()=>{
+  const sin=buscar('I64 V7 I'), con=buscar('I64 V7 I',{fund:true});
+  assert.ok(con.length>0&&con.length<sin.length, `${con.length} con fund, ${sin.length} sin`);
+  // estado fundamental: I, I7, I[add9]… pero nunca I6, I64, I65, I43, I42
+  for(const r of con){const ult=r.tramo.at(-1).a[3]; assert.ok(!/^I(6|64|65|43|42|2)\b/.test(ult)&&!/^I(6|64|65|43|42|2)(\[|\/|$)/.test(ult), `termina en ${ult}`)}
+  assert.ok(sin.some(r=>/^I64/.test(r.tramo.at(-1).a[3])), 'sin la opción, «I» acepta I64');
+});
+
+test('en menor, «bVI» del analista es el VI de la escala: lo encuentra «VI V», no «bVI V»', ()=>{
+  const tono=r=>grupo(Math.floor(r.obra/50)).tonos[r.tramo[0].a[2]], menor=r=>{const t=tono(r);return t[0]===t[0].toLowerCase()};
+  assert.equal(buscar('bVI V').filter(menor).length, 0, '«bVI V» solo debe dar el préstamo en mayor');
+  const vi=buscar('VI V').filter(r=>menor(r)&&/^bVI/.test(r.tramo[0].a[3]));
+  assert.ok(vi.length>0, '«VI V» encuentra los VI que el analista escribió «bVI» en menor');
+});
