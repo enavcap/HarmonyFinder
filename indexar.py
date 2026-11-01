@@ -44,7 +44,12 @@ def procesar(args):
     path, corpus = args
     path, corpus = Path(path), Path(corpus)
     try:
-        s = converter.parse(str(path), format="romantext")
+        from multicorpus import correcciones
+        rel = path.relative_to(corpus).as_posix()
+        if correcciones.correcciones(rel):      # erratas conocidas de la fuente (multicorpus/correcciones_fuentes.json)
+            s = converter.parse(correcciones.aplicar(path.read_text(encoding="utf-8"), rel), format="romantext")
+        else:
+            s = converter.parse(str(path), format="romantext")
     except Exception as e:
         return None, f"{path}: {e}"
     filas, tono_prev = [], None

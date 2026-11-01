@@ -45,7 +45,7 @@ def derivar(compas, parte, tono, cifrado, unisono):
     return a
 
 
-CON_RASGOS = set(cadencias.DETECTORES) | {"sexta_cuarta_cadencial"}
+CON_RASGOS = set(cadencias.DETECTORES) | {"sexta_cuarta_cadencial", "pedal_de_dominante"}
 
 
 @lru_cache(maxsize=4)

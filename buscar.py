@@ -549,27 +549,73 @@ def _pedal_dura_bastante(ac, i, j, minimo=PEDAL_MIN_COMPASES):
         return False
     return (c1 - c0) > minimo or ((c1 - c0) == minimo and p1 >= p0)
 
-def _ajeno_a_la_dominante(a):
-    """Acorde que, sobre la nota pedal, no es la propia dominante ni su 6/4 cadencial."""
-    return not _es_V(a) and not _es_64_cadencial(a)
+def _pcs(a):
+    try:
+        return {int(x) for x in str(a.get("pcs") or "").split(",") if x != ""}
+    except ValueError:
+        return set()
+
+def _ajeno_a_la_dominante(a, dom_pcs=None, ton_pcs=None):
+    """Acorde que, sobre la nota pedal, no es la propia dominante ni su 6/4 cadencial.
+    Se mira lo que suena, no cómo está escrito: un acorde con las notas de V(7) (I/V, viio sobre la pedal) es la
+    dominante, y uno con las notas de la tónica sobre la pedal (IV64/V en mayor = I64) es un 6/4 cadencial."""
+    if _es_V(a) or _es_64_cadencial(a):
+        return False
+    p = _pcs(a)
+    if p and dom_pcs and p <= dom_pcs:
+        return False
+    if p and ton_pcs and p == ton_pcs:
+        return False
+    return True
+
+PEDAL_BAJO_REAL = 2 / 3      # parte de los acordes del tramo con la dominante en el bajo real
+BAJO_FIABLE = 0.75           # la medida del bajo real se usa solo si coincide con el cifrado en el 75 % de la obra
+
+def _bajo_medido_fiable(ac, minimo=BAJO_FIABLE):
+    """¿La nota más grave medida en la partitura (a["r"]["bajo"]) coincide con el bajo del cifrado en la mayoría
+    de los acordes? Si no (partitura transportada, claves antiguas, compases desplazados), no se usa para descartar."""
+    from music21 import pitch
+    ok = tot = 0
+    for a in ac:
+        r = a.get("r")
+        if r and r.get("bajo") is not None and a.get("bajo"):
+            tot += 1
+            ok += pitch.Pitch(a["bajo"]).pitchClass == r["bajo"]
+    return tot > 0 and ok >= minimo * tot
+
+def _bajo_real_sostiene(tramo, dom_pc, minimo=PEDAL_BAJO_REAL):
+    """Con partitura (a["r"]["bajo"]: nota más grave al atacar cada acorde), la dominante está de verdad en el bajo
+    en al menos dos tercios de los acordes del tramo. No se exige en todos: un bajo figurado (arpegios, bajo
+    Alberti) ataca a veces otra nota sobre la pedal. Sin datos de partitura no se puede comprobar y vale el cifrado."""
+    vistos = [a["r"]["bajo"] for a in tramo if a.get("r") and a["r"].get("bajo") is not None]
+    return not vistos or sum(1 for b in vistos if b == dom_pc) >= minimo * len(vistos)
 
 def pedal_de_dominante(ac):
     """Dominante sostenida en el bajo ≥2 compases completos, con ≥2 cambios de acorde encima y al menos uno ajeno a V y al 6/4 cadencial.
 
     La dominante puede estar ligada, repetida o cambiar de octava. Un simple
-    I64 → V(7), aunque el bajo salte de octava, es una cadencia 6/4 y no una pedal."""
+    I64 → V(7), aunque el bajo salte de octava, es una cadencia 6/4 y no una pedal.
+    Con partitura fiable, la dominante tiene que sonar de verdad en el bajo (en dos tercios de los acordes, ver
+    _bajo_real_sostiene y _bajo_medido_fiable): el cifrado solo («I/V») no basta, porque una tonicización de V no
+    implica pedal."""
     from music21 import key as mkey
     out, i = [], 0
+    medir = _bajo_medido_fiable(ac)
     while i < len(ac):
         if not ac[i]["bajo"]:
             i += 1; continue
         k = mkey.Key(ac[i]["tono"]); dom = k.pitchFromDegree(5).name
+        dom_pc = k.pitchFromDegree(5).pitchClass
+        dom_pcs = {(dom_pc + x) % 12 for x in (0, 4, 7, 10)}          # notas de V7 (con sensible también en menor)
+        t = k.tonic.pitchClass
+        ton_pcs = {t, (t + (3 if k.mode == "minor" else 4)) % 12, (t + 7) % 12}
         j = i
         while j < len(ac) and ac[j]["tono"] == ac[i]["tono"] and ac[j]["bajo"] == dom:
             j += 1
         tramo = ac[i:j]
         cambios = sum(1 for a, b in zip(tramo, tramo[1:]) if a["cifrado"] != b["cifrado"])
-        if cambios >= 2 and any(_ajeno_a_la_dominante(a) for a in tramo) \
+        if cambios >= 2 and any(_ajeno_a_la_dominante(a, dom_pcs, ton_pcs) for a in tramo) \
+           and (not medir or _bajo_real_sostiene(tramo, dom_pc)) \
            and _pedal_dura_bastante(ac, i, j):
             out.append((i, " ".join(x["cifrado"] for x in tramo), j - i))
         i = max(j, i + 1)

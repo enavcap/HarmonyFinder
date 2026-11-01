@@ -1,0 +1,7 @@
+{
+  "_nota": "Erratas de las fuentes que impiden leerlas bien. Cada entrada: ruta del análisis relativa al corpus → lista de [texto original, texto corregido, motivo]. Se aplican antes de interpretar el archivo (indexar.procesar, adaptadores/wir.py). El texto original debe aparecer exactamente una vez.",
+  "Chamber_Other/Corelli,_Arcangelo/Op1No10/1/analysis_DT.txt": [
+    ["\n6 Bb: I b2 vi6 b3 V6\n", "\nm6 Bb: I b2 vi6 b3 V6\n",
+     "Falta la «m» del número de compás: music21 descarta la línea entera y el cambio a si♭ mayor, y los cc. 6-8 se leían en sol menor (una cadencia perfecta en si♭ salía como imperfecta en sol)."]
+  ]
+}

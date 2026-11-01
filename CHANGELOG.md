@@ -8,6 +8,15 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Pedal de dominante: se mira lo que suena, no solo cómo está cifrado. Un acorde con las notas de V(7) escrito como tonicización (`I/V`) es la propia dominante y un acorde con las notas de la tónica sobre la pedal (`IV64/V` = I64) es un 6/4 cadencial: ninguno cuenta como armonía ajena. Además, cuando la partitura es fiable (su nota más grave coincide con el bajo del cifrado en el 75 % de la obra), la dominante tiene que sonar de verdad en el bajo en dos tercios de los acordes del tramo (se admite un bajo figurado). De 427 a 377 ejemplos; desaparecen p. ej. Bach, Suite francesa n.º 5, Giga, c. 4 (la mano izquierda aún no ha entrado) y n.º 6, Menuett, c. 8 (bajo en movimiento y 6/4 cadencial); se conservan la Waldstein (Op. 53/iii, cc. 151-166), el WTC I/2 (cc. 22-26) y la Tempestad.
+
+### Fixed
+- Corelli, Op. 1 n.º 10/i: una errata del análisis de When in Rome (`6 Bb:` en lugar de `m6 Bb:`) hacía que se perdiera el c. 6 y que los cc. 6-8 se leyeran en sol menor. La cadencia del c. 8 es perfecta en si♭ mayor (antes, imperfecta en sol menor) y la modulación del c. 9 es diatónica (antes, cromática).
+
+### Added
+- Correcciones de erratas de las fuentes (`multicorpus/correcciones_fuentes.json`): se aplican al texto del análisis antes de interpretarlo, con su motivo, sin tocar el corpus original.
+
 ## [0.3.3] - 2026-11-01
 
 ### Changed

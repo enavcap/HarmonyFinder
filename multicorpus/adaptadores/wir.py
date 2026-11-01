@@ -153,11 +153,14 @@ class AdaptadorWiR:
             }
 
     def anotaciones(self, f, rel):
-        cache = Path(__file__).resolve().parents[2] / "datos" / "cache" / "anotaciones" / f"{sha1(f)}.json"
+        from .. import correcciones
+        sufijo = correcciones.huella(Path(rel).as_posix())     # las correcciones de la fuente invalidan la caché
+        cache = Path(__file__).resolve().parents[2] / "datos" / "cache" / "anotaciones" / f"{sha1(f)}{sufijo}.json"
         if cache.exists():
             return json.loads(cache.read_text())
         filas = None
-        if self.indice_previo and Path(self.indice_previo).exists() and f.name in ("analysis.txt", "analysis.rntxt"):
+        if self.indice_previo and Path(self.indice_previo).exists() and f.name in ("analysis.txt", "analysis.rntxt") \
+           and not sufijo:
             con = sqlite3.connect(self.indice_previo); con.row_factory = sqlite3.Row
             o = con.execute("SELECT id FROM obras WHERE analisis=?", (str(rel),)).fetchone()
             if o:
