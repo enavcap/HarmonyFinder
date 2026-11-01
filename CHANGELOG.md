@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-01
+
+### Changed
+- Cadencia rota y cadencia plagal: ahora se exige el final de frase, no solo la llegada en parte fuerte. En las piezas que marcan sus finales con calderones (corales, recitativos) el acorde de llegada debe llevar calderón; en el resto, la melodía debe detenerse (el mismo criterio que la semicadencia). En la cadencia rota, una llegada cifrada sin tercera (apoyatura sobre el bajo del vi) tampoco cuenta. Cadencias rotas: de 879 a 421 ejemplos (en los corales de Bach, de 170 a 64); plagales: de 916 a 592. Desaparecen los V–vi de paso que se daban como cadencias (p. ej. BWV 153/1, c. 3; Mozart K. 330/ii, c. 2).
+
 ### Fixed
 - Búsqueda: Enter ya no descarta parte de lo escrito. Los trozos que son exactamente un compositor, una tonalidad, una época o un modo se aplican como etiquetas y el resto se busca como procedimiento: «sexta napolitana mozart», «septima disminuida chopin», «forma sonata Mozart la menor» (→ K. 310), «ii6 V7 I mozart».
 - Búsqueda: el nombre o un sinónimo escrito tal cual gana a una subclase que solo empieza igual («napolitana» → sexta napolitana, no napolitana → dominante; «septima disminuida» → acorde de séptima disminuida, no la secundaria). Una subclase baja en las sugerencias si no se escribe lo que la distingue.
@@ -81,7 +86,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/enavcap/HarmonyFinder/compare/6e5e592...v0.3.1
 [0.3.0]: https://github.com/enavcap/HarmonyFinder/releases/tag/v0.3.0

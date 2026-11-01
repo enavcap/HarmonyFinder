@@ -182,7 +182,7 @@ def cadencia_rota(ac):
         a, b = ac[i], ac[i + 1]
         if a["tono"] == b["tono"] and buscar._es_V(a) and a["inversion"] == 0 and b["grado"] == 6 \
            and not b["secundaria"] and b["inversion"] == 0 and b["alteracion"] in (0, -1) and _llegada(a, b) \
-           and _fin_de_frase(ac, b, cald):
+           and "[no3]" not in b["cifrado"] and _fin_de_frase(ac, b, cald):     # [no3]: apoyatura, el vi aún no ha llegado
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
