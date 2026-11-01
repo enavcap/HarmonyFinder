@@ -2062,6 +2062,7 @@ function despejarNumeros(svg){
   }
 }
 // resalte del ejemplo buscado: solo el acorde, desde su ataque hasta el acorde siguiente (aunque pase la barra);
+// en una cadena (cadencias, 6/4 cadencial…), todos sus acordes, del primero al último;
 // si no se puede situar en la partitura, el compás entero
 function resaltarAcorde(svg,h,ac,occ,E,pos,occA){
   const G=geometria(svg,E,pos); if(!G) return;
@@ -2071,30 +2072,35 @@ function resaltarAcorde(svg,h,ac,occ,E,pos,occA){
     return c.length>=4?[Math.min(c[0],c[2]),Math.max(c[0],c[2])]:[bb.x,bb.x+bb.width]};
   const dentro=z=>z&&z.p>=pos.p0&&z.p<=pos.p1&&z.p-pos.p0<medidas.length;
   const j=ac.findIndex((c,k)=>c.compas===h.compas&&Math.abs(c.parte-h.parte)<1e-6&&(!h.tono||c.tono===h.tono)&&occ[k]===occA);
-  const z=j>=0?situar(E,ac[j],occ[j],pos.fuente):null;
-  let i0,x0,x1;
+  let [c0,c1]=cadenaDe(h,ac,j);
+  let z=c0>=0?situar(E,ac[c0],occ[c0],pos.fuente):null, zf=c1>=0?situar(E,ac[c1],occ[c1],pos.fuente):null;
+  if(c0!==c1&&!(dentro(z)&&dentro(zf)&&zf.p>=z.p)){c0=c1=j; z=zf=j>=0?situar(E,ac[j],occ[j],pos.fuente):null}  // la cadena no cabe: solo el acorde
+  let i0,iF,x0,x1;
   if(dentro(z)){
-    i0=z.p-pos.p0; const [b0,b1]=bordes(i0), pad=sp*1.3;
-    x0=Math.max(b0,xDe(i0,z.q)-pad);
-    // acorde siguiente: el primero del análisis que cae después en la partitura (otro punto, misma pasada)
+    i0=iF=z.p-pos.p0; const pad=sp*1.3;
+    x0=Math.max(bordes(i0)[0],xDe(i0,z.q)-pad);
+    // final: el acorde siguiente al último de la cadena, el primero del análisis que cae después en la partitura (otro punto, misma pasada)
+    const fz=zf||z, iz=fz.p-pos.p0, b1=bordes(iz)[1];
     let sig=null;
-    for(let k=j+1;k<ac.length;k++){
+    for(let k=c1+1;k<ac.length;k++){
       const w=situar(E,ac[k],occ[k],pos.fuente); if(!w) continue;
-      if(w.p<z.p||(w.p===z.p&&w.q<=z.q+1e-6)) continue;
+      if(w.p<fz.p||(w.p===fz.p&&w.q<=fz.q+1e-6)) continue;
       sig=w; break;
     }
-    if(sig&&dentro(sig)){const i1=sig.p-pos.p0; x1=Math.min(bordes(i1)[1],xDe(i1,sig.q)-pad); if(i1===i0) x1=Math.min(x1,b1)}
-    else if(sig&&sig.p>pos.p1) x1=bordes(medidas.length-1)[1];   // el acorde dura más allá de lo que se ve
-    else x1=b1;
+    if(sig&&dentro(sig)){iF=sig.p-pos.p0; x1=Math.min(bordes(iF)[1],xDe(iF,sig.q)-pad); if(iF===iz) x1=Math.min(x1,b1)}
+    else if(sig&&sig.p>pos.p1){iF=medidas.length-1; x1=bordes(iF)[1]}   // el acorde dura más allá de lo que se ve
+    else {iF=iz; x1=b1}
     if(x1-x0<sp*2){const cx=(x0+x1)/2; x0=cx-sp; x1=cx+sp}           // acordes muy juntos: que se vea
   } else {
     const oc=(E.ocs.get(h.compas)||[])[occA], p=oc?oc.pos.find(i=>i>=pos.p0&&i<=pos.p1):null;
     if(p==null) return;
-    i0=p-pos.p0; [x0,x1]=bordes(i0);
+    i0=iF=p-pos.p0; [x0,x1]=bordes(i0);
   }
   const m=medidas[i0]; if(!m) return;
-  const bb=m.getBBox(), r=document.createElementNS(NS,'rect'); r.setAttribute('class','resalte');
-  r.setAttribute('x',x0);r.setAttribute('y',bb.y-120);r.setAttribute('width',Math.max(0,x1-x0));r.setAttribute('height',bb.height+240);
+  // alto: el de todos los compases que abarca el resalte
+  const cajas=medidas.slice(i0,Math.max(i0,iF)+1).map(x=>x.getBBox()), yA=Math.min(...cajas.map(b=>b.y)), yB=Math.max(...cajas.map(b=>b.y+b.height));
+  const r=document.createElementNS(NS,'rect'); r.setAttribute('class','resalte');
+  r.setAttribute('x',x0);r.setAttribute('y',yA-120);r.setAttribute('width',Math.max(0,x1-x0));r.setAttribute('height',yB-yA+240);
   r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.28');r.setAttribute('rx','40');
   m.parentNode.insertBefore(r,m);
 }
@@ -2230,10 +2236,11 @@ function anotar(svg,acordes,occ,E,pos,reducir){
 function pintarTira(h,dentro){
   const tira=$('#tira'), v=ver();
   if((!v.rom&&!v.int&&!v.fun)||!dentro.length){tira.hidden=true;return}
-  const foco=x=>h.frag?(x.compas>=h.ini&&x.compas<=h.fin):(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6);
+  const iE=h.frag?-1:dentro.findIndex(x=>x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6), [f0,f1]=cadenaDe(h,dentro,iE);
+  const foco=(x,i)=>h.frag?(x.compas>=h.ini&&x.compas<=h.fin):(iE>=0?i>=f0&&i<=f1:false);
   let prev=null; const nc=dentro.map(x=>{const r=x.compas!==prev;prev=x.compas;return r});
   let html='<table><thead><tr><th class="rot"></th>'+dentro.map((x,i)=>`<th class="${nc[i]?'nc':''}">${nc[i]?trd('c. ','b. ')+x.compas:'·'}</th>`).join('')+'</tr></thead><tbody>';
-  const fila=(cls,nom,fn)=>`<tr class="${cls}"><td class="rot">${nom}</td>`+dentro.map((x,i)=>`<td class="${nc[i]?'nc ':''}${foco(x)?'foco':''}">${esc(fn(x))}</td>`).join('')+'</tr>';
+  const fila=(cls,nom,fn)=>`<tr class="${cls}"><td class="rot">${nom}</td>`+dentro.map((x,i)=>`<td class="${nc[i]?'nc ':''}${foco(x,i)?'foco':''}">${esc(fn(x))}</td>`).join('')+'</tr>';
   if(v.rom) html+=fila('rom',trd('Romano','Roman'),x=>x.rn);
   if(v.int) html+=fila('int',trd('Interv.','Fig.'),x=>cifInterv(parseRN(x.rn)));
   if(v.fun) html+=fila('fun',trd('Func.','Func.'),x=>cifFunc(parseRN(x.rn),x.tono));
@@ -2334,16 +2341,23 @@ function descripcionBusqueda(){
       :`${$('#progInv').checked?'sin tener en cuenta inversiones':'con inversiones exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
   return {nombre:trd('obra completa','whole work'),tipo:'',criterio:''};
 }
+// cadena «A → B → C» de un ejemplo (cadencias, 6/4 cadencial, napolitana → V…): índices del primer y último acorde.
+// El acorde del ejemplo (i) es el último (cadencias) o el primero (6/4 cadencial, secuencias…); solo se toma la cadena
+// si todos sus acordes coinciden con la etiqueta (en las modulaciones la cadena son tonalidades): si no, [i, i]
+function cadenaDe(h,ac,i){
+  if(i<0||!h.etq||!/→/.test(h.etq.split(' · ')[0])) return [i,i];
+  const toks=h.etq.split(' · ')[0].split('→').map(x=>x.trim()), k=toks.length-1;
+  const es=(j,t)=>!!ac[j]&&(ac[j].orig===t||ac[j].rn===t), todos=a=>toks.every((t,n)=>es(a+n,t));
+  if(todos(i)) return [i,i+k];
+  if(todos(i-k)) return [i-k,i];
+  return [i,i];
+}
 function pintarFicha(h,ac){
   const o=porId.get(h.obra), d=descripcionBusqueda(), s=o.src;
   // contexto: acordes antes y después
   let i0=ac.findIndex(x=>h.frag?x.compas>=h.ini:(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6));
   if(i0<0) i0=ac.findIndex(x=>x.compas>=(h.compas||h.ini));
-  let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else if(h.etq&&/→/.test(h.etq.split(' · ')[0])){
-    // cadena «A → B → C»: el acorde del ejemplo es el último (cadencias) o el primero (6/4 cadencial, secuencias…);
-    // solo se resalta si los acordes coinciden con la etiqueta (en las modulaciones la cadena son tonalidades)
-    const toks=h.etq.split(' · ')[0].split('→').map(x=>x.trim()), k=toks.length-1, es=(j,t)=>!!ac[j]&&(ac[j].orig===t||ac[j].rn===t);
-    if(es(i0,toks[0])&&es(i0+k,toks[k])) i1=i0+k; else if(es(i0,toks[k])&&es(i0-k,toks[0])) i0-=k}
+  let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else [i0,i1]=cadenaDe(h,ac,i0);
   const desde=Math.max(0,i0-ctxN), hasta=Math.min(ac.length-1,i1+ctxN);
   let ctx='', tPrev=null;
   for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;
