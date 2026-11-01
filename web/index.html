@@ -418,6 +418,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
+<script src="progresiones.js"></script>
 <script>
 (async function(){
 const $=s=>document.querySelector(s);
@@ -889,7 +890,7 @@ const obrasDe=(comp,f)=>OBRAS.filter(o=>(!comp||o.c===comp)&&pasaObra(o,{...f,co
 function tokensProg(texto){
   const toks=String(texto).trim().split(/[\s,–—]+|(?<=[0-9IViv])-(?=[b#]?[IViv])/).filter(Boolean);
   if(toks.length<2) return null;
-  for(const x of toks) if(!parseRN(x)||/[a-z]{4,}/i.test(x.replace(/^(Cad|Ger|It|Fr)/,''))) return null;
+  for(const x of toks) if(!Progresiones.consulta(x)||/[a-z]{4,}/i.test(x.replace(/^(Cad|Ger|It|Fr)/,''))) return null;
   return toks;
 }
 // En menor, «#vi»/«#vii» y «vi»/«vii» designan el mismo acorde (sexto/séptimo grado elevados; convención
@@ -913,32 +914,19 @@ async function cargarTodosAcordes(){
 }
 async function buscarProgresion(toks,f){
   await cargarTodosAcordes();
-  const sinInv=$('#progInv').checked, gap=+$('#progGap').value, n=toks.length;
-  const m=Math.min(n,Math.max(2,+$('#progMin').value||n));
-  const Q=toks.map(x=>claveRN(x,sinInv)), out=[], cuenta={};
+  // comparación por propiedades (web/progresiones.js): lo escrito solo exige lo que se escribe
+  const opc={sinInv:$('#progInv').checked,gap:+$('#progGap').value,min:+$('#progMin').value||0};
+  const Q=toks.map(Progresiones.consulta), out=[], cuenta={};
   for(const o of OBRAS){
     if(!pasaObra(o,f)) continue;
     const d=await gruposAc[Math.floor(o.id/50)], crudo=d.obras[o.id]; if(!crudo) continue;
-    // un pasaje al unísono u octava corta la sucesión: ninguna progresión lo atraviesa
-    const seq=[]; for(const a of crudo){const k=a[6]?null:claveRN(a[3],sinInv,d.tonos[a[2]]); if(!seq.length||seq[seq.length-1].k!==k) seq.push({k,a})}
-    let i=0;
-    while(i<seq.length){
-      let mejor=null;
-      for(let k0=0;k0<=n-m;k0++){
-        if(seq[i].k===null||seq[i].k!==Q[k0]) continue;
-        let ult=i, kk=k0+1, hechos=1;
-        while(kk<n){let t=-1;for(let z=ult+1;z<=Math.min(seq.length-1,ult+1+gap);z++){if(seq[z].k===null)break; if(seq[z].k===Q[kk]){t=z;break}} if(t<0)break; ult=t;kk++;hechos++}
-        if(hechos>=m&&(!mejor||hechos>mejor.h)) mejor={h:hechos,ult,k0};
-      }
-      if(mejor){
-        const a0=seq[i].a, a1=seq[mejor.ult].a, tono=d.tonos[a0[2]];
-        if(pasaTono(tono,f)){
-          cuenta[o.w]=(cuenta[o.w]||0)+1;
-          if(cuenta[o.w]<=f.lim) out.push({frag:true,prog:true,obra:o.id,ini:a0[0],fin:a1[0],compas:a0[0],parte:a0[1],tono,
-            etq:seq.slice(i,mejor.ult+1).map(z=>z.a[3]).join(' → '),coinciden:mejor.h});
-        }
-        i=mejor.ult+1;
-      } else i++;
+    const seq=Progresiones.secuencia(crudo,d.tonos);
+    for(const r of Progresiones.buscarEnSecuencia(seq,Q,opc)){
+      const a0=seq[r.i0].a, a1=seq[r.i1].a, tono=d.tonos[a0[2]];
+      if(!pasaTono(tono,f)) continue;
+      cuenta[o.w]=(cuenta[o.w]||0)+1;
+      if(cuenta[o.w]<=f.lim) out.push({frag:true,prog:true,obra:o.id,ini:a0[0],fin:a1[0],compas:a0[0],parte:a0[1],tono,
+        etq:seq.slice(r.i0,r.i1+1).map(z=>z.a[3]).join(' → '),coinciden:r.h});
     }
   }
   return out;
@@ -2332,8 +2320,8 @@ function descripcionBusqueda(){
   if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:regla,criterio:EN?DESC(actual.k):(m.criterio||m.desc||'')}}
   if(actual.t==='f') return {nombre:etiquetaFacetas(actual.ids),tipo:regla,criterio:actual.ids.map(id=>FAC[id].desc).join(' · ')+trd(` (pasajes de ${filtros().L} compases)`,` (${filtros().L}-bar passages)`)};
   if(actual.t==='p') return {nombre:trd('progresión ','progression ')+actual.q.join(' – '),tipo:trd('Coincidencia de sucesión de cifrados','Matching succession of chords'),
-    criterio:EN?`${$('#progInv').checked?'ignoring inversions':'with exact inversions'}; up to ${$('#progGap').value} chords in between; at least ${$('#progMin').value||actual.q.length} chords; repeated chords count as one`
-      :`${$('#progInv').checked?'sin tener en cuenta inversiones':'con inversiones exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
+    criterio:EN?`only what is written is required: a bare degree (ii, V, I) accepts any inversion, seventh or extension, while quality (ø, o, +), figures (6, 7, 6/5, 4/3…) and added notes filter; degree, accidental, secondary target and upper/lower case must match; the progression stays within one local key; ${$('#progInv').checked?'ignoring inversions':'written inversions are exact'}; up to ${$('#progGap').value} chords in between; at least ${$('#progMin').value||actual.q.length} chords; repeated chords count as one`
+      :`solo se exige lo que se escribe: un grado sin más (ii, V, I) admite cualquier inversión, séptima o extensión; la cualidad (ø, o, +), las cifras (6, 7, 6/5, 4/3…) y las notas añadidas filtran; el grado, la alteración, la dominante secundaria y la mayúscula/minúscula deben coincidir; la progresión no cruza un cambio de tonalidad local; ${$('#progInv').checked?'sin tener en cuenta inversiones':'las inversiones escritas son exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
   return {nombre:trd('obra completa','whole work'),tipo:'',criterio:''};
 }
 // cadena «A → B → C» de un ejemplo (cadencias, 6/4 cadencial, napolitana → V…): índices del primer y último acorde.

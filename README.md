@@ -66,7 +66,7 @@ La web está **en español y en inglés** (botón junto al título). El buscador
 | Otros | secuencia de quintas, pedal de dominante, acorde disminuido, aumentado, sexta añadida |
 | Cuatríadas | séptima de dominante, disminuida, semidisminuida, menor (menor con 7ª menor) y mayor (mayor con 7ª mayor), diatónicas o secundarias |
 | Pasajes por tipo de acorde | tríadas / cuatríadas, inversiones, prestados, secundarias, alterados, modulación — combinables |
-| Progresiones | cualquier sucesión en cifrado romano, con o sin inversiones, con acordes intermedios |
+| Progresiones | cualquier sucesión en cifrado romano, con acordes intermedios. Solo se exige lo que se escribe: `ii V I` encuentra también `ii6 V7 I` o `ii7 V4/3 I`; `ii6`, `iiø7` o `V43` filtran por inversión y cualidad. El grado, la alteración, la dominante secundaria y la mayúscula/minúscula siempre cuentan, y la progresión no cruza una modulación (`web/progresiones.js`) |
 
 ## Grabado
 
@@ -115,7 +115,8 @@ multicorpus/          catálogo multicorpus (modelo, identificación, adaptadore
   forma_global.py     forma global de cada movimiento y numeración tradicional de sonatas y cuartetos
 buscar.py             detectores armónicos sobre la secuencia de acordes
 indexar.py            lectura de RomanText con music21
-herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_idiomas.py (mismos resultados en los dos idiomas)
+herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_idiomas.py (mismos resultados en los dos idiomas);
+                      prueba_progresiones.js (búsqueda de progresiones sobre los datos reales)
 web/                  aplicación estática (index.html + data/ + scores/ + fonts/)
 docs/img/             imágenes de esta portada
 ```
@@ -142,6 +143,7 @@ git clone https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpu
 python -m multicorpus.exportar_mc        # genera web/data y web/scores
 python -m pytest -q multicorpus/tests
 python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan lo mismo
+node --test herramientas/prueba_progresiones.js   # progresiones: ii V I, inversiones, cualidades, sin duplicados
 ```
 
 ## Limitaciones
