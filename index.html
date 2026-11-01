@@ -1910,15 +1910,7 @@ async function mostrar(h){
       svg.style.maxWidth='none'; svg.style.width=ancho+'px'; svg.style.height='auto';
       cont.classList.toggle('desliza',ancho>cont.clientWidth);
     } else {svg.style.width='';svg.style.maxWidth='';cont.classList.remove('desliza')}
-    if(!h.frag){
-      const oc=(E.ocs.get(h.compas)||[])[occA], m=oc?medidas[oc.pos.find(i=>i>=p0&&i<=p1)-p0]:null;
-      if(m){const bb=m.getBBox(),r=document.createElementNS(NS,'rect');r.setAttribute('class','resalte');
-        // ancho real del compás: el de sus líneas de pentagrama (las ligaduras que entran desde antes no cuentan)
-        const linea=m.querySelector('g.staff > path'), c=linea?(linea.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number):[];
-        const x0=c.length>=4?Math.min(c[0],c[2]):bb.x, x1=c.length>=4?Math.max(c[0],c[2]):bb.x+bb.width;
-        r.setAttribute('x',x0);r.setAttribute('y',bb.y-120);r.setAttribute('width',x1-x0);r.setAttribute('height',bb.height+240);
-        r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.22');r.setAttribute('rx','40');m.parentNode.insertBefore(r,m)}
-    }
+    if(!h.frag) resaltarAcorde(svg,h,ac,occ,E,pos,occA);
     // los números de compás se recolocan otra vez cuando el navegador ha terminado de maquetar la partitura:
     // en la primera pasada algunas cajas (claves, barras) aún no tienen su tamaño final
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
@@ -2026,11 +2018,47 @@ function despejarNumeros(svg){
     svg.setAttribute('viewBox',`${ovb[0]} ${ovb[1]} ${ovb[2]} ${ovb[3]*nvb[3]/vb[3]}`);
   }
 }
-function anotar(svg,acordes,occ,E,pos,reducir){
-  const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
-  const pm=svg.querySelector('g.page-margin'), inner=svg.querySelector('svg.definition-scale'); if(!pm||!inner) return 1;
-  const medidas=[...svg.querySelectorAll('g.measure')]; if(!medidas.length) return 1;
-  const tm=cargado.tm, mtDe=i=>E.metro[pos.p0+i]||{beat:1,full:4};
+// resalte del ejemplo buscado: solo el acorde, desde su ataque hasta el acorde siguiente (aunque pase la barra);
+// si no se puede situar en la partitura, el compás entero
+function resaltarAcorde(svg,h,ac,occ,E,pos,occA){
+  const G=geometria(svg,E,pos); if(!G) return;
+  const {medidas,sp,xDe}=G;
+  // extremos del pentagrama de cada compás (las ligaduras que entran desde antes no cuentan)
+  const bordes=i=>{const m=medidas[i],bb=m.getBBox(),linea=m.querySelector('g.staff > path'),c=linea?(linea.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number):[];
+    return c.length>=4?[Math.min(c[0],c[2]),Math.max(c[0],c[2])]:[bb.x,bb.x+bb.width]};
+  const dentro=z=>z&&z.p>=pos.p0&&z.p<=pos.p1&&z.p-pos.p0<medidas.length;
+  const j=ac.findIndex((c,k)=>c.compas===h.compas&&Math.abs(c.parte-h.parte)<1e-6&&(!h.tono||c.tono===h.tono)&&occ[k]===occA);
+  const z=j>=0?situar(E,ac[j],occ[j],pos.fuente):null;
+  let i0,x0,x1;
+  if(dentro(z)){
+    i0=z.p-pos.p0; const [b0,b1]=bordes(i0), pad=sp*1.3;
+    x0=Math.max(b0,xDe(i0,z.q)-pad);
+    // acorde siguiente: el primero del análisis que cae después en la partitura (otro punto, misma pasada)
+    let sig=null;
+    for(let k=j+1;k<ac.length;k++){
+      const w=situar(E,ac[k],occ[k],pos.fuente); if(!w) continue;
+      if(w.p<z.p||(w.p===z.p&&w.q<=z.q+1e-6)) continue;
+      sig=w; break;
+    }
+    if(sig&&dentro(sig)){const i1=sig.p-pos.p0; x1=Math.min(bordes(i1)[1],xDe(i1,sig.q)-pad); if(i1===i0) x1=Math.min(x1,b1)}
+    else if(sig&&sig.p>pos.p1) x1=bordes(medidas.length-1)[1];   // el acorde dura más allá de lo que se ve
+    else x1=b1;
+    if(x1-x0<sp*2){const cx=(x0+x1)/2; x0=cx-sp; x1=cx+sp}           // acordes muy juntos: que se vea
+  } else {
+    const oc=(E.ocs.get(h.compas)||[])[occA], p=oc?oc.pos.find(i=>i>=pos.p0&&i<=pos.p1):null;
+    if(p==null) return;
+    i0=p-pos.p0; [x0,x1]=bordes(i0);
+  }
+  const m=medidas[i0]; if(!m) return;
+  const bb=m.getBBox(), r=document.createElementNS(NS,'rect'); r.setAttribute('class','resalte');
+  r.setAttribute('x',x0);r.setAttribute('y',bb.y-120);r.setAttribute('width',Math.max(0,x1-x0));r.setAttribute('height',bb.height+240);
+  r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.28');r.setAttribute('rx','40');
+  m.parentNode.insertBefore(r,m);
+}
+// geometría de la partitura dibujada: compases, espacio entre líneas del pentagrama y x de un punto (compás, negras)
+function geometria(svg,E,pos){
+  const medidas=[...svg.querySelectorAll('g.measure')]; if(!medidas.length) return null;
+  const tm=cargado.tm||[], mtDe=i=>E.metro[pos.p0+i]||{beat:1,full:4};
   let sp=180;
   const ys=[...svg.querySelector('g.staff').children].filter(n=>n.tagName==='path').map(pth=>(pth.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number)).filter(c=>c.length>=4&&c[1]===c[3]).map(c=>c[1]).slice(0,5);
   if(ys.length===5&&ys[4]>ys[0]) sp=(ys[4]-ys[0])/4;
@@ -2063,6 +2091,13 @@ function anotar(svg,acordes,occ,E,pos,reducir){
     const ult=lista[lista.length-1], paso=lista.length>1&&ult.q>sig.q?(ult.x-sig.x)/(ult.q-sig.q):(mb.x+mb.width-sig.x)/Math.max(0.5,d-sig.q);
     return Math.max(mb.x+(sig.x-mb.x)*0.25, sig.x-(sig.q-q)*paso);
   };
+  return {medidas,sp,xDe,dur};
+}
+function anotar(svg,acordes,occ,E,pos,reducir){
+  const v=ver(); if(!v.rom&&!v.int&&!v.fun) return 1;
+  const pm=svg.querySelector('g.page-margin'), inner=svg.querySelector('svg.definition-scale'); if(!pm||!inner) return 1;
+  const G=geometria(svg,E,pos); if(!G) return 1;
+  const {medidas,xDe}=G; let sp=G.sp;
   // posición x de cada acorde: va a la aparición de su compás que le toca (otra pasada, casilla de repetición…);
   // si esa aparición no está escrita en la partitura (el análisis despliega una repetición), no se dibuja encima de otra.
   // Un compás puede estar partido en varios trozos (anacrusa al otro lado de una barra de repetición, «4»+«4a»).
