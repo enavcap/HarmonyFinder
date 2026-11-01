@@ -172,7 +172,7 @@ button.btn:disabled{opacity:.45;cursor:default}
 #partitura{padding:10px 12px 14px;overflow-x:auto;background:#fff;color:#000}
 #partitura svg{max-width:100%;height:auto;display:block}
 #partitura.desliza{position:relative}
-#partitura.desliza::before{content:'desliza para ver más →';position:sticky;left:0;display:block;font:12px var(--body);color:#5d6670;margin:0 0 4px}
+#partitura.desliza::before{content:attr(data-desliza);position:sticky;left:0;display:block;font:12px var(--body);color:#5d6670;margin:0 0 4px}
 #partitura .vacio{font-family:var(--body);color:#5d6670;padding:40px 16px;text-align:center;font-size:14px}
 :root[data-theme="dark"] #partitura{background:#f3f1ec}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #partitura{background:#f3f1ec}}
@@ -651,6 +651,13 @@ function puntuarConceptos(t){
   }
   const el=t.length>4?interpretar(t):null;
   if(el){const r=res.find(x=>x[0]===el); if(r) r[1]+=100; else res.push([el,100])}
+  for(const r of res){
+    const k=r[0], req=META.requiere[k];
+    // una subclase («napolitana → dominante») solo pasa delante si se escribe lo que la distingue
+    if(req&&!req.every(g=>g.some(x=>t.includes(norm(x))))) r[1]-=300;
+    // el nombre o un sinónimo escrito tal cual gana siempre («napolitana», «septima disminuida»)
+    else if(norm(NOMBRE(k))===t||(META.sinonimos[k]||[]).some(s=>norm(s)===t)) r[1]+=1000;
+  }
   return res.sort((a,b)=>b[1]-a[1]||ORDEN_C.indexOf(a[0])-ORDEN_C.indexOf(b[0])).map(x=>x[0]);
 }
 
@@ -1002,7 +1009,7 @@ function abrir(){
   const t=norm(q.value).trim();
   const fp=extraerForma(q.value); formaPendiente=fp&&fp.resto?fp:null;
   opciones=sugerir(formaPendiente?formaPendiente.resto:q.value);
-  activa=opciones.length?0:-1;
+  activa=opciones.length?0:-1; navegada=false;
   let html='', previo=null;
   const ultima=t.split(' ').pop();
   opciones.forEach((o,i)=>{
@@ -1030,16 +1037,16 @@ function marcar(i){
   lista.querySelectorAll('[role=option]').forEach((li,j)=>li.setAttribute('aria-selected',String(j===activa)));
   const li=$('#op'+activa); if(li) li.scrollIntoView({block:'nearest'}); q.setAttribute('aria-activedescendant','op'+activa);
 }
+function ponerFiltro(o){
+  if(o.campo==='obraSel'){const ob=OBRAS.find(x=>String(x.w)===o.valor);$('#compositor').value=ob.c;rellenarObras()}
+  if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
+  else{const sel=$('#'+o.campo);if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===o.valor)){const op=document.createElement('option');op.value=o.valor;op.textContent=o.txt;sel.append(op)}sel.value=o.valor}
+  cuentaCache.clear();
+}
 function elegir(o){
   q.value=''; cerrar();
   if(o.t!=='x') aplicarFormaPendiente(); else formaPendiente=null;
-  if(o.t==='x'){
-    if(o.campo==='obraSel'){const ob=OBRAS.find(x=>String(x.w)===o.valor);$('#compositor').value=ob.c;rellenarObras()}
-    if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
-    else{const sel=$('#'+o.campo);if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===o.valor)){const op=document.createElement('option');op.value=o.valor;op.textContent=o.txt;sel.append(op)}sel.value=o.valor}
-    cuentaCache.clear();
-    return relanzar();
-  }
+  if(o.t==='x'){ponerFiltro(o); return relanzar()}
   if(o.t==='f') o={t:'f',ids:combinar(o.ids)};
   if(o.t==='o'&&o.comp){$('#compositor').value=o.comp;rellenarObras()}
   ejecutar(o);
@@ -1228,8 +1235,8 @@ function pintarInicio(){
 q.addEventListener('input',abrir);
 q.addEventListener('focus',()=>{abrir();const n=q.value.length;q.setSelectionRange(n,n)});
 q.addEventListener('keydown',e=>{
-  if(e.key==='ArrowDown'){e.preventDefault();lista.hidden?abrir():marcar(activa+1)}
-  else if(e.key==='ArrowUp'){e.preventDefault();marcar(activa-1)}
+  if(e.key==='ArrowDown'){e.preventDefault();if(lista.hidden)abrir();else{navegada=true;marcar(activa+1)}}
+  else if(e.key==='ArrowUp'){e.preventDefault();navegada=true;marcar(activa-1)}
   else if(e.key==='Escape'){cerrar()}
   else if(e.key==='Enter'){e.preventDefault();enviar()}
   else if(e.key==='Backspace'&&!q.value){const bs=$('#chips').querySelectorAll('[data-quitar]');if(bs.length){e.preventDefault();quitar(bs[bs.length-1].dataset.quitar)}}
@@ -1238,7 +1245,50 @@ q.addEventListener('keydown',e=>{
 lista.addEventListener('mousedown',e=>{const li=e.target.closest('[role=option]');if(li){e.preventDefault();elegir(opciones[+li.id.slice(2)])}});
 document.addEventListener('click',e=>{if(!e.target.closest('.buscador'))cerrar()});
 $('#form').addEventListener('submit',e=>{e.preventDefault();enviar()});
+// ---- texto con varias partes: «sexta napolitana mozart», «septima disminuida chopin», «forma sonata Mozart la menor»
+// Los trozos que son exactamente un filtro (compositor, tonalidad, época, modo) se aplican como etiquetas y el resto
+// se interpreta como procedimiento. Solo actúa si encuentra al menos un filtro; si no, Enter elige la sugerencia.
+const NEXOS=new Set([...RELLENO,'por','by','from','del','la','el','los','las','de la','for','para']);
+function filtroExacto(s){
+  const vale=(campo,valor)=>disponible(campo,valor);
+  const cs=comps.filter(c=>[c,COMP_OTRO[c]].filter(Boolean).some(n=>norm(n)===s||norm(apellido(n))===s)&&vale('compositor',c));
+  if(cs.length){const nObras=c=>new Set(OBRAS.filter(o=>o.c===c).map(o=>o.w)).size; const c=cs.sort((a,b)=>nObras(b)-nObras(a))[0]; return {t:'x',campo:'compositor',valor:c,txt:c}}
+  for(const k of TONOS) if(nombresTono(k).includes(s)&&vale('tonalidad',k)) return {t:'x',campo:'tonalidad',valor:k,txt:tonoLargo(k)};
+  for(const [v,pal] of [['M',['modo mayor','major mode']],['m',['modo menor','minor mode']]]) if(pal.includes(s)&&vale('modo',v)) return {t:'x',campo:'modo',valor:v,txt:pal[EN?1:0]};
+  for(const e of EPOCAS){const v=VOC.periodos[e]||{};if([e,v.es,v.en,...(v.sin_es||[]),...(v.sin_en||[])].filter(Boolean).some(w=>norm(w)===s)&&vale('epoca',e)) return {t:'x',campo:'epoca',valor:e,txt:perTxt(e)}}
+  return null;
+}
+function descomponer(texto){
+  const fp=extraerForma(texto), base=fp?fp.resto:texto;
+  const pal=norm(base).trim().split(/\s+/).filter(Boolean), usado=pal.map(()=>false), fil=[];
+  for(let L=Math.min(4,pal.length);L>=1;L--) for(let i=0;i+L<=pal.length;i++){
+    if(usado.slice(i,i+L).some(Boolean)) continue;
+    const s=pal.slice(i,i+L).join(' '); if(s.length<3||NEXOS.has(s)) continue;
+    const m=filtroExacto(s);
+    if(m&&!fil.some(f=>f.campo===m.campo)){fil.push(m);usado.fill(true,i,i+L)}
+  }
+  if(!fil.length) return null;
+  const crudo=String(base).trim().split(/\s+/).filter(Boolean);   // la progresión necesita mayúsculas y minúsculas
+  const resto=(crudo.length===pal.length?crudo:pal).filter((_,i)=>!usado[i]).join(' ').trim();
+  const restoN=norm(resto).split(' ').filter(w=>w&&!NEXOS.has(w)).join(' ');
+  let o=null;
+  if(restoN){
+    const tp=tokensProg(resto), P=parsearFacetas(restoN), k=interpretar(restoN)||puntuarConceptos(restoN)[0];
+    o=tp?{t:'p',q:tp}:P.ids.length&&!P.libres.length?{t:'f',ids:P.ids}:k?{t:'c',k}:null;
+    if(!o) return null;                                            // queda texto que no se entiende: mejor no adivinar
+  }
+  return {fil,o,fp};
+}
+let navegada=false;   // el usuario movió la selección con las flechas: Enter respeta su elección
 function enviar(){
+  if(!lista.hidden&&activa>=0&&navegada) return elegir(opciones[activa]);
+  const d=descomponer(q.value);
+  if(d){
+    q.value=''; cerrar();
+    if(d.fp){formaPendiente=d.fp; aplicarFormaPendiente()}
+    for(const f of d.fil) ponerFiltro(f);
+    return d.o?elegir(d.o):relanzar();
+  }
   if(!lista.hidden&&activa>=0) return elegir(opciones[activa]);
   const fp=extraerForma(q.value);
   if(fp&&!fp.resto) return elegir({t:'x',campo:fp.campo,valor:fp.valor,txt:fp.campo==='formaGlobal'?formaGTxt(fp.valor):formaTxt(fp.valor)});
@@ -1396,7 +1446,16 @@ function pintarDestacados(frag,modoObras){
   d.hidden=false;
   d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const h=elegidos[+b.dataset.i];
     document.querySelectorAll('.fila[aria-selected=true],#destacados [aria-pressed=true]').forEach(x=>x.setAttribute(x.classList.contains('fila')?'aria-selected':'aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');mostrar(h)});
+    b.setAttribute('aria-pressed','true');mostrar(h);verVista()});
+}
+// en una sola columna (móvil, tablet) la partitura queda debajo de la lista: al elegir un ejemplo se baja hasta ella
+// (se repite al terminar de dibujar la partitura: mientras carga, la página cambia de alto y el desplazamiento se corta)
+let bajarAVista=false;
+function verVista(repetir=true){
+  if(!matchMedia('(max-width:979px)').matches) return;
+  bajarAVista=repetir;
+  requestAnimationFrame(()=>{const v=$('#vista'),r=v.getBoundingClientRect();
+    if(r.top<0||r.top>80) v.scrollIntoView({behavior:'smooth',block:'start'})});
 }
 function pintar(){
   const frag=!!actual&&(actual.t==='f'||actual.t==='p'), modoObras=!!actual&&actual.t==='o';
@@ -1455,7 +1514,7 @@ function filaHit(h,modoObras,frag){
     tr.innerHTML=`${mov}<td class="num">${h.ini}–${h.fin}</td>${tono}<td class="cif"><span class="prog lin" style="color:var(--muted)">…</span></td>`;
     acordesDe(h.obra).then(ac=>{const el=tr.querySelector('.prog');if(el)el.outerHTML=progresion(ac,h)});
   } else tr.innerHTML=`${mov}<td class="num">${h.compas}</td><td class="num">${h.parte}</td>${tono}<td class="cif">${celdaCifrado(h)}</td>`;
-  const sel=()=>{document.querySelectorAll('.fila[aria-selected=true]').forEach(x=>x.setAttribute('aria-selected','false'));tr.setAttribute('aria-selected','true');mostrar(h)};
+  const sel=()=>{document.querySelectorAll('.fila[aria-selected=true]').forEach(x=>x.setAttribute('aria-selected','false'));tr.setAttribute('aria-selected','true');mostrar(h);verVista()};
   tr.onclick=sel; tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sel()}};
   return tr;
 }
@@ -1971,7 +2030,7 @@ async function mostrar(h){
       const pentas=svg.querySelector('g.measure')?.querySelectorAll('g.staff').length||1;
       const ancho=Math.max(cont.clientWidth-24,Math.round(medidas.length*(150+20*Math.min(pentas,4))));
       svg.style.maxWidth='none'; svg.style.width=ancho+'px'; svg.style.height='auto';
-      cont.classList.toggle('desliza',ancho>cont.clientWidth);
+      cont.classList.toggle('desliza',ancho>cont.clientWidth); cont.dataset.desliza=trd('← desliza para ver más →','← swipe to see more →');
     } else {svg.style.width='';svg.style.maxWidth='';cont.classList.remove('desliza')}
     if(!h.frag) resaltarAcorde(svg,h,ac,occ,E,pos,occA);
     // los números de compás se recolocan otra vez cuando el navegador ha terminado de maquetar la partitura:
@@ -1979,6 +2038,14 @@ async function mostrar(h){
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     if(seleccion!==h||!svg.isConnected) return;
     svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); despejarNumeros(svg);
+    // partitura más ancha que su caja: se centra en el acorde resaltado (si no, quedaba fuera de la vista)
+    const rs=[...svg.querySelectorAll('.resalte')];
+    if(cont.scrollWidth>cont.clientWidth+4){
+      if(rs.length){const cb=cont.getBoundingClientRect(),x0=Math.min(...rs.map(r=>r.getBoundingClientRect().left)),x1=Math.max(...rs.map(r=>r.getBoundingClientRect().right));
+        cont.scrollLeft=Math.max(0,cont.scrollLeft+(x0+x1)/2-(cb.left+cb.width/2))}
+      else cont.scrollLeft=0;
+    }
+    if(bajarAVista) verVista(false);
     $('#copiarSVG').disabled=$('#copiarPNG').disabled=false;
   }catch(e){cont.innerHTML=`<div class="vacio">${trd('No se pudo mostrar la partitura','The score could not be shown')} (${esc(e.message||e)}).</div>`;pintarTira(h,dentro)}
 }
