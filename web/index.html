@@ -293,18 +293,52 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 #tema:hover{border-color:var(--accent);color:var(--accent)}
 #tema:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #tema svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* buzón de errores y sugerencias */
+#buzon{max-width:760px;margin:6px auto 0;line-height:1.6}
+#buzon h2{font:600 30px/1.15 var(--display);margin:8px 0 10px;text-wrap:balance}
+#buzon .entrada{font-size:16px;margin:0 0 6px}
+#buzon .nota{color:var(--muted);font-size:14px;margin:0}
+#buzon form{display:grid;gap:26px;margin-top:22px}
+#buzon fieldset.blq{border:0;border-top:1px solid var(--line);padding:16px 0 0;margin:0;display:grid;gap:20px;min-width:0}
+#buzon legend{font:600 19px/1.3 var(--display);padding:0 10px 0 0}
+#buzon legend .n{color:var(--accent);margin-right:6px}
+#buzon .preg{display:grid;gap:6px;min-width:0;border:0;padding:0;margin:0}
+#buzon .preg>label,#buzon .preg>legend{font:500 15px/1.4 var(--body);padding:0}
+#buzon .preg .ob{color:var(--enh);margin-left:3px}
+#buzon .ayuda{color:var(--muted);font-size:13.5px;margin:-2px 0 2px}
+#buzon textarea,#buzon input[type=text],#buzon input[type=url]{font:15px var(--body);padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--fg);width:100%}
+#buzon textarea{min-height:92px;resize:vertical}
+#buzon textarea:focus,#buzon input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#buzon .ops{display:flex;flex-wrap:wrap;gap:8px}
+#buzon .ops label{display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;font-size:14px}
+#buzon .ops label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+#buzon .ops input{accent-color:var(--accent);margin:0}
+#buzon .ops label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+#buzon .tec{font-size:13px;color:var(--muted)}
+#buzon .tec summary{cursor:pointer}
+#buzon .tec pre{white-space:pre-wrap;word-break:break-word;font:12.5px/1.5 var(--mono);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:8px 0 0}
+#buzon .enviar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;border-top:1px solid var(--line);padding-top:18px}
+#buzon .enviar button{font:500 15px var(--body);padding:10px 20px;border:0;border-radius:6px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+#buzon .enviar button:disabled{opacity:.5;cursor:default}
+#buzon .estado{font-size:14px;color:var(--muted)}
+#buzon .estado.mal{color:var(--enh)}
+#buzon .gracias{padding:18px 20px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:var(--panel);margin-top:22px}
+#buzon .gracias h3{font:600 20px var(--display);margin:0 0 6px}
+#buzon .gracias p{margin:0 0 12px}
+@media (max-width:640px){#buzon h2{font-size:25px}nav.pestanas a{padding:6px 8px}}
 </style>
 
 <script>try{const t=localStorage.getItem('tema');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <header>
   <div class="marca"><div style="display:flex;align-items:center;gap:12px"><h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1><span class="alfa" title="Versión en pruebas" data-en-title="Test version" data-en="alpha">alfa</span></div>
   <p class="lema" data-en="Real examples of harmonic devices in the repertoire">Ejemplos reales de procedimientos armónicos en el repertorio</p></div>
-  <nav class="pestanas" aria-label="Secciones de la web" data-en-aria-label="Site sections"><a href="#" id="tabBuscar" aria-current="page" data-en="Search">Buscador</a><a href="#proyecto" id="tabProyecto" data-en="The project">El proyecto</a></nav>
+  <nav class="pestanas" aria-label="Secciones de la web" data-en-aria-label="Site sections"><a href="#" id="tabBuscar" aria-current="page" data-en="Search">Buscador</a><a href="#proyecto" id="tabProyecto" data-en="The project">El proyecto</a><a href="#buzon" id="tabBuzon" data-en="Feedback">Buzón</a></nav>
   <button class="btn der" id="verColecciones" type="button" hidden data-en="Collections">Colecciones</button>
   <button class="btn" id="idioma" type="button" lang="en" aria-label="Change language to English" data-en="Español" data-en-aria-label="Cambiar el idioma a español">English</button>
 </header>
 <section id="colecciones" hidden></section>
 <article id="proyecto" hidden></article>
+<article id="buzon" hidden></article>
 
 <main>
 <section style="min-width:0">
@@ -380,7 +414,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 </aside>
 </main>
 
-<footer><div class="autor"><span><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</span><button id="tema" type="button"></button></div></footer>
+<footer><div class="autor"><span><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026 · <a href="#buzon" data-en="Report a bug or suggest an improvement">Informar de un error o proponer una mejora</a></span><button id="tema" type="button"></button></div></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -2473,7 +2507,7 @@ function pintarProyecto(){
   <h3>Partituras</h3>
   <p>Las partituras vienen de OpenScore, del corpus de music21 o se reconstruyen a partir de las tablas de notas del DCML, y se graban en el navegador con Verovio. Al reconstruirlas pueden aparecer pequeñas imperfecciones de notación.</p>
   <h3>Estado y licencia</h3>
-  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Licencias de las fuentes: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla: puedes comunicarlo en el <a href="#buzon">buzón de errores y sugerencias</a>. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Licencias de las fuentes: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder es un proyecto de <strong>Ezequiel Navarrete</strong>.</p>`;
   const en=`
   <h2>The project</h2>
@@ -2497,18 +2531,120 @@ function pintarProyecto(){
   <h3>Scores</h3>
   <p>Scores come from OpenScore, the music21 corpus, or are rebuilt from the DCML note tables, and are engraved in the browser with Verovio. Rebuilt scores may show small notation imperfections.</p>
   <h3>Status and licence</h3>
-  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it. The site can be used in Spanish or English, and searches give exactly the same results in both. Source licences: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it: you can report it in the <a href="#buzon">feedback form</a>. The site can be used in Spanish or English, and searches give exactly the same results in both. Source licences: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder is a project by <strong>Ezequiel Navarrete</strong>.</p>`;
   $('#proyecto').innerHTML=EN?en:es;
 }
-// pestañas: Buscador / El proyecto (#proyecto en la dirección)
-function ruta(){
-  const pr=location.hash==='#proyecto';
-  if(pr&&!$('#proyecto').innerHTML) pintarProyecto();
-  $('#proyecto').hidden=!pr; document.querySelector('main').hidden=pr; if(pr) $('#colecciones').hidden=true;
-  $('#tabProyecto').setAttribute('aria-current',pr?'page':'false'); $('#tabBuscar').setAttribute('aria-current',pr?'false':'page');
-  if(pr) window.scrollTo(0,0);
+// ============ buzón de errores y sugerencias
+// Las respuestas se envían a un Google Form oculto (y de ahí a una hoja de cálculo).
+// form: la parte .../forms/d/e/<ID>/ del formulario; e: los entry.NNN de sus 15 preguntas, en este orden:
+// tipo, apartado, qué ocurrió, qué esperaba, reproducible, pasos, dispositivo, navegador, mensaje de error,
+// enlace a captura, valoración, información musical incorrecta, mejoras, observaciones, datos técnicos.
+// Mientras form esté vacío el formulario se ve, pero no se puede enviar.
+const BUZON={form:'1FAIpQLSePVy4eUfV1aPtmT27ZO9lJC3Ferdm3d-YTeuJnpvT2NFR4Eg',
+  e:['entry.1453776825','entry.1813674479','entry.2060431174','entry.690002627','entry.1805597638','entry.1845310036','entry.1262741488','entry.1081082940','entry.119309349','entry.753038933','entry.1896056709','entry.1502657232','entry.1596339968','entry.104913257','entry.456275630']};
+const BZ_PREG=[
+ {b:1,id:'tipo',t:'radio',ob:1,es:'¿Qué tipo de incidencia has encontrado?',en:'What kind of issue have you found?',
+  ops:[['Error de funcionamiento (algo no funciona)','Something doesn’t work'],['Error en los resultados de búsqueda','Wrong search results'],['Error en la información musical o analítica','Wrong musical or analytical information'],['Problema de visualización o diseño','Display or layout problem'],['Problema de carga o rendimiento','Loading or performance problem'],['Sugerencia de mejora','Suggestion for improvement'],['Otro','Other']]},
+ {b:1,id:'apartado',t:'radio',es:'¿En qué apartado de Harmony Finder se ha producido?',en:'Which part of Harmony Finder was it in?',
+  ops:[['Buscador','Search box'],['Filtros de búsqueda','Search filters'],['Resultados','Results'],['Visualización de partituras','Score display'],['Información de las obras','Work information'],['Exportación o descarga','Export or download'],['Otro','Other']]},
+ {b:2,id:'que',t:'area',ob:1,es:'Describe brevemente qué ha ocurrido.',en:'Briefly describe what happened.',ay_es:'Indica qué estabas intentando hacer y qué ha sucedido.',ay_en:'Say what you were trying to do and what happened.'},
+ {b:2,id:'esperaba',t:'area',es:'¿Qué esperabas que sucediera?',en:'What did you expect to happen?',ay_es:'Describe cuál habría sido el comportamiento correcto.',ay_en:'Describe what the correct behaviour would have been.'},
+ {b:2,id:'repro',t:'radio',es:'¿Puedes reproducir el error?',en:'Can you reproduce the problem?',
+  ops:[['Sí, ocurre siempre','Yes, it always happens'],['Sí, pero no ocurre siempre','Yes, but not every time'],['Ha ocurrido una sola vez','It only happened once'],['No lo sé','I don’t know']]},
+ {b:2,id:'pasos',t:'area',es:'¿Qué pasos has seguido para llegar al error?',en:'What steps led to the problem?',ay_es:'Si puedes, enumera los pasos desde que entraste en la web hasta que apareció el problema.',ay_en:'If you can, list the steps from opening the site until the problem appeared.'},
+ {b:3,id:'disp',t:'radio',es:'¿En qué dispositivo has utilizado Harmony Finder?',en:'Which device did you use Harmony Finder on?',
+  ops:[['Ordenador de sobremesa','Desktop computer'],['Portátil','Laptop'],['Tablet','Tablet'],['Teléfono móvil','Mobile phone']]},
+ {b:3,id:'nav',t:'radio',es:'¿Qué navegador has utilizado?',en:'Which browser did you use?',
+  ops:[['Google Chrome','Google Chrome'],['Mozilla Firefox','Mozilla Firefox'],['Microsoft Edge','Microsoft Edge'],['Safari','Safari'],['Otro','Other']]},
+ {b:3,id:'msg',t:'radio',es:'¿Has observado algún mensaje de error?',en:'Did you see an error message?',ops:[['Sí','Yes'],['No','No']],
+  extra:{id:'msgTxt',es:'Copia aquí el mensaje.',en:'Copy the message here.'}},
+ {b:3,id:'captura',t:'url',es:'Enlace a una captura de pantalla o grabación del problema (opcional)',en:'Link to a screenshot or recording of the problem (optional)',ay_es:'Súbela a Google Drive, Dropbox, Imgur… y pega aquí el enlace (que se pueda ver sin pedir permiso).',ay_en:'Upload it to Google Drive, Dropbox, Imgur… and paste the link here (viewable without requesting access).'},
+ {b:4,id:'valor',t:'radio',es:'¿Cómo valorarías el funcionamiento general de Harmony Finder?',en:'How would you rate Harmony Finder overall?',
+  ops:[['Muy bueno','Very good'],['Bueno','Good'],['Aceptable','Fair'],['Deficiente','Poor'],['Muy deficiente','Very poor']]},
+ {b:4,id:'musica',t:'area',es:'¿Has encontrado alguna información musical incorrecta o algún resultado que consideres inadecuado?',en:'Have you found any incorrect musical information or any result you consider wrong?',ay_es:'Indica la obra, el compositor y el procedimiento o resultado afectado, si procede.',ay_en:'Give the work, the composer and the device or result affected, if applicable.'},
+ {b:4,id:'mejora',t:'area',es:'¿Qué funcionalidad echas en falta o qué mejorarías?',en:'What feature is missing, or what would you improve?',ay_es:'Puedes proponer nuevas herramientas, filtros, criterios de búsqueda o mejoras de visualización.',ay_en:'You can suggest new tools, filters, search criteria or display improvements.'},
+ {b:5,id:'obs',t:'area',es:'¿Quieres añadir alguna otra observación?',en:'Anything else you would like to add?'}];
+const BZ_BLOQ={1:['Identificación de la incidencia','About the issue'],2:['Descripción del error','What happened'],3:['Información adicional','Additional information'],4:['Valoración y sugerencias','Rating and suggestions'],5:['Comentarios adicionales','Further comments']};
+// lo que estaba abierto en el buscador al pulsar «Buzón», para saber qué miraba quien informa
+let bzContexto={};
+function bzCapturar(){
+  const etq=[...document.querySelectorAll('#chips .chip')].map(x=>{const tp=x.querySelector('.tp'),tx=x.querySelector('.tx');return (tp?tp.textContent+': ':'')+(tx?tx.textContent:'')}).filter(Boolean);
+  const v=$('#vista'), cab=v&&!v.hidden?v.querySelector('.cab'):null;
+  bzContexto={busqueda:etq.join(' + ')||(q.value||'').trim(),texto:(q.value||'').trim(),ejemplo:cab?cab.textContent.replace(/\s+/g,' ').trim():'',dir:location.origin+location.pathname+location.search};
 }
+function bzDetectar(){
+  const ua=navigator.userAgent, tactil=navigator.maxTouchPoints>1;
+  const nav=/Edg\//.test(ua)?'Microsoft Edge':/Firefox|FxiOS/.test(ua)?'Mozilla Firefox':/OPR\/|Opera/.test(ua)?'Otro':/Chrome|CriOS/.test(ua)?'Google Chrome':/Safari/.test(ua)?'Safari':'Otro';
+  const disp=/iPad/.test(ua)||(/Macintosh/.test(ua)&&tactil)||(/Android/.test(ua)&&!/Mobile/.test(ua))?'Tablet':/Mobi|iPhone|Android/.test(ua)?'Teléfono móvil':'';
+  return {nav,disp};
+}
+function bzTecnico(){
+  const c=bzContexto;
+  return [`Fecha: ${new Date().toISOString()}`,`Idioma de la interfaz: ${LANG}`,`Búsqueda: ${c.busqueda||'—'}`,c.texto&&c.texto!==c.busqueda?`Texto en la caja: ${c.texto}`:'',`Ejemplo abierto: ${c.ejemplo||'—'}`,`Dirección: ${c.dir||location.href}`,
+    `Pantalla: ${screen.width}×${screen.height} · ventana ${innerWidth}×${innerHeight} · ${devicePixelRatio}x`,`Navegador: ${navigator.userAgent}`].filter(Boolean).join('\n');
+}
+function pintarBuzon(){
+  const det=bzDetectar(), L=x=>EN?x.en:x.es;
+  const campo=p=>{
+    const ob=p.ob?`<span class="ob" aria-hidden="true">*</span>`:'';
+    const ay=p.ay_es?`<p class="ayuda" id="bz_${p.id}_ay">${esc(EN?p.ay_en:p.ay_es)}</p>`:'';
+    if(p.t==='radio'){
+      const pre=p.id==='nav'?det.nav:p.id==='disp'?det.disp:'';
+      const ops=p.ops.map(([es,en])=>`<label><input type="radio" name="bz_${p.id}" value="${esc(es)}"${es===pre?' checked':''}${p.ob?' required':''}>${esc(EN?en:es)}</label>`).join('');
+      const ex=p.extra?`<textarea id="bz_${p.extra.id}" name="bz_${p.extra.id}" rows="3" aria-label="${esc(L(p.extra))}" placeholder="${esc(L(p.extra))}" hidden></textarea>`:'';
+      return `<fieldset class="preg"><legend>${esc(L(p))}${ob}</legend>${ay}<div class="ops">${ops}</div>${ex}</fieldset>`;
+    }
+    const inp=p.t==='url'?`<input type="url" id="bz_${p.id}" name="bz_${p.id}" inputmode="url" placeholder="https://…"${ay?` aria-describedby="bz_${p.id}_ay"`:''}>`
+      :`<textarea id="bz_${p.id}" name="bz_${p.id}" rows="4"${p.ob?' required':''}${ay?` aria-describedby="bz_${p.id}_ay"`:''}></textarea>`;
+    return `<div class="preg"><label for="bz_${p.id}">${esc(L(p))}${ob}</label>${ay}${inp}</div>`;
+  };
+  const bloques=Object.entries(BZ_BLOQ).map(([b,[es,en]])=>`<fieldset class="blq"><legend><span class="n">${b}.</span>${esc(EN?en:es)}</legend>${BZ_PREG.filter(p=>p.b==b).map(campo).join('')}</fieldset>`).join('');
+  const activo=!!(BUZON.form&&BUZON.e.length===15);
+  $('#buzon').innerHTML=`
+  <h2>${trd('Informe de errores y sugerencias','Bug reports and suggestions')}</h2>
+  <p class="entrada">${trd('Gracias por probar Harmony Finder. Esta versión se encuentra en fase de pruebas y tu colaboración ayudará a mejorar su funcionamiento.','Thank you for trying Harmony Finder. This version is still being tested, and your help will improve it.')}</p>
+  <p class="nota">${trd('Utiliza este formulario para comunicar errores, comportamientos inesperados, problemas de visualización o cualquier aspecto que consideres que no funciona correctamente. Solo son obligatorias las preguntas marcadas con *.','Use this form to report bugs, unexpected behaviour, display problems or anything you think isn’t working properly. Only the questions marked * are required.')}</p>
+  <form id="bzForm" novalidate>${bloques}
+    <details class="tec"><summary>${trd('Datos técnicos que se envían con el informe','Technical details sent with the report')}</summary><pre id="bzTec"></pre></details>
+    <div class="enviar"><button type="submit"${activo?'':' disabled'}>${trd('Enviar informe','Send report')}</button><span class="estado" id="bzEstado" role="status">${activo?'':trd('El envío aún no está activado.','Sending is not enabled yet.')}</span></div>
+  </form>
+  <div class="gracias" id="bzGracias" hidden tabindex="-1"><h3>${trd('Muchas gracias por contribuir al desarrollo de Harmony Finder','Thank you for helping to develop Harmony Finder')}</h3><p>${trd('Tu informe se ha enviado.','Your report has been sent.')}</p><button class="btn" type="button" id="bzOtro">${trd('Enviar otro informe','Send another report')}</button></div>`;
+  const f=$('#bzForm');
+  $('#bzTec').textContent=bzTecnico();
+  f.addEventListener('change',e=>{if(e.target.name==='bz_msg'){const t=$('#bz_msgTxt');t.hidden=e.target.value!=='Sí';if(!t.hidden)t.focus()}});
+  f.onsubmit=async e=>{
+    e.preventDefault(); const est=$('#bzEstado'); est.classList.remove('mal');
+    const val=id=>{const r=f.querySelector(`[name="bz_${id}"]:checked`);if(r)return r.value;const x=f.querySelector(`#bz_${id}`);return x?x.value.trim():''};
+    if(!val('tipo')){est.textContent=trd('Indica el tipo de incidencia.','Choose the kind of issue.');est.classList.add('mal');f.querySelector('[name="bz_tipo"]').focus();return}
+    if(!val('que')){est.textContent=trd('Describe brevemente qué ha ocurrido.','Briefly describe what happened.');est.classList.add('mal');$('#bz_que').focus();return}
+    const msg=val('msg')==='Sí'&&val('msgTxt')?`Sí: ${val('msgTxt')}`:val('msg');
+    const valores=[val('tipo'),val('apartado'),val('que'),val('esperaba'),val('repro'),val('pasos'),val('disp'),val('nav'),msg,val('captura'),val('valor'),val('musica'),val('mejora'),val('obs'),bzTecnico()];
+    const datos=new URLSearchParams(); valores.forEach((v,i)=>datos.append(BUZON.e[i],v));
+    const b=f.querySelector('[type=submit]'); b.disabled=true; est.textContent=trd('Enviando…','Sending…');
+    try{
+      // Google no deja leer la respuesta desde otra web (no-cors): si la petición sale, el informe ha llegado
+      await fetch(`https://docs.google.com/forms/d/e/${BUZON.form}/formResponse`,{method:'POST',mode:'no-cors',body:datos});
+      f.hidden=true; $('#bzGracias').hidden=false; $('#bzGracias').focus(); window.scrollTo(0,0);
+    }catch(err){
+      b.disabled=false; est.classList.add('mal');
+      est.textContent=trd('No se ha podido enviar. Comprueba la conexión y vuelve a intentarlo; lo escrito no se ha perdido.','It couldn’t be sent. Check your connection and try again; nothing you wrote has been lost.');
+    }
+  };
+  $('#bzOtro').onclick=()=>pintarBuzon();
+}
+// pestañas: Buscador / El proyecto / Buzón (#proyecto, #buzon en la dirección)
+function ruta(){
+  const h=location.hash, pr=h==='#proyecto', bz=h==='#buzon';
+  if(pr&&!$('#proyecto').innerHTML) pintarProyecto();
+  if(bz&&!$('#buzon').innerHTML) pintarBuzon();
+  else if(bz) $('#bzTec')&&($('#bzTec').textContent=bzTecnico());
+  $('#proyecto').hidden=!pr; $('#buzon').hidden=!bz; document.querySelector('main').hidden=pr||bz; if(pr||bz) $('#colecciones').hidden=true;
+  $('#tabProyecto').setAttribute('aria-current',pr?'page':'false'); $('#tabBuzon').setAttribute('aria-current',bz?'page':'false'); $('#tabBuscar').setAttribute('aria-current',pr||bz?'false':'page');
+  if(pr||bz) window.scrollTo(0,0);
+}
+// al ir al buzón desde el buscador se guarda lo que había abierto
+document.addEventListener('click',e=>{const a=e.target.closest('a[href="#buzon"]');if(a&&!document.querySelector('main').hidden) bzCapturar()},true);
 $('#tabBuscar').onclick=e=>{e.preventDefault();history.pushState(null,'',location.pathname+location.search);ruta()};
 window.addEventListener('hashchange',ruta); window.addEventListener('popstate',ruta);
 pintarPortada(); ruta();
