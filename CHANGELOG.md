@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-01
+
 ### Added
 - Progresiones: sugerencia «¿Querías decir…?» cuando la caja del cifrado deja la búsqueda con pocos resultados (p. ej. `ii – v – i` propone `ii – V – I` y `ii – V – i`, con su número de pasajes). La búsqueda escrita no cambia: mayúscula = acorde mayor, minúscula = menor.
 
@@ -66,7 +68,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/enavcap/HarmonyFinder/compare/6e5e592...v0.3.1
 [0.3.0]: https://github.com/enavcap/HarmonyFinder/releases/tag/v0.3.0
 [0.2.0]: https://github.com/enavcap/HarmonyFinder/compare/5aee7e5...13f2a9b
 [0.1.0]: https://github.com/enavcap/HarmonyFinder/commits/5aee7e5
