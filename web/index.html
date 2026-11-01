@@ -1019,7 +1019,7 @@ function pintarEtiquetas(){
 $('#caja').addEventListener('click',e=>{if(!e.target.closest('button'))q.focus()});
 $('#limpiar').onclick=()=>{for(const id of CAMPOS) $('#'+id).value=''; rellenarObras(); q.value=''; reiniciar(); q.focus()};
 $('#todosEj').addEventListener('change',()=>{$('#unaPorObra').checked=!$('#todosEj').checked;if(actual)ejecutar(actual)});
-// barra de categorías: Armonía · Compositor · Período · Tonalidad (siempre visible)
+// barra de categorías: Armonía · Tonalidad · Forma · Secciones · Compositor · Período (siempre visible)
 const PERIODOS=EPOCAS.map(p=>[p,(VOC.periodos[p]||{})['desc_'+LANG]||'']);
 function pintarInicio(){
   const corto=(g,k)=>{const n=NOMBRE(k);
@@ -1058,11 +1058,6 @@ function pintarInicio(){
       <div class="tabs" role="tablist">${FAM.map(([n],i)=>`<button type="button" role="tab" data-tab="${i}" aria-selected="${i===0}">${esc(grupoTxt(n))}</button>`).join('')}</div>
       ${FAM.map(([n,xs],i)=>`<div class="items" data-panel="${i}" ${i?'hidden':''}>${xs.map(x=>item(n,x)).join('')}${n!=='Progresiones'?`<p class="pista vacia" hidden>${trd('Ningún ejemplo con los filtros elegidos','No examples with the chosen filters')}</p>`:''}${n==='Progresiones'?`<p class="pista">${trd('O escribe la tuya en la caja: «vi ii V I»','Or type your own in the box: “vi ii V I”')}</p>`:''}</div>`).join('')}
     </div></details>`+
-   `<details id="catComp"><summary>${trd('Compositor','Composer')}</summary><div class="menu">
-      <input type="search" class="filtro" placeholder="${trd('Buscar compositor','Find a composer')}" aria-label="${trd('Buscar compositor','Find a composer')}">
-      <div class="lista">${compH}<p class="pista vacia" hidden>${trd('Ningún compositor coincide','No composer matches')}</p></div>
-    </div></details>`+
-   `<details id="catPer"><summary>${trd('Período','Period')}</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${esc(perTxt(p))} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}<p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p></div></details>`+
    `<details id="catTon"><summary>${trd('Tonalidad','Key')}</summary><div class="menu tono">
       <div class="col notas">${NOTAS.map(([l,n])=>`<button type="button" data-nota="${l}">${n}</button>`).join('')}</div>
       <div class="col alts">${[['-','♭',trd('bemol','flat')],['','♮',trd('becuadro','natural')],['#','♯',trd('sostenido','sharp')]].map(([v,sm,t])=>`<button type="button" data-alt="${v}" title="${t}" aria-pressed="${v===''}">${sm}</button>`).join('')}</div>
@@ -1075,7 +1070,12 @@ function pintarInicio(){
       <div><h3>${trd('Sección','Section')}</h3><div class="items">${formaItems(1)}</div></div>
       <div><h3>${trd('Zona','Zone')}</h3><div class="items">${formaItems(2)}</div></div><p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p>
       <p class="pista">${trd(`Solo los ${Object.keys(FORMA).length} movimientos con las secciones anotadas (sonatas para piano de Beethoven y Mozart, según Taking Form; en algunos finales de Mozart solo la exposición, según el Mozart Expositional Punctuation Corpus). Combínalo con cualquier procedimiento: «sexta alemana en el desarrollo».`,`Only the ${Object.keys(FORMA).length} movements with annotated sections (Beethoven and Mozart piano sonatas, from Taking Form; for some Mozart finales only the exposition, from the Mozart Expositional Punctuation Corpus). Combine it with any device: “German sixth in the development”.`)}</p>
-    </div></details>`:'');
+    </div></details>`:'')+
+   `<details id="catComp"><summary>${trd('Compositor','Composer')}</summary><div class="menu">
+      <input type="search" class="filtro" placeholder="${trd('Buscar compositor','Find a composer')}" aria-label="${trd('Buscar compositor','Find a composer')}">
+      <div class="lista">${compH}<p class="pista vacia" hidden>${trd('Ningún compositor coincide','No composer matches')}</p></div>
+    </div></details>`+
+   `<details id="catPer"><summary>${trd('Período','Period')}</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${esc(perTxt(p))} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}<p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p></div></details>`;
   const menus=[...$('#inicio').querySelectorAll('details')];
   const cerrarMenus=()=>menus.forEach(d=>d.open=false);
   document.addEventListener('click',e=>{const mio=e.target.closest('#inicio details');menus.forEach(d=>{if(d!==mio)d.open=false})});
