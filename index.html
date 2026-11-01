@@ -557,6 +557,7 @@ const GRUPOS={
  'Dominantes secundarias':['dominante_secundaria','dominante_secundaria_resuelta','dominante_de_la_dominante','septima_disminuida_secundaria'],
  'Modulación':['modulacion','modulacion_diatonica','modulacion_cromatica','modulacion_enarmonica','modulacion_directa','modulacion_a_relativo','modulacion_a_dominante','modulacion_a_homonimo','modulacion_a_tercera'],
  'Secuencias y pedales':['secuencia_quintas','pedal_de_dominante'],
+ 'Cuatríadas':['septima_de_dominante','septima_disminuida','septima_semidisminuida','septima_menor','septima_mayor'],
 };
 for(const k of Object.keys(META.conceptos)) if(!Object.values(GRUPOS).flat().includes(k)) GRUPOS['Acordes'].push(k);
 const GRUPO_DE={}; for(const [g,l] of Object.entries(GRUPOS)) for(const k of l) GRUPO_DE[k]=g;
@@ -565,7 +566,7 @@ const NOMBRE=k=>(VOC.conceptos[k]||{})[LANG]||k;
 const DESC=k=>(VOC.conceptos[k]||{})['desc_'+LANG]||(META.conceptos[k]||{}).desc||'';
 // nombre de un grupo interno en el idioma de la interfaz
 const GRUPO_TXT={'Cadencias':'cadencias','Acordes':'alterados','Acordes alterados':'alterados','Dominantes secundarias':'secundarias','Modulación':'modulacion',
-  'Otros recursos':'otros','Secuencias y pedales':'otros','Tipos de acorde':'tipos','Progresiones':'progresiones'};
+  'Otros recursos':'otros','Secuencias y pedales':'otros','Cuatríadas':'cuatriadas','Tipos de acorde':'tipos','Progresiones':'progresiones'};
 const grupoTxt=g=>GRUPO_TXT[g]?VOC.grupos[GRUPO_TXT[g]][LANG]:g;
 
 function interpretar(texto){
@@ -1028,6 +1029,7 @@ const PERIODOS=EPOCAS.map(p=>[p,(VOC.periodos[p]||{})['desc_'+LANG]||'']);
 function pintarInicio(){
   const corto=(g,k)=>{const n=NOMBRE(k);
     if(g==='Cadencias') return EN?n.replace(/ cadence$/,''):n.replace(/^cadencia /,'');
+    if(g==='Cuatríadas') return EN?n.replace(/ seventh chord$/,'').replace(/^./,c=>c.toUpperCase()):n.replace(/^acorde de séptima /,'').replace(/^./,c=>c.toUpperCase());
     if(g==='Modulación') return k==='modulacion'?trd('cualquiera','any'):EN?n.replace(/^modulation to the /,'').replace(/ modulation$/,''):n.replace(/^modulación /,'');
     return n};
   const FAM=[
@@ -1036,6 +1038,7 @@ function pintarInicio(){
     ['Dominantes secundarias',GRUPOS['Dominantes secundarias'].map(k=>({k}))],
     ['Modulación',GRUPOS['Modulación'].map(k=>({k}))],
     ['Otros recursos',['acorde_disminuido','quinta_aumentada','sexta_anadida','secuencia_quintas','pedal_de_dominante'].map(k=>({k}))],
+    ['Cuatríadas',GRUPOS['Cuatríadas'].map(k=>({k}))],
     ['Tipos de acorde',['tri','cua','fund','inv1','inv2','inv3','pres','sec','alt','conmod'].map(f=>({f}))],
     ['Progresiones',['I IV V I','ii6 V7 I','I vi IV V','iv6 V','I6 ii6 V'].map(p=>({p}))],
   ];
