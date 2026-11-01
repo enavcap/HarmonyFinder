@@ -1,8 +1,3 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Harmony Finder</title>
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -378,7 +373,7 @@ footer a{color:var(--accent)}
 </aside>
 </main>
 
-<footer><div class="autor"><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</div><div><span data-en="Analyses:">Análisis:</span> <a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (CC BY-SA 4.0) · <a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus, DCML</a> (CC BY-NC-SA 4.0) · <span data-en="Form: ">Forma: </span><a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a> (MIT), <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> (CC BY 4.0), <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a> (CC0) · <span data-en="Scores: OpenScore, music21, reconstructions from the DCML note tables · Engraving: Verovio">Partituras: OpenScore, music21, reconstrucciones a partir de las tablas del DCML · Grabado: Verovio</span></div></footer>
+<footer><div class="autor"><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</div></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -1024,7 +1019,7 @@ function pintarEtiquetas(){
 $('#caja').addEventListener('click',e=>{if(!e.target.closest('button'))q.focus()});
 $('#limpiar').onclick=()=>{for(const id of CAMPOS) $('#'+id).value=''; rellenarObras(); q.value=''; reiniciar(); q.focus()};
 $('#todosEj').addEventListener('change',()=>{$('#unaPorObra').checked=!$('#todosEj').checked;if(actual)ejecutar(actual)});
-// barra de categorías: Armonía · Compositor · Período · Tonalidad (siempre visible)
+// barra de categorías: Armonía · Tonalidad · Forma · Secciones · Compositor · Período (siempre visible)
 const PERIODOS=EPOCAS.map(p=>[p,(VOC.periodos[p]||{})['desc_'+LANG]||'']);
 function pintarInicio(){
   const corto=(g,k)=>{const n=NOMBRE(k);
@@ -1063,11 +1058,6 @@ function pintarInicio(){
       <div class="tabs" role="tablist">${FAM.map(([n],i)=>`<button type="button" role="tab" data-tab="${i}" aria-selected="${i===0}">${esc(grupoTxt(n))}</button>`).join('')}</div>
       ${FAM.map(([n,xs],i)=>`<div class="items" data-panel="${i}" ${i?'hidden':''}>${xs.map(x=>item(n,x)).join('')}${n!=='Progresiones'?`<p class="pista vacia" hidden>${trd('Ningún ejemplo con los filtros elegidos','No examples with the chosen filters')}</p>`:''}${n==='Progresiones'?`<p class="pista">${trd('O escribe la tuya en la caja: «vi ii V I»','Or type your own in the box: “vi ii V I”')}</p>`:''}</div>`).join('')}
     </div></details>`+
-   `<details id="catComp"><summary>${trd('Compositor','Composer')}</summary><div class="menu">
-      <input type="search" class="filtro" placeholder="${trd('Buscar compositor','Find a composer')}" aria-label="${trd('Buscar compositor','Find a composer')}">
-      <div class="lista">${compH}<p class="pista vacia" hidden>${trd('Ningún compositor coincide','No composer matches')}</p></div>
-    </div></details>`+
-   `<details id="catPer"><summary>${trd('Período','Period')}</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${esc(perTxt(p))} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}<p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p></div></details>`+
    `<details id="catTon"><summary>${trd('Tonalidad','Key')}</summary><div class="menu tono">
       <div class="col notas">${NOTAS.map(([l,n])=>`<button type="button" data-nota="${l}">${n}</button>`).join('')}</div>
       <div class="col alts">${[['-','♭',trd('bemol','flat')],['','♮',trd('becuadro','natural')],['#','♯',trd('sostenido','sharp')]].map(([v,sm,t])=>`<button type="button" data-alt="${v}" title="${t}" aria-pressed="${v===''}">${sm}</button>`).join('')}</div>
@@ -1080,7 +1070,12 @@ function pintarInicio(){
       <div><h3>${trd('Sección','Section')}</h3><div class="items">${formaItems(1)}</div></div>
       <div><h3>${trd('Zona','Zone')}</h3><div class="items">${formaItems(2)}</div></div><p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p>
       <p class="pista">${trd(`Solo los ${Object.keys(FORMA).length} movimientos con las secciones anotadas (sonatas para piano de Beethoven y Mozart, según Taking Form; en algunos finales de Mozart solo la exposición, según el Mozart Expositional Punctuation Corpus). Combínalo con cualquier procedimiento: «sexta alemana en el desarrollo».`,`Only the ${Object.keys(FORMA).length} movements with annotated sections (Beethoven and Mozart piano sonatas, from Taking Form; for some Mozart finales only the exposition, from the Mozart Expositional Punctuation Corpus). Combine it with any device: “German sixth in the development”.`)}</p>
-    </div></details>`:'');
+    </div></details>`:'')+
+   `<details id="catComp"><summary>${trd('Compositor','Composer')}</summary><div class="menu">
+      <input type="search" class="filtro" placeholder="${trd('Buscar compositor','Find a composer')}" aria-label="${trd('Buscar compositor','Find a composer')}">
+      <div class="lista">${compH}<p class="pista vacia" hidden>${trd('Ningún compositor coincide','No composer matches')}</p></div>
+    </div></details>`+
+   `<details id="catPer"><summary>${trd('Período','Period')}</summary><div class="menu">${PERIODOS.filter(([p])=>obrasPer(p)).map(([p,r])=>`<button type="button" data-per="${p}"><span>${esc(perTxt(p))} <span class="r">${r}</span></span><span class="c">${obrasPer(p)}</span></button>`).join('')}<p class="pista vacia" hidden>${trd('Ninguna opción con los filtros elegidos','No option with the chosen filters')}</p></div></details>`;
   const menus=[...$('#inicio').querySelectorAll('details')];
   const cerrarMenus=()=>menus.forEach(d=>d.open=false);
   document.addEventListener('click',e=>{const mio=e.target.closest('#inicio details');menus.forEach(d=>{if(d!==mio)d.open=false})});
@@ -2422,7 +2417,7 @@ function pintarProyecto(){
   <h3>Partituras</h3>
   <p>Las partituras vienen de OpenScore, del corpus de music21 o se reconstruyen a partir de las tablas de notas del DCML, y se graban en el navegador con Verovio. Al reconstruirlas pueden aparecer pequeñas imperfecciones de notación.</p>
   <h3>Estado y licencia</h3>
-  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Licencias de las fuentes: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder es un proyecto de <strong>Ezequiel Navarrete</strong>.</p>`;
   const en=`
   <h2>The project</h2>
@@ -2446,7 +2441,7 @@ function pintarProyecto(){
   <h3>Scores</h3>
   <p>Scores come from OpenScore, the music21 corpus, or are rebuilt from the DCML note tables, and are engraved in the browser with Verovio. Rebuilt scores may show small notation imperfections.</p>
   <h3>Status and licence</h3>
-  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it. The site can be used in Spanish or English, and searches give exactly the same results in both. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it. The site can be used in Spanish or English, and searches give exactly the same results in both. Source licences: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder is a project by <strong>Ezequiel Navarrete</strong>.</p>`;
   $('#proyecto').innerHTML=EN?en:es;
 }
@@ -2476,5 +2471,3 @@ window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
 </script>
-
-</html>
