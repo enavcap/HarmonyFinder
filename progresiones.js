@@ -24,6 +24,14 @@ const CIFRAS={
 // Sin tonalidad (lo que escribe el usuario) se tratan como iguales. Igual que accEfectiva() en index.html.
 function alteracion(acc,num,sec,tono){
   acc=acc.replace(/-/g,'b');
+  // En menor, «bVI»/«bVII» y «VI»/«VII» son el mismo acorde (sobre el 6.º y 7.º grados de la escala menor;
+  // music21 les da las mismas notas): un analista escribe a veces el bemol redundante. Solo en el corpus (con
+  // tonalidad): lo que escribe el usuario sin tonalidad no se toca, así «bVI V» sigue siendo el préstamo en mayor.
+  if(acc==='b'&&/^(VI|VII)$/.test(num)&&tono){
+    const destino=sec.length?sec[0].replace(/^[#b-]+/,''):null;
+    const menor=destino?destino===destino.toLowerCase():tono[0]===tono[0].toLowerCase();
+    if(menor) return '';
+  }
   if(acc!=='#'||!/^(vi|vii)$/.test(num)) return acc;
   const destino=sec.length?sec[0].replace(/^[#b-]+/,''):null;
   const menor=destino?destino===destino.toLowerCase():(!tono||tono[0]===tono[0].toLowerCase());
@@ -85,7 +93,7 @@ function coincide(c,q,opc={}){
       if(c.tam!==q.tam) return false;
       if(!opc.sinInv&&c.inv!==q.inv) return false;
     }
-  }
+  } else if(opc.fund&&!opc.sinInv&&c.tam!=='otro'&&c.inv) return false;   // «I» sin cifra = estado fundamental (inv vacía o 0)
   for(const e of q.ext) if(!c.ext.includes(e)) return false;
   return true;
 }
@@ -94,7 +102,8 @@ function coincide(c,q,opc={}){
 //   crudo: [[compás, parte, índice de tono, cifrado, …, …, unísono?], …]  (web/data/acordes/*.json)
 //   tonos: lista de tonalidades locales del grupo
 //   Q:     consultas (consulta())
-//   opc:   {sinInv, gap (acordes intermedios permitidos), min (mínimo de acordes que deben coincidir), ignorarCaja}
+//   opc:   {sinInv, fund (un grado sin cifra exige estado fundamental), gap (acordes intermedios permitidos),
+//           min (mínimo de acordes que deben coincidir), ignorarCaja}
 // Devuelve [{i0, i1, h, caja}] con índices en la sucesión comprimida `seq`, el número de acordes coincidentes
 // y, por cada consulta, si el acorde que la cumplió va en mayúscula (true), minúscula (false) o no se usó (undefined).
 const ILEGIBLE=Object.freeze({num:'?',grado:'?',mayus:null,acc:'',cal:'',tipo:'',dig:'',tam:null,inv:null,sec:'',ext:[]});

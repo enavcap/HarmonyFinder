@@ -223,6 +223,7 @@ tr.hijo td:first-child{padding-left:44px}
 tr.mas td{color:var(--accent);font-size:13px;cursor:pointer;padding-top:4px;padding-bottom:6px}
 .fu{display:inline-block;font:500 10.5px/1.6 var(--body);letter-spacing:.04em;padding:0 6px;border-radius:4px;margin-right:4px;vertical-align:1px;border:1px solid var(--line);color:var(--muted)}
 .fu.wir{color:var(--accent);border-color:currentColor}
+.n-an{font:11px var(--body);color:var(--muted);white-space:nowrap}
 .fu.dcml{color:var(--enh);border-color:currentColor}
 .fu.anot{color:var(--fun);border-color:currentColor}
 #selAnalisis{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);align-items:center}
@@ -362,6 +363,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
     </div>
     <div class="ajustes" id="ajustesProg" hidden>
       <label class="chk"><input type="checkbox" id="progInv"> <span data-en="ignore inversions">ignorar inversiones</span></label>
+      <label class="chk" title="«I» solo encuentra I en estado fundamental, no I6 ni I64" data-en-title="“I” only finds root-position I, not I6 or I64"><input type="checkbox" id="progFund"> <span data-en="no figure = root position">sin cifra = estado fundamental</span></label>
       <select id="progGap" aria-label="Acordes intermedios" data-en-aria-label="Chords in between"><option value="0" data-en="no chords in between">sin acordes intermedios</option><option value="1" data-en="up to 1 in between">hasta 1 intermedio</option><option value="2" data-en="up to 2 in between">hasta 2 intermedios</option></select>
       <label class="chk"><span data-en="at least">mínimo</span> <input type="number" id="progMin" min="2" max="12" value="" placeholder="todos" data-en-placeholder="all" class="num"> <span data-en="chords">acordes</span></label>
     </div>
@@ -516,9 +518,10 @@ function inicioForma(m,f){
 }
 const TONOS=['C','c','C#','c#','D-','D','d','E-','e-','E','e','F','f','F#','f#','G-','G','g','g#','A-','A','a','B-','b-','B','b'];
 function rellenarObras(){
-  const sel=$('#obraSel'), comp=$('#compositor').value; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
+  // la obra elegida se lee antes de vaciar el desplegable (si no, cada refresco de los menús quitaba el filtro de obra)
+  const sel=$('#obraSel'), comp=$('#compositor').value, sel0=+sel.value||0; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
   sel.hidden=!comp; if(!comp) return;
-  const vistas=new Map(), F=facetas(), sel0=+$('#obraSel').value||0; for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)&&(F.obra.has(o.w)||o.w===sel0)) vistas.set(o.w,o.ob);
+  const vistas=new Map(), F=facetas(); for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)&&(F.obra.has(o.w)||o.w===sel0)) vistas.set(o.w,o.ob);
   for(const [w,t] of [...vistas].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true}))){const op=document.createElement('option');op.value=w;op.textContent=t;sel.append(op)}
   if(sel0) sel.value=String(sel0);
 }
@@ -594,9 +597,15 @@ function traducir(texto,tono,modo){
   });
 }
 const ver=()=>({rom:$('#verRom').checked,int:$('#verInt').checked,fun:$('#verFun').checked});
+// cifrado para leer: sin las notas añadidas u omitidas que anota el analista ([no3][add4]: apoyaturas, retardos)
+// ni la sintaxis interna del DCML (|PAC cadencia, { } inicio y fin de frase, \\ , «V.I6» tonalidad local)
+function cifLegible(t){
+  return String(t||'').replace(/\[[^\]]*\]/g,'').replace(/\|[A-Z]{2,4}\b/g,'').replace(/[{}\\]/g,'')
+    .replace(/(^|[\s(→])[#b-]*[IViv]+\.(?=[#b-]*([IViv]|Ger|It|Fr|N|Cad))/g,'$1').replace(/\s{2,}/g,' ').trim();
+}
 function lineas(texto,tono){
   const v=ver(); let h='';
-  if(v.rom) h+=`<span class="lin rom">${esc(etqTxt(texto))}</span>`;
+  if(v.rom) h+=`<span class="lin rom" title="${esc(etqTxt(texto))}">${esc(etqTxt(cifLegible(texto)))}</span>`;
   if(v.int) h+=`<span class="lin int" title="${trd('Cifrado interválico','Figured bass')}">${esc(etqTxt(traducir(texto,tono,'int')))}</span>`;
   if(v.fun) h+=`<span class="lin fun" title="${trd('Cifrado funcional','Functional analysis')}">${esc(etqTxt(traducir(texto,tono,'fun')))}</span>`;
   return h||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
@@ -604,7 +613,7 @@ function lineas(texto,tono){
 
 // ============ conceptos (detectores precalculados) ============
 const GRUPOS={
- 'Cadencias':['cadencia_autentica_perfecta','cadencia_autentica_imperfecta','cadencia_rota','semicadencia','cadencia_frigia','cadencia_plagal','sexta_cuarta_cadencial'],
+ 'Cadencias':['cadencia_autentica_perfecta','cadencia_autentica_imperfecta','cadencia_rota','semicadencia','cadencia_frigia','cadencia_plagal','sexta_cuarta_cadencial','tercera_picardia'],
  'Acordes':['napolitana','napolitana_a_dominante','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','sexta_aumentada_a_64','acorde_disminuido','quinta_aumentada','sexta_anadida','intercambio_modal','acorde_vecino_cromatico'],
  'Dominantes secundarias':['dominante_secundaria','dominante_secundaria_resuelta','dominante_de_la_dominante','septima_disminuida_secundaria'],
  'Modulación':['modulacion','modulacion_diatonica','modulacion_cromatica','modulacion_enarmonica','modulacion_directa','modulacion_a_relativo','modulacion_a_dominante','modulacion_a_homonimo','modulacion_a_tercera'],
@@ -765,7 +774,8 @@ let facClave='', facAct=null; const unidadesCache=new Map();
 function unidades(){
   if(actual?.t==='c'&&hitsCache[actual.k]){
     const k='c:'+actual.k;
-    if(!unidadesCache.has(k)) unidadesCache.set(k,hitsCache[actual.k].map(h=>{const o=porId.get(h[0]);const fz=o&&formaEn(o.m,h[1],h[2]);return {o,tonos:[h[3]],sz:fz?[fz]:[]}}));
+    // un pasaje con dos análisis cuenta una vez, como en los resultados (fusionarAnalisis)
+    if(!unidadesCache.has(k)){const vistos=new Set();unidadesCache.set(k,hitsCache[actual.k].filter(h=>{const o=porId.get(h[0]);const c=(o?o.m:'')+'|'+h[1]+'@'+h[2];return !vistos.has(c)&&vistos.add(c)}).map(h=>{const o=porId.get(h[0]);const fz=o&&formaEn(o.m,h[1],h[2]);return {o,tonos:[h[3]],sz:fz?[fz]:[]}}))}
     return unidadesCache.get(k);
   }
   const amplio=actual&&(actual.t==='p'||actual.t==='f'), k='m:'+amplio+':'+!!COMP;
@@ -792,7 +802,9 @@ function facetas(){
     const g={...f,[k]:k==='obra'?0:''}; if(k==='comp') g.obra=0;
     const m=new Map();
     for(const u of U){if(!u.o||!pasaU(u,g)) continue;
-      for(const v of new Set(fn(u,g))){if(v==null||v==='') continue; let x=m.get(v); if(!x) m.set(v,x={w:new Set(),m:new Set()}); x.w.add(u.o.w); x.m.add(u.o.m)}}
+      for(const v of new Set(fn(u,g))){if(v==null||v==='') continue; let x=m.get(v); if(!x) m.set(v,x={w:new Set(),m:new Set(),cw:new Map()}); x.w.add(u.o.w); x.m.add(u.o.m); x.cw.set(u.o.w,(x.cw.get(u.o.w)||0)+1)}}
+    // ejemplos que daría elegir esa opción (con el límite de ejemplos por obra, como en los resultados)
+    for(const x of m.values()){x.n=0;for(const c of x.cw.values()) x.n+=Math.min(c,f.lim)}
     R[k]=m;
   }
   facClave=clave; facAct=R; return R;
@@ -808,8 +820,11 @@ async function disponibilidadArmonia(){
   if(!armCargando) armCargando=Promise.all(Object.keys(META.conceptos).map(async k=>{if(!hitsCache[k]) hitsCache[k]=await (await fetch(`data/hits/${k}.json`)).json()}));
   await armCargando;
   const n={};
-  for(const k of Object.keys(META.conceptos)){let c=0;
-    for(const h of hitsCache[k]){const ob=porId.get(h[0]); if(pasaObra(ob,f)&&pasaTono(h[3],f)&&pasaForma(ob,f,h[1],h[2])) c++}
+  // mismo recuento que los resultados: un pasaje con dos análisis cuenta una vez y se respeta el límite por obra
+  for(const k of Object.keys(META.conceptos)){const vistos=new Set(), porW=new Map(); let c=0;
+    for(const h of hitsCache[k]){const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)||!pasaForma(ob,f,h[1],h[2])) continue;
+      const clave=ob.m+'|'+h[1]+'@'+h[2]; if(vistos.has(clave)) continue; vistos.add(clave);
+      const nw=(porW.get(ob.w)||0)+1; porW.set(ob.w,nw); if(nw<=f.lim) c++}
     n[k]=c}
   armClave=clave; armN=n; return n;
 }
@@ -908,14 +923,29 @@ const textoOpcion=o=>o.t==='x'?o.txt:o.t==='c'?NOMBRE(o.k):o.t==='o'?(o.comp?trd
 const obrasDe=(comp,f)=>OBRAS.filter(o=>(!comp||o.c===comp)&&pasaObra(o,{...f,comp:''}));
 // ---- progresiones de cifrados romanos
 function tokensProg(texto){
-  const toks=String(texto).trim().split(/[\s,–—]+|(?<=[0-9IViv])-(?=[b#]?[IViv])/).filter(Boolean);
-  if(toks.length<2) return null;
+  // «°» y «º» (disminuido) se escriben «o» en el cifrado de los corpus
+  // notación anglosajona de las sextas aumentadas: It+6 → It6, Fr+6 → Fr43, Ger+6 / Gr+6 → Ger65, Gr65 → Ger65
+  const SEXTA={it:'It6',fr:'Fr43',ger:'Ger65',gr:'Ger65'};
+  const toks=String(texto).trim().replace(/[°º]/g,'o').split(/[\s,–—]+|(?<=[0-9IViv])-(?=[b#]?[IViv])/).filter(Boolean)
+    .map(x=>x.replace(/^(It|Fr|Ger|Gr)\+6$/i,(m,a)=>SEXTA[a.toLowerCase()]).replace(/^Gr(?=\d|$)/,'Ger'));
+  if(!toks.length) return null;
   for(const x of toks) if(!Progresiones.consulta(x)||/[a-z]{4,}/i.test(x.replace(/^(Cad|Ger|It|Fr)/,''))) return null;
+  if(toks.length===1){
+    // un acorde suelto («V7», «ii7», «V65/V», «viio7»): solo si lleva cifra, calidad o secundaria (un «I» o un «V»
+    // a secas no es una búsqueda útil) y no es el nombre de un procedimiento («N6» → sexta napolitana)
+    const t=norm(toks[0]);
+    if(!/[\do%ø+\/]/.test(toks[0])||Object.values(META.sinonimos).some(l=>l.some(s=>norm(s)===t))) return null;
+  }
   return toks;
 }
 // En menor, «#vi»/«#vii» y «vi»/«vii» designan el mismo acorde (sexto/séptimo grado elevados; convención
 // de RomanText que el DCML escribe con #). Sin tonalidad (lo que escribe el usuario) se tratan como iguales.
 function accEfectiva(p,tono){
+  // en menor, «bVI»/«bVII» = «VI»/«VII» (mismo acorde; ver alteracion() en progresiones.js)
+  if(/^b|^-/.test(p.acc)&&/^(VI|VII)$/.test(p.num)&&tono){
+    const destino=p.sec.length?p.sec[0].replace(/^[#b-]+/,''):null;
+    if(destino?destino===destino.toLowerCase():tono[0]===tono[0].toLowerCase()) return '';
+  }
   if(p.acc!=='#'||!/^(vi|vii)$/.test(p.num)) return p.acc;
   const destino=p.sec.length?p.sec[0].replace(/^[#b-]+/,''):null;
   const menor=destino?destino===destino.toLowerCase():(!tono||tono[0]===tono[0].toLowerCase());
@@ -936,7 +966,7 @@ const seqCache=new Map();   // sucesión ya leída de cada análisis (los datos 
 async function buscarProgresion(toks,f,extra={}){
   await cargarTodosAcordes();
   // comparación por propiedades (web/progresiones.js): lo escrito solo exige lo que se escribe
-  const opc={sinInv:$('#progInv').checked,gap:+$('#progGap').value,min:+$('#progMin').value||0,...extra};
+  const opc={sinInv:$('#progInv').checked,fund:$('#progFund').checked,gap:+$('#progGap').value,min:+$('#progMin').value||0,...extra};
   const Q=toks.map(Progresiones.consulta), out=[], cuenta={};
   for(const o of OBRAS){
     if(!pasaObra(o,f)) continue;
@@ -1016,7 +1046,7 @@ function abrir(){
     const g=o.t==='x'?TIPO_FILTRO[o.campo]:o.t==='c'?grupoTxt(GRUPO_DE[o.k]||''):o.t==='o'?trd('Compositores','Composers'):o.t==='p'?trd('Progresión','Progression'):trd('Pasajes por tipo de acorde','Passages by chord type');
     if(t&&g!==previo){html+=`<li class="g" role="presentation">${esc(g)}</li>`;previo=g}
     let desc,cnt;
-    if(o.t==='c'){const m=META.conceptos[o.k];desc=DESC(o.k);const conF=armN&&armClave===JSON.stringify(filtros());cnt=(conF?armN[o.k]:m.n).toLocaleString(LOC)}
+    if(o.t==='c'){const m=META.conceptos[o.k];desc=DESC(o.k);const conF=armN&&armClave===JSON.stringify(filtros());cnt=(conF?armN[o.k]:(m.np??m.n)).toLocaleString(LOC)}
     else if(o.t==='o'){const l=obrasDe(o.comp,filtros());desc=trd('todas sus obras','all their works');cnt=new Set(l.map(x=>x.w)).size}
     else if(o.t==='p'){desc=trd('sucesión de cifrados romanos','succession of Roman numerals');cnt=''}
     else if(o.t==='x'){desc=actual&&actual.t!=='o'?trd('limita la búsqueda actual','narrows the current search'):trd('añade el filtro','adds the filter');cnt=''}
@@ -1025,7 +1055,8 @@ function abrir(){
     html+=`<li role="option" id="op${i}" aria-selected="${i===activa}" title="${esc(desc)}"><span class="n">${resaltar(nombre,o.t==='c'?t:o.t==='x'?tc(t):ultima)}</span><span class="c">${cnt}</span></li>`;
   });
   if(formaPendiente) html=`<li class="g" role="presentation">${esc(trd('Con el filtro: ','With the filter: ')+(formaPendiente.campo==='formaGlobal'?formaGTxt:formaTxt)(formaPendiente.valor))}</li>`+html;
-  if(t&&!opciones.length) html=`<li class="vacia" role="presentation">${trd('Sin coincidencias','No matches')}</li>`;
+  if(t&&avisoNoAnotado(t)) html=`<li class="vacia" role="presentation">${esc(avisoNoAnotado(t))}</li>`+html;
+  if(t&&!opciones.length) html=`<li class="vacia" role="presentation">${esc(avisoNoAnotado(t)||trd('Sin coincidencias','No matches'))}</li>`;
   if(!t){cerrar();return}
   lista.innerHTML=html; lista.hidden=false; q.setAttribute('aria-expanded','true');
   q.setAttribute('aria-activedescendant',activa>=0?'op'+activa:'');
@@ -1060,8 +1091,9 @@ function relanzar(){
   reiniciar();
 }
 function reiniciar(){
-  actual=null; filas=[]; seleccion=null;
+  actual=null; filas=[]; seleccion=null; escribirURL();
   $('#estado').textContent=''; $('#quizas').hidden=true; $('#tabla').hidden=true; $('#vista').hidden=true;
+  $('#resumen').hidden=true; $('#destacados').hidden=true;
   pintarEtiquetas();
 }
 function quitar(campo){
@@ -1209,11 +1241,15 @@ function pintarInicio(){
   const vacio=(menu,sel)=>{const v=menu&&menu.querySelector(':scope > .menu > .vacia, :scope .menu .vacia'); if(v) v.hidden=[...menu.querySelectorAll(sel)].some(b=>!b.hidden)};
   refrescarMenus=()=>{
     const F=facetas(), f=filtros();
-    cp.querySelectorAll('[data-c]').forEach(b=>{const x=F.comp.get(b.dataset.c);b.classList.toggle('nodisp',!x&&b.dataset.c!==f.comp);if(x)b.querySelector('.c').textContent=x.w.size});
+    // el número de cada opción es lo que daría elegirla, en la misma unidad que el resumen de resultados:
+    // ejemplos al buscar un procedimiento, movimientos al listar obras; con progresiones o tipos de acorde
+    // (pasajes que solo se cuentan al buscar) no se muestra número
+    const cuentaMenu=x=>actual?.t==='c'?x.n.toLocaleString(LOC):actual?.t==='p'||actual?.t==='f'?'':x.m.size.toLocaleString(LOC);
+    cp.querySelectorAll('[data-c]').forEach(b=>{const x=F.comp.get(b.dataset.c);b.classList.toggle('nodisp',!x&&b.dataset.c!==f.comp);if(x)b.querySelector('.c').textContent=cuentaMenu(x)});
     filtrarComp();
-    $('#catPer').querySelectorAll('[data-per]').forEach(b=>{const x=F.per.get(b.dataset.per);b.hidden=!x&&b.dataset.per!==f.per;b.querySelector('.c').textContent=x?x.w.size:nPer.get(b)});
+    $('#catPer').querySelectorAll('[data-per]').forEach(b=>{const x=F.per.get(b.dataset.per);b.hidden=!x&&b.dataset.per!==f.per;b.querySelector('.c').textContent=x?cuentaMenu(x):nPer.get(b)});
     vacio($('#catPer'),'[data-per]');
-    $('#catFormaG').querySelectorAll('[data-fg]').forEach(b=>{const x=F.fg.get(b.dataset.fg);b.hidden=!x&&b.dataset.fg!==f.fg;if(x)b.querySelector('.c').textContent=x.m.size});
+    $('#catFormaG').querySelectorAll('[data-fg]').forEach(b=>{const x=F.fg.get(b.dataset.fg);b.hidden=!x&&b.dataset.fg!==f.fg;if(x)b.querySelector('.c').textContent=cuentaMenu(x)});
     vacio($('#catFormaG'),'[data-fg]');
     if(cf){cf.querySelectorAll('[data-forma]').forEach(b=>{const k=b.dataset.niv==='1'?'sec':'zona';b.hidden=!F[k].has(b.dataset.forma)&&b.dataset.forma!==f[k]});vacio(cf,'[data-forma]')}
     marcarTon();
@@ -1250,7 +1286,8 @@ $('#form').addEventListener('submit',e=>{e.preventDefault();enviar()});
 // se interpreta como procedimiento. Solo actúa si encuentra al menos un filtro; si no, Enter elige la sugerencia.
 const NEXOS=new Set([...RELLENO,'por','by','from','del','la','el','los','las','de la','for','para']);
 function filtroExacto(s){
-  const vale=(campo,valor)=>disponible(campo,valor);
+  // no se exige que el filtro dé resultados (eso depende de datos que se cargan al abrir la página): lo escrito manda
+  const vale=()=>true;
   const cs=comps.filter(c=>[c,COMP_OTRO[c]].filter(Boolean).some(n=>norm(n)===s||norm(apellido(n))===s)&&vale('compositor',c));
   if(cs.length){const nObras=c=>new Set(OBRAS.filter(o=>o.c===c).map(o=>o.w)).size; const c=cs.sort((a,b)=>nObras(b)-nObras(a))[0]; return {t:'x',campo:'compositor',valor:c,txt:c}}
   for(const k of TONOS) if(nombresTono(k).includes(s)&&vale('tonalidad',k)) return {t:'x',campo:'tonalidad',valor:k,txt:tonoLargo(k)};
@@ -1279,9 +1316,19 @@ function descomponer(texto){
   }
   return {fil,o,fp};
 }
+// Lo que el corpus no anota (puntos de articulación de la teoría de la sonata, estructura de frase): en vez de
+// «sin coincidencias», se explica y se propone la búsqueda que más se acerca.
+const NO_ANOTADO=[
+  {pal:['mc','medial caesura','cesura media'],es:'La cesura media (MC) es un punto de articulación que el corpus no anota. Prueba «semicadencia en la transición».',en:'The medial caesura (MC) is an articulation point the corpus does not annotate. Try “half cadence in the transition”.'},
+  {pal:['eec','essential expositional closure','cierre esencial de la exposicion','esc','essential structural closure'],es:'El cierre esencial (EEC/ESC) no está anotado en el corpus. Prueba «cadencia auténtica perfecta en el segundo grupo temático».',en:'Essential closure (EEC/ESC) is not annotated in the corpus. Try “perfect authentic cadence in the secondary theme”.'},
+  {pal:['sentence','oracion','frase musical','period','periodo musical','antecedente','consecuente','antecedent','consequent','estructura de frase','phrase structure'],es:'La estructura de frase (periodo, oración, antecedente-consecuente) no está anotada en el corpus; solo las cadencias que cierran las frases.',en:'Phrase structure (period, sentence, antecedent-consequent) is not annotated in the corpus; only the cadences that close phrases are.'},
+];
+function avisoNoAnotado(t){const x=NO_ANOTADO.find(a=>a.pal.includes(t));return x?x[LANG]:''}
 let navegada=false;   // el usuario movió la selección con las flechas: Enter respeta su elección
 function enviar(){
   if(!lista.hidden&&activa>=0&&navegada) return elegir(opciones[activa]);
+  const aviso=avisoNoAnotado(norm(q.value).trim());
+  if(aviso){cerrar();$('#estado').textContent=aviso;return}
   const d=descomponer(q.value);
   if(d){
     q.value=''; cerrar();
@@ -1301,7 +1348,7 @@ function enviar(){
   formaPendiente=null;
   // un filtro escrito sin elegirlo de la lista («la menor», «Mozart»): el primero que encaje
   const fx=sugerirFiltros(norm(texto).trim()); if(fx.length) return elegir(fx[0]);
-  cerrar(); if(q.value.trim()){$('#estado').textContent=trd('Sin coincidencias para «','No matches for “')+q.value.trim()+trd('»','”')}
+  cerrar(); if(q.value.trim()){$('#estado').textContent=avisoNoAnotado(norm(q.value).trim())||trd('Sin coincidencias para «','No matches for “')+q.value.trim()+trd('»','”')}
 }
 cargarCompases().then(()=>{refrescarMenus();if(!lista.hidden)abrir()});
 
@@ -1336,6 +1383,20 @@ function etqTxt(e){
 for(const t of TONOS){const op=document.createElement('option');op.value=t;op.textContent=tonoEs(t);$('#tonalidad').append(op)}
 function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
 // alterna compositores para que la primera página no la llene uno solo (p. ej. 371 corales de Bach)
+// Un mismo movimiento puede tener dos análisis (When in Rome y DCML, o dos analistas): el mismo pasaje sale
+// en los dos. Se cuenta y se muestra una vez; los demás análisis quedan en h.otros (la vista deja cambiar de
+// análisis y compararlos). La clave es el movimiento y el sitio (compás y parte, o el tramo de compases).
+function fusionarAnalisis(lista){
+  const vistos=new Map(), out=[];
+  for(const h of lista){
+    const o=porId.get(h.obra); if(!o){out.push(h);continue}
+    const k=o.m+'|'+(h.frag?h.ini+'-'+h.fin:h.compas+'@'+h.parte);
+    const p=vistos.get(k);
+    if(p){if(p.obra!==h.obra&&!p.otros.some(x=>x.obra===h.obra)) p.otros.push(h); continue}
+    h.otros=[]; vistos.set(k,h); out.push(h);
+  }
+  return out;
+}
 function intercalar(lista){
   lista.sort(ordenar);
   const n={}; for(const h of lista){const o=porId.get(h.obra);h._r=(n[o.c]=(n[o.c]||0)+1)}
@@ -1363,29 +1424,29 @@ async function ejecutar(o){
   } else if(o.t==='c'){
     const k=o.k;
     if(!hitsCache[k]) hitsCache[k]=await (await fetch(`data/hits/${k}.json`)).json();
-    const cuenta={}; filas=[];
+    const cuenta={}, todas=[];
     for(const h of hitsCache[k]){
       const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)||!pasaForma(ob,f,h[1],h[2])) continue;
-      cuenta[ob.w]=(cuenta[ob.w]||0)+1; if(cuenta[ob.w]>f.lim) continue;
-      filas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6]});
+      todas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6]});
     }
+    filas=fusionarAnalisis(todas).filter(h=>{const w=porId.get(h.obra).w;cuenta[w]=(cuenta[w]||0)+1;return cuenta[w]<=f.lim});
     filas=intercalar(filas);
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
     $('#estado').textContent=`${pl(filas.length,['ejemplo','ejemplos'],['example','examples'])} · ${pl(nObras,['obra','obras'],['work','works'])}`;
   } else if(o.t==='p'){
     $('#estado').textContent=trd('Buscando la progresión en todo el corpus…','Searching the whole corpus for the progression…');
-    filas=intercalar((await buscarProgresion(o.q,f)).filter(h=>pasaForma(porId.get(h.obra),f,h.compas,h.parte,h.fin,null)));
+    filas=intercalar(fusionarAnalisis((await buscarProgresion(o.q,f)).filter(h=>pasaForma(porId.get(h.obra),f,h.compas,h.parte,h.fin,null))));
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
     $('#estado').textContent=`${pl(filas.length,['pasaje','pasajes'],['passage','passages'])} · ${pl(nObras,['obra','obras'],['work','works'])}`;
     proponerCaja(o,f,filas.length);
   } else {
     await cargarCompases();
-    filas=intercalar(pasajes(o.ids,f,false).filter(h=>pasaTono(h.tono,f)&&pasaForma(porId.get(h.obra),f,h.ini,1,h.fin,null)));
+    filas=intercalar(fusionarAnalisis(pasajes(o.ids,f,false).filter(h=>pasaTono(h.tono,f)&&pasaForma(porId.get(h.obra),f,h.ini,1,h.fin,null))));
     const nObras=new Set(filas.map(x=>porId.get(x.obra).w)).size;
     const cond=o.ids.map(id=>FAC[id].desc).join(' · ');
     $('#estado').textContent=`${pl(filas.length,['pasaje','pasajes'],['passage','passages'])} · ${pl(nObras,['obra','obras'],['work','works'])}`;
   }
-  pintar(); refrescarMenus();
+  pintar(); refrescarMenus(); escribirURL();
 }
 const POR_PAG_G=25, abiertos=new Set();
 function grupos(){
@@ -1441,12 +1502,12 @@ function pintarDestacados(frag,modoObras){
   }
   d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
     const donde=h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}`;
-    const cif=etqTxt((h.etq||'').split(' · ')[0]);
+    const cif=etqTxt(cifLegible((h.etq||'').split(' · ')[0]));
     return `<button type="button" data-i="${i}"><span class="cp">${esc(apellido(o.c))}</span><span class="ob">${esc(o.ob)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''}</span><span class="dn">${donde} · ${esc(tonoEs(h.tono))}${cif?' · <code>'+esc(cif)+'</code>':''}</span></button>`}).join('')}</div>`;
   d.hidden=false;
   d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const h=elegidos[+b.dataset.i];
     document.querySelectorAll('.fila[aria-selected=true],#destacados [aria-pressed=true]').forEach(x=>x.setAttribute(x.classList.contains('fila')?'aria-selected':'aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');mostrar(h);verVista()});
+    b.setAttribute('aria-pressed','true');mostrar(h);verVista();escribirURL()});
 }
 // en una sola columna (móvil, tablet) la partitura queda debajo de la lista: al elegir un ejemplo se baja hasta ella
 // (se repite al terminar de dibujar la partitura: mientras carga, la página cambia de alto y el desplazamiento se corta)
@@ -1506,15 +1567,16 @@ function pintar(){
 function filaHit(h,modoObras,frag){
   const o=porId.get(h.obra);
   const tr=document.createElement('tr'); tr.className='fila hijo'; tr.tabIndex=0; tr.setAttribute('aria-selected',String(seleccion===h));
-  const fs=modoObras?(porMov.get(o.m)||[]).map(x=>x.f):[o.f];
-  const mov=`<td class="obra"><span class="t">${esc(movDe(o))}</span><span class="c">${[...new Set(fs)].map(badge).join('')}</span></td>`;
+  const fs=modoObras?(porMov.get(o.m)||[]).map(x=>x.f):[o.f,...(h.otros||[]).map(x=>porId.get(x.obra).f)];
+  const nAn=1+(h.otros||[]).length, quien=[o,...(h.otros||[]).map(x=>porId.get(x.obra))].map(x=>(x.src.autores||NFUENTE[x.f]).split(/[,|·(]/)[0].trim()).join(' / ');
+  const mov=`<td class="obra"><span class="t">${esc(movDe(o))}</span><span class="c">${[...new Set(fs)].map(badge).join('')}${nAn>1?` <span class="n-an" title="${esc(quien)}">${nAn} ${trd('análisis','analyses')}</span>`:''}</span></td>`;
   const tono=`<td style="white-space:nowrap">${esc(tonoEs(h.tono))}</td>`;
   if(modoObras) tr.innerHTML=`${mov}<td class="num">${h.primero}–${h.ultimo}</td>${tono}`;
   else if(frag){
     tr.innerHTML=`${mov}<td class="num">${h.ini}–${h.fin}</td>${tono}<td class="cif"><span class="prog lin" style="color:var(--muted)">…</span></td>`;
     acordesDe(h.obra).then(ac=>{const el=tr.querySelector('.prog');if(el)el.outerHTML=progresion(ac,h)});
   } else tr.innerHTML=`${mov}<td class="num">${h.compas}</td><td class="num">${h.parte}</td>${tono}<td class="cif">${celdaCifrado(h)}</td>`;
-  const sel=()=>{document.querySelectorAll('.fila[aria-selected=true]').forEach(x=>x.setAttribute('aria-selected','false'));tr.setAttribute('aria-selected','true');mostrar(h);verVista()};
+  const sel=()=>{document.querySelectorAll('.fila[aria-selected=true]').forEach(x=>x.setAttribute('aria-selected','false'));tr.setAttribute('aria-selected','true');mostrar(h);verVista();escribirURL()};
   tr.onclick=sel; tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sel()}};
   return tr;
 }
@@ -1542,7 +1604,7 @@ function progresion(ac,h){
   const dentro=ac.filter(a=>a.compas>=h.ini&&a.compas<=h.fin), v=ver();
   const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="${trd('pasaje al unísono u octava','unison or octave passage')}">${esc(fn(a))}</span>`:esc(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
   let out='';
-  if(v.rom) out+=fila('rom',a=>a.rn);
+  if(v.rom) out+=fila('rom',a=>cifLegible(a.rn));
   if(v.int) out+=fila('int',a=>cifInterv(parseRN(a.rn)));
   if(v.fun) out+=fila('fun',a=>cifFunc(parseRN(a.rn),a.tono));
   return out||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
@@ -1551,7 +1613,7 @@ $('#prev').onclick=()=>{pagina--;pintar();$('#tabla').scrollIntoView({block:'sta
 $('#next').onclick=()=>{pagina++;pintar();$('#tabla').scrollIntoView({block:'start'})};
 
 function contarFiltros(){pintarEtiquetas()}
-for(const id of ['longitud','progInv','progGap','progMin']) $('#'+id).addEventListener('change',()=>{cuentaCache.clear();if(actual)ejecutar(actual)});
+for(const id of ['longitud','progInv','progFund','progGap','progMin']) $('#'+id).addEventListener('change',()=>{cuentaCache.clear();if(actual)ejecutar(actual)});
 let seleccion=null;
 for(const id of ['verRom','verInt','verFun']){
   const v=pref(id); if(v!==null) $('#'+id).checked=v==='1';
@@ -2005,7 +2067,7 @@ async function mostrar(h){
     // pasada que se muestra: la del acorde buscado (mismo compás, parte y tonalidad); si no, la primera
     const occ=ocurrencias(ac,E);
     let occA=0;
-    if(!h.frag){const i=ac.findIndex(c=>c.compas===h.compas&&Math.abs(c.parte-h.parte)<1e-6&&(!h.tono||c.tono===h.tono)); if(i>=0) occA=occ[i]}
+    if(!h.frag||h.prog){const i=ac.findIndex(c=>c.compas===h.compas&&Math.abs(c.parte-h.parte)<1e-6&&(!h.tono||c.tono===h.tono)); if(i>=0) occA=occ[i]}
     const [p0,p1]=tramo(E,a,b,occA), pos={sel:`${p0+1}-${p1+1}`,p0,p1,fuente:o.f};
     let anchoPag=Math.max(700,Math.min(2000,cont.clientWidth*2.4)), svg=null;
     for(let intento=0;intento<3;intento++){
@@ -2025,14 +2087,17 @@ async function mostrar(h){
       anchoPag=Math.min(6000,anchoPag/Math.max(0.4,r));   // ensanchar los compases y repetir
     }
     const medidas=[...svg.querySelectorAll('g.measure')];
-    // móvil: partitura a tamaño legible y desplazable en horizontal, en vez de encogerla al ancho de la pantalla
-    if(cont.clientWidth<640){
-      const pentas=svg.querySelector('g.measure')?.querySelectorAll('g.staff').length||1;
-      const ancho=Math.max(cont.clientWidth-24,Math.round(medidas.length*(150+20*Math.min(pentas,4))));
-      svg.style.maxWidth='none'; svg.style.width=ancho+'px'; svg.style.height='auto';
-      cont.classList.toggle('desliza',ancho>cont.clientWidth); cont.dataset.desliza=trd('← desliza para ver más →','← swipe to see more →');
-    } else {svg.style.width='';svg.style.maxWidth='';cont.classList.remove('desliza')}
-    if(!h.frag) resaltarAcorde(svg,h,ac,occ,E,pos,occA);
+    // partitura a tamaño legible y desplazable en horizontal cuando no cabe (móvil, tablet, pasajes muy densos como
+    // los preludios del Clave bien temperado), en vez de encogerla al ancho de la caja
+    {
+      const pentas=svg.querySelector('g.measure')?.querySelectorAll('g.staff').length||1, vb=svg.viewBox?.baseVal;
+      const legible=Math.round(Math.max(medidas.length*(150+20*Math.min(pentas,4)),(vb&&vb.width||0)*0.55));
+      if(legible>cont.clientWidth-24){
+        svg.style.maxWidth='none'; svg.style.width=legible+'px'; svg.style.height='auto';
+        cont.classList.add('desliza'); cont.dataset.desliza=trd('← desliza para ver más →','← swipe to see more →');
+      } else {svg.style.width='';svg.style.maxWidth='';svg.style.height='';cont.classList.remove('desliza')}
+    }
+    if(!h.frag||h.prog) resaltarAcorde(svg,h,ac,occ,E,pos,occA);
     // los números de compás se recolocan otra vez cuando el navegador ha terminado de maquetar la partitura:
     // en la primera pasada algunas cajas (claves, barras) aún no tienen su tamaño final
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
@@ -2055,7 +2120,15 @@ function texto(g,str,x,y,size,extra){
   const t=document.createElementNS(NS,'text');
   t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size',Math.round(size));t.setAttribute('font-family',FUENTE);t.setAttribute('fill','#000');
   if(extra) for(const [k,v] of Object.entries(extra)) t.setAttribute(k,v);
-  if(!/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺₀-₉]/.test(str)){t.textContent=str; g.append(t); return t}
+  if(!/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺₀-₉]/.test(str)){
+    // ♭ ♯ en redonda y un poco más grandes: en cursiva (rótulos de tonalidad) la fuente los dibuja como una «b»
+    if(/[♭♯]/.test(str)&&t.getAttribute('font-style')==='italic'){
+      for(const parte of str.split(/([♭♯])/)){if(!parte)continue;const sp=document.createElementNS(NS,'tspan');sp.textContent=parte;
+        if(/[♭♯]/.test(parte)){sp.setAttribute('font-style','normal');sp.setAttribute('font-size',Math.round(size*1.15))} t.append(sp)}
+      g.append(t); return t;
+    }
+    t.textContent=str; g.append(t); return t;
+  }
   // tramos normal / volado / subíndice con tspan: tamaño menor y desplazamiento vertical
   let nivel=0, buf='', tipo='n';
   const volcar=()=>{if(!buf)return;const sp=document.createElementNS(NS,'tspan');const obj=tipo==='n'?0:tipo==='sup'?-0.42:0.26;
@@ -2442,13 +2515,16 @@ function cadenaDe(h,ac,i){
 function pintarFicha(h,ac){
   const o=porId.get(h.obra), d=descripcionBusqueda(), s=o.src;
   // contexto: acordes antes y después
-  let i0=ac.findIndex(x=>h.frag?x.compas>=h.ini:(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6));
+  const exacto=!h.frag||h.prog;   // una progresión empieza en un acorde concreto: se resaltan solo sus acordes
+  let i0=ac.findIndex(x=>!exacto?x.compas>=h.ini:(x.compas===h.compas&&Math.abs(x.parte-h.parte)<1e-6));
   if(i0<0) i0=ac.findIndex(x=>x.compas>=(h.compas||h.ini));
-  let i1=i0; if(h.frag){while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++} else [i0,i1]=cadenaDe(h,ac,i0);
+  let i1=i0;
+  if(exacto) [i0,i1]=cadenaDe(h,ac,i0);
+  if(h.frag&&i1===i0&&!(h.prog&&h.etq&&!/→/.test(h.etq))){i1=i0;while(i1+1<ac.length&&ac[i1+1].compas<=h.fin)i1++}
   const desde=Math.max(0,i0-ctxN), hasta=Math.min(ac.length-1,i1+ctxN);
   let ctx='', tPrev=null;
   for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;
-    const t=esc(c.orig)+(c.cad?` <span class="k">${esc(c.cad)}</span>`:''); ctx+=(i>=i0&&i<=i1?`<span class="f">${t}</span>`:t)+(i<hasta?' → ':'')}
+    const t=`<span title="${esc(c.orig)}">${esc(cifLegible(c.orig)||c.rn)}</span>`+(c.cad?` <span class="k">${esc(c.cad)}</span>`:''); ctx+=(i>=i0&&i<=i1?`<span class="f">${t}</span>`:t)+(i<hasta?' → ':'')}
   const fila=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
   const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+` <span class="k" style="color:var(--muted)">(${FORMAS[o.m]?.[1]==='MEPC'?'Mozart Expositional Punctuation Corpus':'Taking Form'})</span>`:'';
   const FUENTE_FG={'Taking Form':'Taking Form','título':trd('título','title'),'colección':trd('colección','collection'),'revisión':trd('revisión','review'),'BPSD':'BPSD','MEPC':'Mozart Expositional Punctuation Corpus'};
@@ -2553,7 +2629,7 @@ $('#tema').onclick=()=>{const t=temaActual()==='dark'?'light':'dark'; document.d
 oscuroSistema.addEventListener?.('change',pintarTema);
 pintarTema();
 $('#idioma').onclick=()=>{
-  try{sessionStorage.setItem('restaurar',JSON.stringify({actual,filtros:Object.fromEntries(CAMPOS.map(id=>[id,$('#'+id).value]))}))}catch(e){}
+  escribirURL(false);                    // la dirección lleva la búsqueda, los filtros y el ejemplo abierto
   pref('idioma',EN?'es':'en'); location.reload();
 };
 // ============ estado inicial: vacío (o la búsqueda que había antes de cambiar de idioma)
@@ -2757,7 +2833,9 @@ $('#tabBuscar').onclick=e=>{e.preventDefault();history.pushState(null,'',locatio
 window.addEventListener('hashchange',ruta); window.addEventListener('popstate',ruta);
 pintarPortada(); ruta();
 pintarEtiquetas();
-(()=>{let r=null;try{r=JSON.parse(sessionStorage.getItem('restaurar')||'null');sessionStorage.removeItem('restaurar')}catch(e){}
+(async()=>{let r=null;try{r=JSON.parse(sessionStorage.getItem('restaurar')||'null');sessionStorage.removeItem('restaurar')}catch(e){}
+  await new Promise(ok=>setTimeout(ok));            // aplicarURL se define más abajo
+  if(await aplicarURL()) return;
   if(!r) return;
   for(let [id,v] of Object.entries(r.filtros||{})){if(!v)continue;const sel=$('#'+id); if(id==='compositor'&&COMP_OTRO[v]&&!comps.includes(v)) v=COMP_OTRO[v];
     if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===v)){const op=document.createElement('option');op.value=v;sel.append(op)}
@@ -2765,6 +2843,58 @@ pintarEtiquetas();
   if(r.filtros&&r.filtros.obraSel) $('#obraSel').value=r.filtros.obraSel;
   if(r.actual) ejecutar(r.actual); else if(hayFiltros()) relanzar();
 })();
+// ============ estado en la dirección (?c=…&compositor=…&ej=…): recargar, atrás/adelante, compartir, cambiar de idioma
+// c = procedimiento · p = progresión · f = tipos de acorde · filtros con el nombre de su campo · ej = ejemplo abierto
+// (análisis.compás.parte, o análisis.inicio-fin si es un pasaje). Las pestañas siguen en el #.
+let restaurando=false, urlActual=location.search;
+function estadoParams(){
+  const u=new URLSearchParams();
+  if(actual?.t==='c') u.set('c',actual.k);
+  else if(actual?.t==='p') u.set('p',actual.q.join(' '));
+  else if(actual?.t==='f') u.set('f',actual.ids.join(','));
+  for(const id of CAMPOS){const v=$('#'+id).value; if(v) u.set(id,v)}
+  if(seleccion&&!$('#vista').hidden){const h=seleccion;
+    u.set('ej',h.frag&&!h.prog?`${h.obra}.${h.ini}-${h.fin}`:`${h.obra}.${h.compas}.${h.parte}`)}
+  const t=u.toString(); return t?'?'+t:'';
+}
+function escribirURL(nueva=true){
+  if(restaurando) return;
+  const s=estadoParams(); if(s===location.search) return;
+  const url=location.pathname+s+location.hash;
+  try{nueva?history.pushState({hf:1},'',url):history.replaceState({hf:1},'',url)}catch(e){}
+  urlActual=s;
+}
+function buscarEjemplo(ej){
+  const m=String(ej||'').match(/^(\d+)\.(\d+)(?:\.([\d.]+)|-(\d+))$/); if(!m) return null;
+  const obra=+m[1];
+  if(m[4]!=null){const ini=+m[2],fin=+m[4]; return filas.find(h=>h.obra===obra&&h.ini===ini&&h.fin===fin)||(porId.get(obra)?{frag:true,obra,ini,fin,compas:ini,parte:1,tono:''}:null)}
+  const compas=+m[2], parte=+m[3];
+  const h=filas.find(x=>(x.obra===obra||(x.otros||[]).some(y=>y.obra===obra))&&x.compas===compas&&Math.abs(x.parte-parte)<1e-6);
+  if(h) return h.obra===obra?h:{...h,obra};
+  return porId.get(obra)?{obra,compas,parte,ini:compas,fin:compas,tono:'',etq:''}:null;
+}
+async function aplicarURL(vaciar=false){
+  const u=new URLSearchParams(location.search);
+  if(![...u.keys()].length){            // dirección sin búsqueda: al volver atrás hasta ella, se deja todo vacío
+    if(vaciar){restaurando=true;try{for(const id of CAMPOS) $('#'+id).value='';rellenarObras();q.value='';reiniciar();refrescarMenus()}finally{restaurando=false;urlActual=location.search}}
+    return false;
+  }
+  restaurando=true;
+  try{
+    for(const id of CAMPOS){let v=u.get(id)||''; if(id==='compositor'&&v&&COMP_OTRO[v]&&!comps.includes(v)) v=COMP_OTRO[v];
+      const sel=$('#'+id); if(v&&sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===v)){const op=document.createElement('option');op.value=v;sel.append(op)}
+      sel.value=v; if(id==='compositor') rellenarObras()}
+    if(u.get('obraSel')) $('#obraSel').value=u.get('obraSel');
+    cuentaCache.clear();
+    const o=u.get('c')&&META.conceptos[u.get('c')]?{t:'c',k:u.get('c')}:u.get('p')?{t:'p',q:u.get('p').split(' ').filter(Boolean)}
+      :u.get('f')?{t:'f',ids:u.get('f').split(',').filter(id=>FAC[id])}:null;
+    if(o) await ejecutar(o); else if(hayFiltros()) await ejecutar({t:'o',comp:$('#compositor').value}); else reiniciar();
+    const h=buscarEjemplo(u.get('ej'));
+    if(h){seleccion=h; await mostrar(h)} else {$('#vista').hidden=true; seleccion=null}
+  }finally{restaurando=false; urlActual=location.search}
+  return true;
+}
+window.addEventListener('popstate',()=>{if(location.search!==urlActual) aplicarURL(true)});
 // acceso de solo lectura para las pruebas automáticas
 window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,acordesDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
   fijarTexto:t=>{q.value=t},get actual(){return actual},
