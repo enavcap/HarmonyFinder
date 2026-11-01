@@ -457,6 +457,8 @@ const COMP_OTRO=Object.fromEntries(Object.entries(COMP_EN).flatMap(([a,b])=>[[a,
 // datos de procedencia que escribe el catálogo en español
 const DATOS_EN=[[/versión «/g,'version «'],[/^reconstruida desde las tablas de notas del DCML$/,'reconstructed from the DCML note tables'],
   [/^corpus de music21$/,'music21 corpus'],[/^convertida desde Humdrum \(Craig Sapp\)$/,'converted from Humdrum (Craig Sapp)']];
+// se marca antes de traducir: el arreglo de voces de las partituras reconstruidas no debe depender del idioma
+for(const o of OBRAS) o.reconstruida=/^reconstruida/.test(o.src.partitura||'');
 if(EN) for(const o of OBRAS){for(const [re,en] of TITULOS_EN){o.t=o.t.replace(re,en);o.ob=o.ob.replace(re,en)} if(COMP_EN[o.c]) o.c=COMP_EN[o.c]
   for(const k of ['autores','partitura','origen']) if(o.src[k]) for(const [re,en] of DATOS_EN) o.src[k]=o.src[k].replace(re,en)}
 const porId=new Map(OBRAS.map(o=>[o.id,o]));
@@ -1515,7 +1517,7 @@ async function xmlDe(o){
   let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
   x=x.replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(/reconstruida/.test(o.src.partitura||'')) x=ordenarVoces(x,o.src.inst);
+  if(o.reconstruida) x=ordenarVoces(x,o.src.inst);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
