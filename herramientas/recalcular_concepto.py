@@ -10,14 +10,18 @@ número de coincidencias y de análisis, sinónimos), y regenera web/data/vocab.
 detectores necesitan y que la web no guarda (grado, calidad, inversión, bajo…) se derivan del
 cifrado con music21, igual que en indexar.py. Como en exportar_mc, los detectores se ejecutan por
 tramos, sin cruzar los pasajes al unísono.
+
+Las cadencias (y el 6/4 cadencial) necesitan además los rasgos de partitura de cada acorde (peso métrico,
+tiple, respiro…): se calculan con cadencias.rasgos sobre las partituras publicadas en web/scores.
 """
-import json, sys
+import base64, json, sys
+from functools import lru_cache
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ))
 import buscar
-from multicorpus import vocabulario, unisonos, buscar_mc
+from multicorpus import vocabulario, unisonos, buscar_mc, cadencias
 
 CONC = buscar_mc.conceptos()   # {clave: (detector, descripción, tipo)}: los de buscar.py y los nuevos del multicorpus
 
@@ -41,18 +45,38 @@ def derivar(compas, parte, tono, cifrado, unisono):
     return a
 
 
-def analisis():
+CON_RASGOS = set(cadencias.DETECTORES) | {"sexta_cuarta_cadencial"}
+
+
+@lru_cache(maxsize=4)
+def _paquete(pq):
+    return json.load(open(RAIZ / "web" / "scores" / f"{pq}.json", encoding="utf-8"))
+
+
+def partitura(obra):
+    """Bytes de la partitura (MusicXML o .mxl) del movimiento de un análisis, o None."""
+    b64 = _paquete(obra["pq"]).get(str(obra["m"]))
+    return base64.b64decode(b64) if b64 else None
+
+
+def analisis(rasgos=False):
+    obras = {o["id"]: o for o in json.load(open(DATA / "obras.json", encoding="utf-8"))}
     for f in sorted((DATA / "acordes").glob("*.json"), key=lambda p: int(p.stem)):
         d = json.load(open(f, encoding="utf-8"))
         tonos = d["tonos"]
-        for aid, filas in d["obras"].items():
-            yield int(aid), [derivar(x[0], x[1], tonos[x[2]], x[3], 1 if len(x) > 6 and x[6] else 0)
-                             for x in filas]
+        for aid, filas in sorted(d["obras"].items(), key=lambda x: obras[int(x[0])]["pq"]):
+            ac = [derivar(x[0], x[1], tonos[x[2]], x[3], 1 if len(x) > 6 and x[6] else 0) for x in filas]
+            if rasgos:
+                p = partitura(obras[int(aid)])
+                rs = cadencias.rasgos(p, [(a["compas"], a["parte"]) for a in ac]) if p else [None] * len(ac)
+                for a, r in zip(ac, rs):
+                    a["r"] = r
+            yield int(aid), ac
 
 
 def recalcular(conceptos):
     hits = {k: [] for k in conceptos}
-    for aid, ac in analisis():
+    for aid, ac in analisis(rasgos=bool(CON_RASGOS & set(conceptos))):
         for _, seg in unisonos.tramos(ac):
             for k in conceptos:
                 try:
@@ -60,13 +84,12 @@ def recalcular(conceptos):
                 except Exception:
                     continue
                 for i, et, n in res:
-                    a = seg[i]
-                    hits[k].append([aid, a["compas"], a["parte"], a["tono"], et,
-                                    seg[max(0, i - 1)]["compas"] if n > 1 and i > 0 else a["compas"],
-                                    seg[min(len(seg) - 1, i + n - 1)]["compas"]])
+                    hits[k].append(unisonos.fila_hit(aid, seg, i, et, n))
     meta = json.load(open(DATA / "meta.json", encoding="utf-8"))
     for k in conceptos:
         det, desc, tipo = CONC[k]
+        hits[k].sort(key=lambda h: h[0])            # mismo orden que exportar_mc (por análisis)
+        hits[k] = unisonos.sin_repetidos(hits[k])
         json.dump(hits[k], open(DATA / "hits" / f"{k}.json", "w", encoding="utf-8"),
                   ensure_ascii=False, separators=(",", ":"))
         anterior = meta["conceptos"].get(k, {})

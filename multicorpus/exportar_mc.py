@@ -127,10 +127,8 @@ def datos_analisis(ac, aid, ti, CONC):
             except Exception:
                 continue
             for i, et, n in res:
-                a = seg[i]
-                out.append([aid, a["compas"], a["parte"], a["tono"], et,
-                            seg[max(0, i - 1)]["compas"] if n > 1 and i > 0 else a["compas"],
-                            seg[min(len(seg) - 1, i + n - 1)]["compas"]])
+                out.append(unisonos.fila_hit(aid, seg, i, et, n))
+        hits[k] = unisonos.sin_repetidos(out)
     return fila, [pc[c] for c in sorted(pc)], hits
 
 def main(argv=None):

@@ -97,3 +97,16 @@ def test_no_hay_modulacion_ni_cadencia_a_traves_del_unisono():
         a["unisono"] = 0
     _, comp, hits = datos_analisis(ac, 1, ti, _conc())
     assert len(hits["modulacion"]) == 2 and any(c[13] for c in comp)
+
+def test_rango_no_cruza_una_repeticion_desplegada():
+    # análisis en orden de interpretación: … 15 16 | 1 2 … (repetición desplegada)
+    seg = [{"compas": c, "parte": 1.0, "tono": "C"} for c in (14, 15, 16, 1, 2)]
+    # progresión de 5 acordes desde el c. 14 que, sin el arreglo, terminaba en el c. 1 (fin < inicio)
+    assert unisonos.fila_hit(7, seg, 0, "x", 5) == [7, 14, 1.0, "C", "x", 14, 16]
+    # cadencia (n = 2) cuyo acorde anterior está antes del salto: el rango empieza en el propio acorde
+    assert unisonos.fila_hit(7, seg, 3, "y", 2)[5:] == [1, 2]
+    # sin salto, igual que antes: del acorde anterior al último
+    assert unisonos.fila_hit(7, seg, 1, "z", 2)[5:] == [14, 16]
+
+def test_sin_repetidos():
+    assert unisonos.sin_repetidos([[1, 2], [1, 2], [1, 3]]) == [[1, 2], [1, 3]]

@@ -163,13 +163,26 @@ def semicadencia(ac):
             out.append((i, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
+def _con_calderones(ac):
+    """La pieza marca sus finales de frase con calderones (corales, recitativos…)."""
+    return any(x.get("r") and x["r"]["calderon"] for x in ac)
+
+def _fin_de_frase(ac, b, cald=None):
+    """El acorde de llegada cierra una frase: con calderón si la pieza los usa para eso; si no, con la
+    melodía detenida (respiro). En un coral cada acorde dura lo mismo que la nota del tiple, así que el
+    respiro solo no distingue un V–vi de paso de uno cadencial."""
+    if cald is None:
+        cald = _con_calderones(ac)
+    return bool(b["r"]["calderon"]) if cald else bool(b["r"]["respiro"])
+
 def cadencia_rota(ac):
-    """V en estado fundamental → VI al final de frase (en parte fuerte, sin acortar la llegada)."""
-    out = []
+    """V en estado fundamental → VI al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida o calderón)."""
+    out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if a["tono"] == b["tono"] and buscar._es_V(a) and a["inversion"] == 0 and b["grado"] == 6 \
-           and not b["secundaria"] and b["inversion"] == 0 and b["alteracion"] in (0, -1) and _llegada(a, b):
+           and not b["secundaria"] and b["inversion"] == 0 and b["alteracion"] in (0, -1) and _llegada(a, b) \
+           and _fin_de_frase(ac, b, cald):
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
@@ -190,12 +203,12 @@ def cadencia_frigia(ac):
     return out
 
 def cadencia_plagal(ac):
-    """IV → I en estado fundamental al final de frase (en parte fuerte, sin acortar la llegada)."""
-    out = []
+    """IV → I en estado fundamental al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida o calderón)."""
+    out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if a["tono"] == b["tono"] and a["grado"] == 4 and not a["secundaria"] and a["inversion"] == 0 \
-           and buscar._es_I(b) and b["inversion"] == 0 and _llegada(a, b):
+           and buscar._es_I(b) and b["inversion"] == 0 and _llegada(a, b) and _fin_de_frase(ac, b, cald):
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 

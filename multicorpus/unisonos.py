@@ -18,7 +18,7 @@ final en octavas) se conserva.
 
 Las alturas son las reales: se aplica la transposición de los instrumentos transpositores.
 """
-import io, re, zipfile
+import io, json, re, zipfile
 import xml.etree.ElementTree as ET
 from fractions import Fraction
 
@@ -200,4 +200,29 @@ def tramos(ac):
             ini = i
     if ini is not None:
         out.append((ini, ac[ini:]))
+    return out
+
+def fila_hit(aid, seg, i, et, n):
+    """Fila de coincidencia para la web: [análisis, compás, parte, tono, etiqueta, compás inicial, compás final].
+    Algunos análisis siguen el orden de interpretación, con las repeticiones desplegadas (16 → 1): el rango
+    no cruza nunca un salto atrás, para que la partitura muestre un pasaje continuo que contiene el acorde."""
+    a = seg[i]
+    c = a["compas"]
+    ini = seg[i - 1]["compas"] if n > 1 and i > 0 else c
+    if ini > c:                                   # el acorde anterior está antes del salto
+        ini = c
+    fin = c
+    for x in seg[i + 1:min(len(seg), i + n)]:
+        if x["compas"] < fin:                     # salto atrás: el pasaje termina antes de la repetición
+            break
+        fin = x["compas"]
+    return [aid, c, a["parte"], a["tono"], et, ini, fin]
+
+def sin_repetidos(filas):
+    """Quita las coincidencias idénticas (las de la segunda vuelta de una repetición), conservando el orden."""
+    vistos, out = set(), []
+    for h in filas:
+        k = json.dumps(h, ensure_ascii=False)
+        if k not in vistos:
+            vistos.add(k); out.append(h)
     return out

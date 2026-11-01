@@ -4,10 +4,10 @@ from multicorpus import cadencias, buscar_mc
 NOMBRE = ["C", "C", "D", "D", "E", "F", "F", "G", "G", "A", "A", "B"]
 ALTER = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]
 
-def _nota(midi, dur, acorde):
+def _nota(midi, dur, acorde, calderon=False):
     return (f"<note>{'<chord/>' if acorde else ''}<pitch><step>{NOMBRE[midi % 12]}</step>"
             f"{'<alter>1</alter>' if ALTER[midi % 12] else ''}<octave>{midi // 12 - 1}</octave></pitch>"
-            f"<duration>{dur}</duration></note>")
+            f"<duration>{dur}</duration>{'<notations><fermata/></notations>' if calderon else ''}</note>")
 
 def partitura(compases):
     """compases: lista de compases de 4/4; cada compás, lista de (alturas MIDI, duración en negras)."""
@@ -17,11 +17,11 @@ def partitura(compases):
         x.append(f'<measure number="{n}">')
         if n == 1:
             x.append("<attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>")
-        for alturas, dur in c:
+        for alturas, dur, *cal in c:                  # (alturas, duración[, calderón])
             if not alturas:
                 x.append(f"<note><rest/><duration>{dur}</duration></note>")
             else:
-                x.append("".join(_nota(m, dur, k > 0) for k, m in enumerate(alturas)))
+                x.append("".join(_nota(m, dur, k > 0, bool(cal and cal[0])) for k, m in enumerate(alturas)))
         x.append("</measure>")
     x.append("</part></score-partwise>")
     return "".join(x).encode()
@@ -75,6 +75,33 @@ def test_rota():
     s = partitura([[(I_8, 2), (IV, 2)], [(V7, 2), (vi, 2)]])
     ac = _con_rasgos([_ac("I", 1, 1), _ac("IV", 1, 3), _ac("V7", 2, 1), _ac("vi", 2, 3)], s)
     assert [h[0] for h in cadencias.cadencia_rota(ac)] == [3]
+
+def test_rota_sin_melodia_detenida_no_es_cadencia():
+    # V–vi en parte fuerte pero la melodía sigue en corcheas por encima del vi: no cierra la frase
+    vi = [45, 57, 64, 72]
+    s = partitura([[(I_8, 2), (IV, 2)], [(V7, 2), (vi, 0.5), ([45, 57, 64, 74], 0.5), ([45, 57, 64, 76], 0.5), ([45, 57, 64, 77], 0.5)]])
+    s = s.replace(b"<divisions>1</divisions>", b"<divisions>2</divisions>")
+    s = s.replace(b"<duration>2</duration>", b"<duration>4</duration>").replace(b"<duration>0.5</duration>", b"<duration>1</duration>")
+    ac = _con_rasgos([_ac("I", 1, 1), _ac("IV", 1, 3), _ac("V7", 2, 1), _ac("vi", 2, 3)], s)
+    assert not ac[3]["r"]["respiro"]
+    assert not cadencias.cadencia_rota(ac)
+
+def _coral(cald_en_vi):
+    # coral en negras: el calderón marca los finales de frase (aquí, el I del c. 3 y, si cald_en_vi, el vi del c. 1)
+    vi = [45, 57, 64, 72]
+    s = partitura([[(I_8, 1), (V7, 1), (vi, 1, cald_en_vi), (IV, 1)], [(ii6, 1), (V, 1), (I_8, 2)], [(I_8, 4, True)]])
+    return _con_rasgos([_ac("I", 1, 1), _ac("V7", 1, 2), _ac("vi", 1, 3), _ac("IV", 1, 4),
+                        _ac("ii6", 2, 1), _ac("V", 2, 2), _ac("I", 2, 3), _ac("I", 3, 1)], s)
+
+def test_coral_v_vi_de_paso_no_es_rota():
+    ac = _coral(False)
+    assert ac[2]["r"]["respiro"] and not ac[2]["r"]["calderon"]   # en negras el respiro no distingue nada
+    assert not cadencias.cadencia_rota(ac)
+
+def test_coral_rota_con_calderon():
+    ac = _coral(True)
+    assert ac[2]["r"]["calderon"] == 1
+    assert [h[0] for h in cadencias.cadencia_rota(ac)] == [2]
 
 def test_frigia_comprueba_el_bajo():
     iv6 = [41, 50, 57, 62]                    # fa (6.º de la menor) en el bajo

@@ -8,6 +8,14 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Búsqueda: Enter ya no descarta parte de lo escrito. Los trozos que son exactamente un compositor, una tonalidad, una época o un modo se aplican como etiquetas y el resto se busca como procedimiento: «sexta napolitana mozart», «septima disminuida chopin», «forma sonata Mozart la menor» (→ K. 310), «ii6 V7 I mozart».
+- Búsqueda: el nombre o un sinónimo escrito tal cual gana a una subclase que solo empieza igual («napolitana» → sexta napolitana, no napolitana → dominante; «septima disminuida» → acorde de séptima disminuida, no la secundaria). Una subclase baja en las sugerencias si no se escribe lo que la distingue.
+- Búsqueda: un apellido compartido elige al compositor con más obras («bach» → J. S. Bach).
+- Rangos de compases que cruzaban una repetición desplegada por el analista (el compás final quedaba antes que el inicial y la partitura mostraba otro pasaje): 49 ejemplos corregidos, p. ej. Bach, Suite inglesa n.º 4, Menuett I, c. 14. Se quitan además 142 ejemplos repetidos (la segunda vuelta de esas repeticiones).
+- Móvil y tablet: al elegir un ejemplo la página baja hasta la partitura, que antes se dibujaba debajo de toda la lista.
+- Partitura más ancha que su caja (móvil, portátil): se centra en el acorde resaltado en vez de dejarlo fuera de la vista. El aviso «desliza para ver más» se traduce al inglés.
+
 ## [0.3.2] - 2026-11-01
 
 ### Fixed
