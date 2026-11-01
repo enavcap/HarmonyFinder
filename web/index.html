@@ -287,8 +287,15 @@ footer{max-width:1240px;margin:44px auto 0;padding-top:16px;border-top:1px solid
 footer .autor{color:var(--fg);font-size:14px}
 footer .autor b{font-family:var(--display);font-weight:600}
 footer a{color:var(--accent)}
+footer .autor{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#tema{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:1px solid var(--line);border-radius:50%;
+  background:var(--panel);color:var(--fg);cursor:pointer;flex:none}
+#tema:hover{border-color:var(--accent);color:var(--accent)}
+#tema:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#tema svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 </style>
 
+<script>try{const t=localStorage.getItem('tema');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <header>
   <div class="marca"><div style="display:flex;align-items:center;gap:12px"><h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1><span class="alfa" title="Versión en pruebas" data-en-title="Test version" data-en="alpha">alfa</span></div>
   <p class="lema" data-en="Real examples of harmonic devices in the repertoire">Ejemplos reales de procedimientos armónicos en el repertorio</p></div>
@@ -373,7 +380,7 @@ footer a{color:var(--accent)}
 </aside>
 </main>
 
-<footer><div class="autor"><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</div></footer>
+<footer><div class="autor"><span><b>Harmony Finder</b> · <span data-en="alpha version">versión alfa</span> · <span data-en="A project by">Un proyecto de</span> Ezequiel Navarrete · 2026</span><button id="tema" type="button"></button></div></footer>
 <div class="toast" id="toast"></div>
 
 <script src="jszip.min.js"></script>
@@ -2389,6 +2396,20 @@ $('#atras').onclick=()=>moverVista(-1); $('#adelante').onclick=()=>moverVista(1)
 function aviso(t){const el=$('#toast');el.textContent=t;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1600)}
 
 // ============ idioma: el botón recarga la página en el otro idioma con la misma búsqueda y los mismos filtros
+// modo diurno / nocturno: por defecto el del sistema; el botón fija el contrario y lo recuerda
+const oscuroSistema=matchMedia('(prefers-color-scheme: dark)');
+const temaActual=()=>document.documentElement.getAttribute('data-theme')||(oscuroSistema.matches?'dark':'light');
+const ICONO_SOL='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+const ICONO_LUNA='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+function pintarTema(){
+  const oscuro=temaActual()==='dark', b=$('#tema');
+  b.innerHTML=oscuro?ICONO_SOL:ICONO_LUNA;   // el icono muestra el modo al que se pasa
+  const txt=oscuro?trd('Cambiar a modo diurno','Switch to light mode'):trd('Cambiar a modo nocturno','Switch to dark mode');
+  b.setAttribute('aria-label',txt); b.title=txt;
+}
+$('#tema').onclick=()=>{const t=temaActual()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); pref('tema',t); pintarTema()};
+oscuroSistema.addEventListener?.('change',pintarTema);
+pintarTema();
 $('#idioma').onclick=()=>{
   try{sessionStorage.setItem('restaurar',JSON.stringify({actual,filtros:Object.fromEntries(CAMPOS.map(id=>[id,$('#'+id).value]))}))}catch(e){}
   pref('idioma',EN?'es':'en'); location.reload();
