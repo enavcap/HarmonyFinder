@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-01
+
 ### Changed
 - Pedal de dominante: se mira lo que suena, no solo cómo está cifrado. Un acorde con las notas de V(7) escrito como tonicización (`I/V`) es la propia dominante y un acorde con las notas de la tónica sobre la pedal (`IV64/V` = I64) es un 6/4 cadencial: ninguno cuenta como armonía ajena. Además, cuando la partitura es fiable (su nota más grave coincide con el bajo del cifrado en el 75 % de la obra), la dominante tiene que sonar de verdad en el bajo en dos tercios de los acordes del tramo (se admite un bajo figurado). De 427 a 377 ejemplos; desaparecen p. ej. Bach, Suite francesa n.º 5, Giga, c. 4 (la mano izquierda aún no ha entrado) y n.º 6, Menuett, c. 8 (bajo en movimiento y 6/4 cadencial); se conservan la Waldstein (Op. 53/iii, cc. 151-166), el WTC I/2 (cc. 22-26) y la Tempestad.
 
@@ -95,7 +97,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/enavcap/HarmonyFinder/compare/6e5e592...v0.3.1
