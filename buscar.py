@@ -424,10 +424,15 @@ def clasificar_modulacion(ac, i):
     #    enarmónica en k2, o el analista cifra la misma sonoridad en las dos tonalidades
     #    Si A2 ya resolvió en k1 (A es su resolución), A2 no es pivote: la sonoridad vuelve
     #    en B, y solo hay enarmonía si B está escrito con la grafía de k1 (se comprueba en B).
+    #    Si B es un acorde diatónico común a las dos tonalidades (d: VII7 = F: V7), el pivote
+    #    es B y la modulación es diatónica aunque venga precedida de una 7ª disminuida o un
+    #    V7 escritos en k1: no hay reinterpretación, solo un acorde cromático que resuelve
+    #    sobre el pivote (Mozart K. 280/i, c. 81-82: d: viio7/V → VII43 = F: V43).
     X2 = A2
     if A2 and _resuelve_en(A2, A, k1):
         X2 = dict(B, cifrado=A2["cifrado"])
-    for X, r in ((A, _enarmonica_por_resolucion(A, k1, B, k2)),
+    pivote_comun = _diatonico(nB, k1) and _diatonico(nB, k2)
+    for X, r in () if pivote_comun else ((A, _enarmonica_por_resolucion(A, k1, B, k2)),
                  (A, _enarmonica_por_doble_cifrado(A, k1, B, k2)),
                  (X2, A2 and _enarmonica_por_doble_cifrado(A2, k1, B, k2))):
         if r and _grafia_confirma(X, k1, r[1], k2):

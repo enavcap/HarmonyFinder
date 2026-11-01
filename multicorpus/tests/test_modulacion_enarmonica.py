@@ -35,3 +35,21 @@ def test_resuelve_en():
     assert buscar._resuelve_en(dict(cifrado="viio7"), dict(cifrado="I"), "F")
     assert not buscar._resuelve_en(dict(cifrado="viio7"), dict(cifrado="viio65"), "F")
     assert buscar._resuelve_en(dict(cifrado="V7"), dict(cifrado="I"), "C")
+
+
+# Mozart, Sonata K. 280/i, c. 80-83: d: V · viio7/V → F: V43 (pivote d: VII43) · I.
+# El sol♯ de viio7/V está escrito con la grafía de re m, pero el pivote es el acorde
+# siguiente, diatónico en las dos tonalidades: modulación diatónica, no enarmónica.
+K280 = [
+    dict(obra=2, compas=80, parte=1, tono="d", cifrado="V"),
+    dict(obra=2, compas=81, parte=1, tono="d", cifrado="viio7/V"),
+    dict(obra=2, compas=82, parte=1, tono="F", cifrado="V43"),
+    dict(obra=2, compas=83, parte=1, tono="F", cifrado="I"),
+]
+
+
+def test_pivote_diatonico_tras_septima_disminuida_no_es_enarmonica(monkeypatch):
+    monkeypatch.setattr(buscar, "_grafia", lambda obra, c, p: {"G#", "B", "D", "F"} if c == 81 else None)
+    assert buscar.modulacion_enarmonica(K280) == []
+    tipo, det = buscar.clasificar_modulacion(K280, 2)
+    assert tipo == "diatonica" and "VII43 en d = V43 en F" in det
