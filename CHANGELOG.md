@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-03
+
 ### Fixed
 - Casillas de repetición: en las partituras que no las escriben (las convertidas desde Humdrum, sobre todo las mazurcas de Chopin) se dibujan ahora los corchetes de 1.ª y 2.ª casilla en los compases que el análisis numera como casillas (23 análisis).
 - Signos sueltos «(», «)», «[» y «]» bajo el pentagrama: eran restos de la conversión desde Humdrum guardados como dinámicas y ya no se dibujan (31 partituras, 28 de ellas mazurcas de Chopin). Las dinámicas de verdad se conservan.
@@ -132,7 +134,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...v0.3.4
