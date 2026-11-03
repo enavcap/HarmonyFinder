@@ -550,7 +550,7 @@ function cifInterv(p){
 }
 // cifrado interválico para leer (web/cifrado.js: sensible «+», disminuidos tachados, alteraciones); el de arriba,
 // cifInterv(), es solo la clave interna de las búsquedas de progresiones y no cambia
-const cifFilas=(rn,tono)=>{try{const f=Cifrado.cifras(rn,tono);if(f&&f.length)return f}catch(e){}const p=parseRN(rn);return p?cifInterv(p).split('/'):['?']};
+const cifFilas=(rn,tono)=>{try{const f=Cifrado.cifras(rn,tono,{en:EN});if(f&&f.length)return f}catch(e){}const p=parseRN(rn);return p?cifInterv(p).split('/'):['?']};
 const cifInt=(rn,tono)=>{const f=cifFilas(rn,tono);return Cifrado.texto(f)||f.join('/')};
 // a HTML: la cifra con U+0338 detrás se dibuja tachada
 const htmlInt=t=>esc(t).replace(/(\d)\u0338/g,'<span class="tch">$1</span>');

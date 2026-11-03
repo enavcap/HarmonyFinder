@@ -6,6 +6,7 @@
 //          sola si es la 3.ª («7+», «+»), delante de la cifra si no («+6», «+4»)
 //   5̸ 7̸   intervalo disminuido: la cifra tachada
 //   ♯ ♭ ♮  nota alterada respecto a la armadura de la tonalidad local: delante de la cifra («♯6»), sola si es la 3.ª
+//   En inglés ({en:true}) no se usa «+»: la sensible lleva su alteración como cualquier otra nota (V7 en do m → «7/♮»)
 // Cifras abreviadas: 5 · 6 · 6/4 · 7 · 6/5 · 4/3 · 4/2, y la séptima de dominante en 2.ª y 3.ª inversión,
 // «+6» y «+4». Una cifra que en la abreviatura no se escribe aparece si lleva alguna marca.
 //
@@ -104,7 +105,8 @@ function acorde(p,k){
   return {notas,bajo:inv,tipo:sep?(t3===4&&t5===7&&mod(notas[3].pc-r.pc,12)===10?'dom':'sep'):'tri'};
 }
 
-function cifras(fig,tono){
+function cifras(fig,tono,opc={}){
+  const en=!!opc.en;   // en inglés no hay «+»: la sensible lleva la alteración que tenga respecto a la armadura
   const p=analizar(fig), k0=tonalidad(tono); if(!p||!k0) return null;
   const kt=tonicalizada(k0,p.sec); if(!kt) return null;
   const ac=acorde(p,kt); if(!ac) return null;
@@ -116,7 +118,7 @@ function cifras(fig,tono){
     if(n===bajo) continue;
     const num=mod(n.l-bajo.l,7)+1, s=mod(n.pc-bajo.pc,12);
     let marca='';
-    if(n.l===sens.l&&n.pc===sens.pc) marca='+';
+    if(!en&&n.l===sens.l&&n.pc===sens.pc) marca='+';
     else if(disminuido(num,s)) marca=TACHA;
     else if(n.a!==deEscala(k0,n.l).a) marca={'-2':'𝄫','-1':'♭','0':'♮','1':'♯','2':'𝄪'}[n.a]||'';
     iv[num]=marca;
@@ -135,6 +137,8 @@ function cifras(fig,tono){
   else{
     const otras=marcadas.filter(n=>!escritas.includes(n)&&n!==3);
     escritas=[...new Set([...escritas,...otras])];
+    // séptima disminuida en estado fundamental: basta el 7 tachado
+    if(ac.tipo==='sep'&&ac.bajo===0&&iv[7]===TACHA) escritas=escritas.filter(n=>n!==5);
     // tríada en estado fundamental: el 5 sobra si la 3.ª ya lleva marca y la 5.ª no
     if(ac.tipo==='tri'&&ac.bajo===0&&iv[3]&&!iv[5]) escritas=[];
   }

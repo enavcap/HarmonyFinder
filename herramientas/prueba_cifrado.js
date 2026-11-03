@@ -15,7 +15,7 @@ const CASOS=[
   // dominantes secundarias: la sensible de la tonalidad tonicalizada
   ['V7/V','C','7+'], ['V65/V','C','6/5'+T], ['V7/iv','c','7+'],
   // séptima disminuida y semidisminuida
-  ['viio7','C','7'+T+'/5'+T], ['viio65','C','+6/5'+T], ['viio43','c','+4/3'], ['viio42','c','4/+2'], ['viiø7','C','7/5'+T],
+  ['viio7','C','7'+T], ['viio65','C','+6/5'+T], ['viio43','c','+4/3'], ['viio42','c','4/+2'], ['viiø7','C','7/5'+T],
   // otras séptimas
   ['ii7','C','7'], ['ii65','C','6/5'], ['IVM7','C','7'], ['iiø65','c','6/5'],
   // napolitana y sextas aumentadas
@@ -36,3 +36,10 @@ test('notas del acorde como music21: IV7 en mayor con 7.ª mayor, iv7 en mayor c
   assert.equal(notas('iv7','C'),'0,3,5,8');
   assert.equal(notas('IV7','d'),'2,5,7,11');
 });
+
+const EN=[
+  ['V7','C','7'], ['V7','c','7/♮'], ['V','c','♮'], ['V','C','5'], ['V43','C','4/3'], ['V42','C','4/2'], ['V65','C','6/5'+T],
+  ['V7/V','C','7/♯'], ['viio65','C','6/5'+T], ['viio7','c','7'+T], ['It6','C','♯6'],
+];
+for(const [rn,tono,esperado] of EN)
+  test(`en inglés: ${rn} en ${tono} → ${esperado}`,()=>assert.equal(C.texto(C.cifras(rn,tono,{en:true})),esperado));

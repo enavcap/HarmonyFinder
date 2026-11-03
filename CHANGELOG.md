@@ -8,8 +8,10 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
 ### Changed
-- Cifrado interválico completo, según la tradición española: la sensible con «+» (V7 → «7+», V43 → «+6», V42 → «+4», también la de la tonalidad tonicalizada en las dominantes secundarias), los intervalos disminuidos tachados (V65 → «6/5̸», vii°7 → «7̸/5̸») y las notas alteradas respecto a la armadura (napolitana → «♭6», sexta alemana → «♯6/♭5» en mayor). Las cifras se calculan a partir de las notas reales del acorde en su tonalidad, con las mismas reglas que music21. En la partitura, en las tarjetas, en la tabla y en el contexto; la búsqueda de progresiones no cambia.
+- Cifrado interválico completo, según la tradición española: la sensible con «+» (V7 → «7+», V43 → «+6», V42 → «+4», también la de la tonalidad tonicalizada en las dominantes secundarias), los intervalos disminuidos tachados (V65 → «6/5̸», vii°7 → «7̸») y las notas alteradas respecto a la armadura (napolitana → «♭6», sexta alemana → «♯6/♭5» en mayor). Las cifras se calculan a partir de las notas reales del acorde en su tonalidad, con las mismas reglas que music21. En inglés la sensible no lleva «+», sino la alteración que tenga respecto a la armadura (V7 en do menor → «7/♮»). En la partitura, en las tarjetas, en la tabla y en el contexto; la búsqueda de progresiones no cambia.
 
 ## [0.4.2] - 2026-11-03
 
@@ -137,7 +139,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...v0.4.0
