@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Casillas de repetición: el análisis da a la 2.ª casilla el mismo número de compás que a la 1.ª, pero las partituras que no escriben las casillas la numeran como el compás siguiente, y desde ahí los cifrados salían un compás antes de su sitio y el acorde de la 2.ª casilla no se dibujaba (Chopin, Mazurka Op. 7 n.º 2, cc. 32-34: «La M: V7/IV – IV – ii°6» aparecía bajo el acorde de La mayor de la 2.ª casilla). Ahora la partitura toma la numeración del análisis tras la barra de repetición y muestra esos mismos números. Afecta a 23 análisis (sobre todo mazurcas de Chopin; también Beethoven, Op. 130/vi y Op. 59 n.º 2, Mozart, K. 533/iii, y lieder de Lang, Reichardt y C. Schumann).
+
 ## [0.4.0] - 2026-11-01
 
 ### Added
