@@ -1657,6 +1657,14 @@ async function xmlDe(o){
   const codif=!utf16?'utf-8':(bytes[0]===0xFE||bytes[0]===0)?'utf-16be':'utf-16le';
   let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
   x=x.replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
+  // «dinámicas» que son solo signos sueltos — ( ) [ ] — restos de la conversión desde Humdrum (marcas de ligadura y
+  // de paréntesis del **dynam): Verovio las dibujaría como texto bajo el pentagrama. Se quitan con su indicación si
+  // se queda vacía; las dinámicas de verdad (p, cresc., (p)…) llevan letras y se conservan
+  if(x.includes('<other-dynamics')){
+    x=x.replace(/<other-dynamics>[^<A-Za-z0-9]*<\/other-dynamics>/g,'').replace(/<dynamics\b[^>]*>\s*<\/dynamics>/g,'')
+       .replace(/<direction-type>\s*<\/direction-type>/g,'')
+       .replace(/<direction\b[^>]*>(?:\s*(?:<sound\b[^>]*\/>|<offset>[^<]*<\/offset>|<staff>[^<]*<\/staff>|<voice>[^<]*<\/voice>))*\s*<\/direction>/g,'');
+  }
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
   if(o.reconstruida) x=ordenarVoces(x,o.src.inst);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
@@ -1940,6 +1948,35 @@ const alinCache=new Map();
 // como el compás siguiente (33), y desde ahí sus números van uno por delante del análisis. Tras una barra de
 // repetición hacia atrás, si el análisis vuelve a un compás ya visto muy cercano (la casilla, de 1 a 4 compases) y no
 // al comienzo de la sección repetida (eso es una repetición desplegada), la partitura toma los números del análisis.
+// Las partituras sin casillas escritas: se añaden las de 1.ª y 2.ª (<ending>) en los compases que casillas() ha
+// reconocido, en todas las partes, para que Verovio dibuje los corchetes. La 2.ª queda abierta (discontinue).
+const casCache=new Map();
+function conCasillas(xml,E,id){
+  if(casCache.has(id)) return casCache.get(id);
+  const marcas=new Map();                              // posición → [{lado, número, tipo}]
+  const pon=(p,lado,num,tipo)=>{if(!marcas.has(p)) marcas.set(p,[]); marcas.get(p).push({lado,num,tipo})};
+  for(const {p1,p2} of E.voltas){
+    pon(p1[0],'left',1,'start'); pon(p1[1],'right',1,'stop');
+    pon(p2[0],'left',2,'start'); pon(p2[1],'right',2,'discontinue');
+  }
+  const ending=(num,tipo)=>tipo==='start'?`<ending number="${num}" type="start">${num}.</ending>`:`<ending number="${num}" type="${tipo}"/>`;
+  // la casilla va dentro de la barra de ese lado (antes de <repeat>, como pide el esquema); si no hay barra, se crea
+  const enBarra=(cuerpo,lado,e)=>{
+    const re=new RegExp(`<barline\\b[^>]*location=["']${lado}["'][^>]*>([\\s\\S]*?)<\\/barline>`);
+    if(re.test(cuerpo)) return cuerpo.replace(re,(b,dentro)=>/<ending\b/.test(dentro)?b:/<repeat\b/.test(b)?b.replace(/<repeat\b/,e+'<repeat'):b.replace('</barline>',e+'</barline>'));
+    const barra=`<barline location="${lado}">${e}</barline>`;
+    return lado==='left'?barra+cuerpo:cuerpo+barra;
+  };
+  const r=xml.replace(/(<part\b[^>]*>)([\s\S]*?)(<\/part>)/g,(_,a,parte,z)=>{
+    let i=-1;
+    return a+parte.replace(/(<measure\b[^>]*>)([\s\S]*?)(<\/measure>)/g,(m,ab,cuerpo,ci)=>{
+      i++; const ms=marcas.get(i); if(!ms||/<ending\b/.test(cuerpo)) return m;
+      for(const {lado,num,tipo} of ms) cuerpo=enBarra(cuerpo,lado,ending(num,tipo));
+      return ab+cuerpo+ci;
+    })+z;
+  });
+  casCache.set(id,r); return r;
+}
 function nuevaPasada(c,prev){
   return c.parte<prev.parte-1e-6||(Math.abs(c.parte-prev.parte)<1e-6&&(c.tono!==prev.tono||c.rn!==prev.rn));
 }
@@ -1949,12 +1986,12 @@ function casillas(E,ac,fuente){
     if(!prev||c.compas!==prev.compas||nuevaPasada(c,prev)) vis.push(c.compas);
     prev=c;
   }
-  const n=[]; let off=0, v=0, ini=0, cambia=false;
+  const n=[], vueltas=[]; let off=0, v=0, ini=0, cambia=false;
   for(let i=0;i<E.n.length;i++){
     let num=E.n[i]+off;
     if(i>0&&E.rep[i-1]){
       const m=n[i-1], x=vis[v], largo=m-x+1;
-      if(x!=null&&E.n[i]===E.n[i-1]+1&&x<=m&&largo<=4&&largo*2<i-ini){off+=x-num;num=x;cambia=true}
+      if(x!=null&&E.n[i]===E.n[i-1]+1&&x<=m&&largo<=4&&largo*2<i-ini){off+=x-num;num=x;cambia=true;vueltas.push({i,x,m})}
       ini=i;
     }
     if(E.ida[i]) ini=i;
@@ -1963,7 +2000,14 @@ function casillas(E,ac,fuente){
     n.push(num);
   }
   if(!cambia) return E;
-  const A={...E,n,ocs:new Map(),casillas:true};
+  // posiciones de la 1.ª casilla (los compases x…m que acaban en la barra de repetición) y de la 2.ª (los que repiten
+  // esos números justo después)
+  const voltas=vueltas.map(({i,x,m})=>{
+    let a=i-1; while(a>0&&n[a-1]>=x&&n[a-1]<=n[a]&&!E.rep[a-1]) a--;
+    let b=i; while(b+1<n.length&&n[b+1]<=m&&n[b+1]>=n[b]&&!E.rep[b]) b++;
+    return {p1:[a,i-1],p2:[i,b]};
+  });
+  const A={...E,n,ocs:new Map(),casillas:true,voltas};
   for(let i=0;i<n.length;i++){
     if(!A.ocs.has(n[i])) A.ocs.set(n[i],[]);
     const lista=A.ocs.get(n[i]), p=lista[lista.length-1];
@@ -2113,12 +2157,15 @@ async function mostrar(h){
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,svgFontFaceInclude:true,
         ...GRABADO});
-      t.select({measureRange:pos.sel}); t.loadData(xml);
+      t.select({measureRange:pos.sel}); t.loadData(E.voltas?conCasillas(xml,E,o.id):xml);
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
       // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
+      // Verovio pone entre paréntesis el número de una casilla que empieza en el primer compás del fragmento, como si
+      // viniera de antes («(1)»): la casilla empieza ahí, así que va sin paréntesis
+      cont.querySelectorAll('g.voltaBracket text, g.voltaBracket tspan').forEach(t=>{if(!t.children.length&&/^\s*\(\s*\d+\s*\)\s*$/.test(t.textContent)) t.textContent=t.textContent.replace(/[()]/g,'')});
       // con casillas renumeradas, la partitura muestra los números del análisis (los de la ficha y la búsqueda)
       if(E.casillas) cont.querySelectorAll('g.measure').forEach((g,j)=>{
         const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
