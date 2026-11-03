@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Cifrado interválico completo, según la tradición española: la sensible con «+» (V7 → «7+», V43 → «+6», V42 → «+4», también la de la tonalidad tonicalizada en las dominantes secundarias), los intervalos disminuidos tachados (V65 → «6/5̸», vii°7 → «7̸/5̸») y las notas alteradas respecto a la armadura (napolitana → «♭6», sexta alemana → «♯6/♭5» en mayor). Las cifras se calculan a partir de las notas reales del acorde en su tonalidad, con las mismas reglas que music21. En la partitura, en las tarjetas, en la tabla y en el contexto; la búsqueda de progresiones no cambia.
+
 ## [0.4.2] - 2026-11-03
 
 ### Fixed

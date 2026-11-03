@@ -144,6 +144,9 @@ td.obra .c{display:block;color:var(--muted);font-size:13px}
 .lin.fun{font:13.5px var(--body);color:var(--fun)}
 .lin .sep{color:var(--muted);opacity:.6;padding:0 2px}
 .lin .uni{opacity:.4}
+/* cifra tachada (intervalo disminuido): barra oblicua sobre la cifra */
+.tch{position:relative;display:inline-block}
+.tch::after{content:'';position:absolute;left:-.12em;right:-.12em;top:50%;border-top:.09em solid currentColor;transform:rotate(-55deg)}
 .resumen{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
 .fila{cursor:pointer}
 .fila:hover td{background:var(--accent-soft)}
@@ -429,6 +432,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 (function(){const e=document.getElementById('version'),v=window.HF_VERSION;if(e&&v)e.textContent='v'+v;})();</script>
 <script src="jszip.min.js"></script>
 <script src="progresiones.js"></script>
+<script src="cifrado.js"></script>
 <script>
 (async function(){
 const $=s=>document.querySelector(s);
@@ -544,6 +548,12 @@ function cifInterv(p){
   const T={'':'5','5':'5','53':'5','6':'6','63':'6','64':'6/4','7':'7','753':'7','65':'6/5','653':'6/5','43':'4/3','643':'4/3','42':'4/2','2':'4/2','642':'4/2','9':'9','97':'9/7'};
   return p.dig in T?T[p.dig]:p.dig.split('').join('/');
 }
+// cifrado interválico para leer (web/cifrado.js: sensible «+», disminuidos tachados, alteraciones); el de arriba,
+// cifInterv(), es solo la clave interna de las búsquedas de progresiones y no cambia
+const cifFilas=(rn,tono)=>{try{const f=Cifrado.cifras(rn,tono);if(f&&f.length)return f}catch(e){}const p=parseRN(rn);return p?cifInterv(p).split('/'):['?']};
+const cifInt=(rn,tono)=>{const f=cifFilas(rn,tono);return Cifrado.texto(f)||f.join('/')};
+// a HTML: la cifra con U+0338 detrás se dibuja tachada
+const htmlInt=t=>esc(t).replace(/(\d)\u0338/g,'<span class="tch">$1</span>');
 const esSeptima=p=>/^(7|65|43|42|2|753|653|643|642)$/.test(p.dig);
 function inversion(p){
   if(/^(6|63|65|653)$/.test(p.dig)) return 1;
@@ -588,7 +598,7 @@ const RN_RE=/(^|[\s(→=])((?:bb|##|b|#)?(?:Cad|Ger|Fr|It|Sw|N|[ivIV]+)(?:o|ø|\
 function traducir(texto,tono,modo){
   return texto.replace(RN_RE,(all,pre,rn,k)=>{
     const p=parseRN(rn); if(!p) return all;
-    return pre+(modo==='int'?cifInterv(p):cifFunc(p,k||tono))+(k?' en '+k:'');
+    return pre+(modo==='int'?cifInt(rn,k||tono):cifFunc(p,k||tono))+(k?' en '+k:'');
   });
 }
 const ver=()=>({rom:$('#verRom').checked,int:$('#verInt').checked,fun:$('#verFun').checked});
@@ -601,7 +611,7 @@ function cifLegible(t){
 function lineas(texto,tono){
   const v=ver(); let h='';
   if(v.rom) h+=`<span class="lin rom" title="${esc(etqTxt(texto))}">${esc(etqTxt(cifLegible(texto)))}</span>`;
-  if(v.int) h+=`<span class="lin int" title="${trd('Cifrado interválico','Figured bass')}">${esc(etqTxt(traducir(texto,tono,'int')))}</span>`;
+  if(v.int) h+=`<span class="lin int" title="${trd('Cifrado interválico','Figured bass')}">${htmlInt(etqTxt(traducir(texto,tono,'int')))}</span>`;
   if(v.fun) h+=`<span class="lin fun" title="${trd('Cifrado funcional','Functional analysis')}">${esc(etqTxt(traducir(texto,tono,'fun')))}</span>`;
   return h||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
 }
@@ -1582,7 +1592,7 @@ function celdaCifrado(h){
     const [desde,hasta]=p[0].split(' → '), v=ver(), conRN=/ en /.test(p[2]);
     let det='';
     if(v.rom||!conRN) det+=`<span class="det">${esc(etqTxt(p[2]))}</span>`;
-    if(v.int&&conRN) det+=`<span class="det" style="color:var(--int)">${esc(etqTxt(traducir(p[2],h.tono,'int')))}</span>`;
+    if(v.int&&conRN) det+=`<span class="det" style="color:var(--int)">${htmlInt(etqTxt(traducir(p[2],h.tono,'int')))}</span>`;
     if(v.fun&&conRN) det+=`<span class="det" style="color:var(--fun)">${esc(etqTxt(traducir(p[2],h.tono,'fun')))}</span>`;
     return `<span class="lin rom">${esc(tonoEs(desde))} → ${esc(tonoEs(hasta))}</span><span class="tipo ${TIPOS[p[1]]}">${EN?TIPO_MOD[p[1]][1]:p[1]}</span>${det}`;
   }
@@ -1597,10 +1607,10 @@ function resumen(s){
 }
 function progresion(ac,h){
   const dentro=ac.filter(a=>a.compas>=h.ini&&a.compas<=h.fin), v=ver();
-  const fila=(cls,fn)=>{let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="${trd('pasaje al unísono u octava','unison or octave passage')}">${esc(fn(a))}</span>`:esc(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
+  const fila=(cls,fn)=>{const h=cls==='int'?htmlInt:esc;let prev=null,t='';for(const a of dentro){if(prev!==null&&a.compas!==prev)t+='<span class="sep">|</span> ';t+=(a.u?`<span class="uni" title="${trd('pasaje al unísono u octava','unison or octave passage')}">${h(fn(a))}</span>`:h(fn(a)))+' ';prev=a.compas}return `<span class="lin ${cls}">${t}</span>`};
   let out='';
   if(v.rom) out+=fila('rom',a=>cifLegible(a.rn));
-  if(v.int) out+=fila('int',a=>cifInterv(parseRN(a.rn)));
+  if(v.int) out+=fila('int',a=>cifInt(a.rn,a.tono));
   if(v.fun) out+=fila('fun',a=>cifFunc(parseRN(a.rn),a.tono));
   return out||`<span class="lin" style="color:var(--muted)">${trd('(cifrados ocultos)','(analysis hidden)')}</span>`;
 }
@@ -2203,6 +2213,16 @@ async function mostrar(h){
 }
 const NS='http://www.w3.org/2000/svg', FUENTE="Academico, 'Times New Roman', Times, 'Segoe UI Symbol', 'DejaVu Serif', Georgia, serif";
 const SUP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+'}, SUB={'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9'};
+// cifra tachada (intervalo disminuido): barra oblicua sobre el texto ya dibujado (centrado en x, y en la línea base)
+function tachar(g,t,str,size){
+  const x=+t.getAttribute('x'), y=+t.getAttribute('y'), w=Math.max(ancho(t),size*0.5);
+  const l=document.createElementNS(NS,'line');
+  l.setAttribute('x1',(x-w*0.62).toFixed(1));l.setAttribute('y1',(y+size*0.08).toFixed(1));
+  l.setAttribute('x2',(x+w*0.62).toFixed(1));l.setAttribute('y2',(y-size*0.78).toFixed(1));
+  l.setAttribute('stroke','#000');l.setAttribute('stroke-width',(size*0.08).toFixed(2));
+  if(t.getAttribute('opacity')) l.setAttribute('opacity',t.getAttribute('opacity'));
+  g.append(l); return l;
+}
 function texto(g,str,x,y,size,extra){
   const t=document.createElementNS(NS,'text');
   t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('font-size',Math.round(size));t.setAttribute('font-family',FUENTE);t.setAttribute('fill','#000');
@@ -2428,7 +2448,11 @@ function anotar(svg,acordes,occ,E,pos,reducir){
         w=grabarRomano(gg,c.rn,0,0,f); gg.setAttribute('transform',`translate(${x-w/2},${filas.rom})`);
         if(c.u){gg.setAttribute('opacity','0.4');const tt=document.createElementNS(NS,'title');tt.textContent=trd('Pasaje al unísono u octava: no cuenta en las búsquedas','Unison or octave passage: not counted in searches');gg.append(tt)}
       }
-      if(filas.int!=null&&p) cifInterv(p).split('/').forEach((n,k)=>{const t=texto(g,n,x,filas.int+k*f*0.8,f*0.74,{'text-anchor':'middle'});if(c.u)t.setAttribute('opacity','0.4');w=Math.max(w,ancho(t))});
+      if(filas.int!=null&&p) cifFilas(c.rn,c.tono).forEach((n,k)=>{
+        const tachada=n.includes('\u0338'), t=texto(g,n.replace(/\u0338/g,''),x,filas.int+k*f*0.8,f*0.74,{'text-anchor':'middle'});
+        if(c.u)t.setAttribute('opacity','0.4');
+        if(tachada) tachar(g,t,n,f*0.74);
+        w=Math.max(w,ancho(t))});
       if(filas.fun!=null){
         const t=texto(g,cifFunc(p,c.tono),x,filas.fun,f*0.95,{'text-anchor':'middle'}); if(c.u)t.setAttribute('opacity','0.4'); w=Math.max(w,ancho(t));
       }
@@ -2487,9 +2511,9 @@ function pintarTira(h,dentro){
   const foco=(x,i)=>h.frag?(x.compas>=h.ini&&x.compas<=h.fin):(iE>=0?i>=f0&&i<=f1:false);
   let prev=null; const nc=dentro.map(x=>{const r=x.compas!==prev;prev=x.compas;return r});
   let html='<table><thead><tr><th class="rot"></th>'+dentro.map((x,i)=>`<th class="${nc[i]?'nc':''}">${nc[i]?trd('c. ','b. ')+x.compas:'·'}</th>`).join('')+'</tr></thead><tbody>';
-  const fila=(cls,nom,fn)=>`<tr class="${cls}"><td class="rot">${nom}</td>`+dentro.map((x,i)=>`<td class="${nc[i]?'nc ':''}${foco(x,i)?'foco':''}">${esc(fn(x))}</td>`).join('')+'</tr>';
+  const fila=(cls,nom,fn)=>`<tr class="${cls}"><td class="rot">${nom}</td>`+dentro.map((x,i)=>`<td class="${nc[i]?'nc ':''}${foco(x,i)?'foco':''}">${(cls==='int'?htmlInt:esc)(fn(x))}</td>`).join('')+'</tr>';
   if(v.rom) html+=fila('rom',trd('Romano','Roman'),x=>x.rn);
-  if(v.int) html+=fila('int',trd('Interv.','Fig.'),x=>cifInterv(parseRN(x.rn)));
+  if(v.int) html+=fila('int',trd('Interv.','Fig.'),x=>cifInt(x.rn,x.tono));
   if(v.fun) html+=fila('fun',trd('Func.','Func.'),x=>cifFunc(parseRN(x.rn),x.tono));
   tira.innerHTML=html+'</tbody></table>'; tira.hidden=false;
 }
