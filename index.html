@@ -1870,7 +1870,7 @@ const estrCache=new Map();
 function estructura(id,xml){
   if(estrCache.has(id)) return estrCache.get(id);
   const fin=xml.indexOf('</part>'), parte=fin>0?xml.slice(0,fin):xml;
-  const E={etq:[],n:[],occ:[],dur:[],metro:[],ocs:new Map()};
+  const E={etq:[],n:[],occ:[],dur:[],metro:[],ocs:new Map(),rep:[],ida:[]};
   let c=4,u=4,div=1,ult=null;
   for(const m of parte.matchAll(/<measure\b([^>]*)>([\s\S]*?)<\/measure>/g)){
     const etq=(m[1].match(/\bnumber=["']([^"']*)["']/)||[])[1]||'', cuerpo=m[2], i=E.n.length;
@@ -1894,6 +1894,7 @@ function estructura(id,xml){
     if(prev&&prev.pos[prev.pos.length-1]===i-1&&prev.acum<full-1e-6){prev.pos.push(i);prev.acum+=dur;k=lista.length-1}
     else{lista.push({pos:[i],acum:dur});k=lista.length-1}
     E.etq.push(etq);E.n.push(num);E.occ.push(k);E.dur.push(dur);E.metro.push({c,u,full});
+    E.rep.push(/<repeat\b[^>]*direction=["']backward/.test(cuerpo)); E.ida.push(/<repeat\b[^>]*direction=["']forward/.test(cuerpo));
   }
   // ataques de nota de cada compás, en todas las partes (en milésimas de negra desde el comienzo del compás)
   E.ataques=E.n.map(()=>new Set());
@@ -1934,8 +1935,46 @@ function parteDe(m,fuente,unidad){
 // y el análisis los cuenta como un solo compás; desde ahí, sus números van uno por delante. Se unen solo si el
 // análisis pide más partes de las que tiene ese compás y uno de los dos trozos está incompleto.
 const alinCache=new Map();
+// Casillas de repetición: el análisis (el DCML y sus conversiones) da a la 2.ª casilla el mismo número que a la 1.ª
+// (Op. 7 n.º 2 de Chopin: «32» la: i y otra vez «32» La: I), pero las partituras que no escriben las casillas la numeran
+// como el compás siguiente (33), y desde ahí sus números van uno por delante del análisis. Tras una barra de
+// repetición hacia atrás, si el análisis vuelve a un compás ya visto muy cercano (la casilla, de 1 a 4 compases) y no
+// al comienzo de la sección repetida (eso es una repetición desplegada), la partitura toma los números del análisis.
+function nuevaPasada(c,prev){
+  return c.parte<prev.parte-1e-6||(Math.abs(c.parte-prev.parte)<1e-6&&(c.tono!==prev.tono||c.rn!==prev.rn));
+}
+function casillas(E,ac,fuente){
+  const vis=[]; let prev=null;                        // visitas del análisis: compás nuevo u otra pasada del mismo
+  for(const c of ac){
+    if(!prev||c.compas!==prev.compas||nuevaPasada(c,prev)) vis.push(c.compas);
+    prev=c;
+  }
+  const n=[]; let off=0, v=0, ini=0, cambia=false;
+  for(let i=0;i<E.n.length;i++){
+    let num=E.n[i]+off;
+    if(i>0&&E.rep[i-1]){
+      const m=n[i-1], x=vis[v], largo=m-x+1;
+      if(x!=null&&E.n[i]===E.n[i-1]+1&&x<=m&&largo<=4&&largo*2<i-ini){off+=x-num;num=x;cambia=true}
+      ini=i;
+    }
+    if(E.ida[i]) ini=i;
+    // el análisis no escribe los compases sin cambio de acorde: se busca este compás entre las visitas siguientes
+    for(let k=v;k<Math.min(vis.length,v+4);k++) if(vis[k]===num){v=k+1;break}
+    n.push(num);
+  }
+  if(!cambia) return E;
+  const A={...E,n,ocs:new Map(),casillas:true};
+  for(let i=0;i<n.length;i++){
+    if(!A.ocs.has(n[i])) A.ocs.set(n[i],[]);
+    const lista=A.ocs.get(n[i]), p=lista[lista.length-1];
+    if(p&&p.pos[p.pos.length-1]===i-1&&p.acum<E.metro[p.pos[0]].full-1e-6){p.pos.push(i);p.acum+=E.dur[i]}
+    else lista.push({pos:[i],acum:E.dur[i]});
+  }
+  return desajustes(A,ac,fuente)<=desajustes(E,ac,fuente)?A:E;
+}
 function alinear(E,ac,id,fuente){
   const clave=id+'|'+fuente; if(alinCache.has(clave)) return alinCache.get(clave);
+  E=casillas(E,ac,fuente);
   // unidad de parte de cada compás ternario: la que hace caer más acordes sobre ataques de nota de la partitura
   // (y ninguno fuera de su compás); en caso de empate, la convención de la fuente
   const ternarios=[...new Set(E.metro.filter(m=>m.c%3===0).map(m=>m.c+'/'+m.u))];
@@ -2008,15 +2047,16 @@ function desajustes(E,ac,fuente,soloFuera){
   return n;
 }
 // aparición de su número de compás a la que pertenece cada acorde del análisis: al volver a un compás ya visto
-// empieza otra pasada. Si la parte retrocede sin cambiar de compás, es otra pasada solo cuando la partitura escribe
-// otra aparición de ese compás («25» y «25X1» seguidos); si no, es un dato desordenado del análisis y no se separa.
+// empieza otra pasada. Si la parte retrocede sin cambiar de compás (o se repite con otro acorde u otra tonalidad:
+// 2.ª casilla), es otra pasada solo cuando la partitura escribe otra aparición de ese compás («25» y «25X1» seguidos,
+// casillas); si no, es un dato desordenado del análisis y no se separa.
 function ocurrencias(ac,E){
   const vistos=new Map(), occ=[]; let prev=null;
   for(const c of ac){
     let k;
     if(prev&&c.compas===prev.compas){
       k=occ[occ.length-1];
-      if(c.parte<prev.parte-1e-6&&(E.ocs.get(c.compas)||[]).length>k+1){k++;vistos.set(c.compas,k)}
+      if(nuevaPasada(c,prev)&&(E.ocs.get(c.compas)||[]).length>k+1){k++;vistos.set(c.compas,k)}
     }
     else{k=vistos.has(c.compas)?vistos.get(c.compas)+1:0;vistos.set(c.compas,k)}
     occ.push(k); prev=c;
@@ -2079,6 +2119,11 @@ async function mostrar(h){
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
       // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
       cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
+      // con casillas renumeradas, la partitura muestra los números del análisis (los de la ficha y la búsqueda)
+      if(E.casillas) cont.querySelectorAll('g.measure').forEach((g,j)=>{
+        const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
+        const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
+      });
       despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       svg=cont.querySelector('svg');
