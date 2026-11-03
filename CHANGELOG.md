@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-03
+
 ### Fixed
 - Casillas de repetición: el análisis da a la 2.ª casilla el mismo número de compás que a la 1.ª, pero las partituras que no escriben las casillas la numeran como el compás siguiente, y desde ahí los cifrados salían un compás antes de su sitio y el acorde de la 2.ª casilla no se dibujaba (Chopin, Mazurka Op. 7 n.º 2, cc. 32-34: «La M: V7/IV – IV – ii°6» aparecía bajo el acorde de La mayor de la 2.ª casilla). Ahora la partitura toma la numeración del análisis tras la barra de repetición y muestra esos mismos números. Afecta a 23 análisis (sobre todo mazurcas de Chopin; también Beethoven, Op. 130/vi y Op. 59 n.º 2, Mozart, K. 533/iii, y lieder de Lang, Reichardt y C. Schumann).
 
@@ -126,7 +128,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.3.2...v0.3.3
