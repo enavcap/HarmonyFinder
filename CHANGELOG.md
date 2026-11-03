@@ -8,6 +8,10 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Casillas de repetición: en las partituras que no las escriben (las convertidas desde Humdrum, sobre todo las mazurcas de Chopin) se dibujan ahora los corchetes de 1.ª y 2.ª casilla en los compases que el análisis numera como casillas (23 análisis).
+- Signos sueltos «(», «)», «[» y «]» bajo el pentagrama: eran restos de la conversión desde Humdrum guardados como dinámicas y ya no se dibujan (31 partituras, 28 de ellas mazurcas de Chopin). Las dinámicas de verdad se conservan.
+
 ## [0.4.1] - 2026-11-03
 
 ### Fixed
