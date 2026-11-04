@@ -2403,8 +2403,9 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
 }
 // Silencios que pisan notas: en un pentagrama con varias voces, Verovio no siempre mira lo que hacen las otras voces en
 // ese instante, y las partituras reconstruidas fijan el silencio de la voz aguda en una altura fija. Si un silencio pisa
-// una cabeza de nota, una plica, una barra, un corchete o una alteración, o un silencio de otra voz, se desplaza en múltiplos de media línea, alejándose de lo que pisa (si no
-// hay preferencia, hacia arriba en la primera voz y hacia abajo en las demás), hasta quedar libre. Devuelve cuántos movió.
+// una cabeza de nota, una plica, una barra, un corchete o una alteración de otra voz, se oculta: esa otra voz suena en ese
+// instante y el silencio no aporta nada a un ejemplo armónico. Si pisa el silencio de otra voz, se desplaza en múltiplos de
+// media línea, alejándose de lo que pisa, hasta quedar libre. Devuelve cuántos ocultó o movió.
 // El desplazamiento va en un <g> interno del silencio, no en él mismo: getBBox() ignora el transform propio del elemento
 // y despejarNumeros() (que se ejecuta después, y otra vez al acabar de maquetar) necesita la caja ya movida.
 function despejarSilencios(svg){
@@ -2431,11 +2432,12 @@ function despejarSilencios(svg){
           voces.forEach((w,jw)=>{ if(jw===iv) return;
             for(const n of w.notas) if(pisa(c,n)) fuera.push(n);
             for(const n of w.trazos) if(pisa(c,n)) fuera.push(n);
-            for(const s of w.silencios){const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h}; if(pisa(c,sb)) fuera.push(sb)}
+            for(const s of w.silencios){ if(s.oculto) continue; const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h,sil:true}; if(pisa(c,sb)) fuera.push(sb)}
           });
           return fuera;
         };
         const c0=choques(0); if(!c0.length) continue;
+        if(!c0.some(b=>b.sil)){ r.e.setAttribute('display','none'); r.oculto=true; movidos++; continue }   // solo pisa notas, plicas o alteraciones: se oculta
         const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
         const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
         let mejor=null;
