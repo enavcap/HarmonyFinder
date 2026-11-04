@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
 ### Added
 - Sexta napolitana y II rebajado en estado fundamental, como procedimientos distintos. La sexta napolitana (♭II en primera inversión, N6) y el ♭II fundamental son funcionalmente lo mismo (subdominante alterada que prepara la dominante), pero la sexta napolitana no nació como inversión del ♭II, que no se usó en estado fundamental hasta el siglo XIX. Conceptos nuevos: «sexta napolitana» (664 coincidencias), «II rebajado en estado fundamental» (467), «sexta napolitana → dominante» (274) y «II rebajado fundamental → dominante» (106). Solo cuentan tríadas; las cuatríadas y las segundas inversiones siguen solo en el concepto general.
 - Prueba `multicorpus/tests/test_napolitana.py`.
@@ -178,7 +180,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...v0.5.1
