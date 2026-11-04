@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-05
+
 ### Changed
 - «Para empezar» elige ahora ejemplos canónicos y claros del procedimiento buscado, en lugar de los más cortos de los compositores con más resultados. Cada ejemplo se puntúa por la claridad del procedimiento (su cifrado es el habitual en esa búsqueda, la etiqueta no lleva notas añadidas ni omitidas, la longitud es la típica, cae en tiempo fuerte, es cadencial donde el concepto lo distingue); por su fiabilidad (nada al unísono, partitura no reconstruida; plus pequeño para los manuales); y, de forma secundaria, por la tonalidad (desempatan las de menos alteraciones, pero nunca ganan a la claridad).
 - En las búsquedas de cadencias pesa sobre todo la claridad de la cadencia: la marca del analista (PAC, IAC, HC, PC, DC…) cuando el corpus las anota, la llegada en tiempo fuerte, una predominante o un 6/4 previo, y que el modo del cifrado coincida con el de la tonalidad (una «I» en tonalidad menor es una tercera de Picardía, no la cadencia típica). En los acordes de predominante (sexta aumentada, napolitana) se premia que resuelvan en la dominante, y en el pedal de dominante que el pasaje sea sobre todo dominante.
@@ -203,7 +205,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/enavcap/harmonyfinder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...v0.6.0
