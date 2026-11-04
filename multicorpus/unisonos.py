@@ -206,8 +206,9 @@ def tramos(ac):
         out.append((ini, ac[ini:]))
     return out
 
-def fila_hit(aid, seg, i, et, n):
-    """Fila de coincidencia para la web: [análisis, compás, parte, tono, etiqueta, compás inicial, compás final].
+def fila_hit(aid, seg, i, et, n, ctx=None):
+    """Fila de coincidencia para la web: [análisis, compás, parte, tono, etiqueta, compás inicial, compás final]
+    y, si el concepto la tiene, la marca de contexto («c» cadencial, «n» no cadencial).
     Algunos análisis siguen el orden de interpretación, con las repeticiones desplegadas (16 → 1): el rango
     no cruza nunca un salto atrás, para que la partitura muestre un pasaje continuo que contiene el acorde."""
     a = seg[i]
@@ -220,7 +221,8 @@ def fila_hit(aid, seg, i, et, n):
         if x["compas"] < fin:                     # salto atrás: el pasaje termina antes de la repetición
             break
         fin = x["compas"]
-    return [aid, c, a["parte"], a["tono"], et, ini, fin]
+    fila = [aid, c, a["parte"], a["tono"], et, ini, fin]
+    return fila + [ctx] if ctx else fila
 
 def sin_repetidos(filas):
     """Quita las coincidencias idénticas (las de la segunda vuelta de una repetición), conservando el orden."""

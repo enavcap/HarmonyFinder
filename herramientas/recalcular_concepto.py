@@ -87,7 +87,7 @@ def recalcular(conceptos):
                 except Exception:
                     continue
                 for i, et, n in res:
-                    hits[k].append(unisonos.fila_hit(aid, seg, i, et, n))
+                    hits[k].append(unisonos.fila_hit(aid, seg, i, et, n, buscar.CONTEXTO[k](seg, i) if k in buscar.CONTEXTO else None))
     meta = json.load(open(DATA / "meta.json", encoding="utf-8"))
     for k in conceptos:
         det, desc, tipo = CONC[k]

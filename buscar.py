@@ -115,6 +115,20 @@ def bii_fundamental_a_dominante(ac):
     """♭II en estado fundamental → V o ♭II → I64 → V."""
     return _napolitana_a_dominante(ac, bii_fundamental)
 
+def contexto_napolitana(ac, i):
+    """'c' si el ♭II / N de ac[i] prepara la dominante (cadencial); 'n' si no. Una napolitana prolongada (varios
+    ♭II seguidos) se mira desde su último acorde; entre ella y el V de su misma tonalidad cabe un solo acorde (I64…)."""
+    j = i
+    while j + 1 < len(ac) and _misma_tonalidad(ac[j], ac[j + 1]) and _es_napolitana(ac[j + 1]):
+        j += 1
+    for k in (j + 1, j + 2):
+        if k < len(ac) and _misma_tonalidad(ac[j], ac[k]) and _es_V(ac[k]):
+            return "c"
+    return "n"
+
+# Conceptos cuyas coincidencias llevan además la marca de contexto (8.º campo de la fila): cadencial o no
+CONTEXTO = {"napolitana": contexto_napolitana, "sexta_napolitana": contexto_napolitana, "bii_fundamental": contexto_napolitana}
+
 def sexta_aumentada(ac):
     return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if a["cifrado"][:2] in ("It", "Fr", "Ge", "Sw")]
 

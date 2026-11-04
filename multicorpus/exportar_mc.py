@@ -127,7 +127,7 @@ def datos_analisis(ac, aid, ti, CONC):
             except Exception:
                 continue
             for i, et, n in res:
-                out.append(unisonos.fila_hit(aid, seg, i, et, n))
+                out.append(unisonos.fila_hit(aid, seg, i, et, n, buscar.CONTEXTO[k](seg, i) if k in buscar.CONTEXTO else None))
         hits[k] = unisonos.sin_repetidos(out)
     return fila, [pc[c] for c in sorted(pc)], hits
 

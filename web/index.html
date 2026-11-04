@@ -157,7 +157,7 @@ button.btn:hover{border-color:var(--accent)}
 button.btn:disabled{opacity:.45;cursor:default}
 
 .tipo{display:inline-block;font:500 11px/1.6 var(--body);letter-spacing:.04em;text-transform:uppercase;padding:0 7px;border-radius:999px;margin:2px 0;vertical-align:1px;border:1px solid currentColor}
-.t-dia{color:var(--muted)} .t-cro{color:var(--accent)} .t-enh{color:var(--enh)} .t-dir{color:var(--dir)}
+.t-dia{color:var(--muted)} .t-cro{color:var(--accent)} .t-enh{color:var(--enh)} .t-dir{color:var(--dir)} .t-cad{color:var(--accent)} .t-nocad{color:var(--muted)}
 .det{display:block;font:12.5px var(--body);color:var(--muted);white-space:normal;margin-top:2px}
 
 #vista{border:1px solid var(--line);border-radius:8px;background:var(--panel);min-height:260px;display:flex;flex-direction:column;min-width:0}
@@ -1396,7 +1396,9 @@ function etqTxt(e){
     .replace(/ en ([A-Ga-g][#-]*)/g,' in $1');
 }
 for(const t of TONOS){const op=document.createElement('option');op.value=t;op.textContent=tonoEs(t);$('#tonalidad').append(op)}
-function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
+// los ejemplos cadenciales (los que preparan la dominante) van antes que los demás, donde el concepto distingue unos de otros
+const noCad=h=>h.ctx==='n'?1:0;
+function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||(noCad(a)-noCad(b))||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
 // alterna compositores para que la primera página no la llene uno solo (p. ej. 371 corales de Bach)
 // Un mismo movimiento puede tener dos análisis (When in Rome y DCML, o dos analistas): el mismo pasaje sale
 // en los dos. Se cuenta y se muestra una vez; los demás análisis quedan en h.otros (la vista deja cambiar de
@@ -1407,7 +1409,7 @@ function fusionarAnalisis(lista){
     const o=porId.get(h.obra); if(!o){out.push(h);continue}
     const k=o.m+'|'+(h.frag?h.ini+'-'+h.fin:h.compas+'@'+h.parte);
     const p=vistos.get(k);
-    if(p){if(p.obra!==h.obra&&!p.otros.some(x=>x.obra===h.obra)) p.otros.push(h); continue}
+    if(p){if(h.ctx==='c') p.ctx='c'; if(p.obra!==h.obra&&!p.otros.some(x=>x.obra===h.obra)) p.otros.push(h); continue}
     h.otros=[]; vistos.set(k,h); out.push(h);
   }
   return out;
@@ -1442,7 +1444,7 @@ async function ejecutar(o){
     const cuenta={}, todas=[];
     for(const h of hitsCache[k]){
       const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)||!pasaForma(ob,f,h[1],h[2])) continue;
-      todas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6]});
+      todas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6],ctx:h[7]});
     }
     filas=fusionarAnalisis(todas).filter(h=>{const w=porId.get(h.obra).w;cuenta[w]=(cuenta[w]||0)+1;return cuenta[w]<=f.lim});
     filas=intercalar(filas);
@@ -1512,7 +1514,7 @@ function pintarDestacados(frag,modoObras){
   const orden=contar(filas,h=>porId.get(h.obra).c).map(x=>x[0]), elegidos=[];
   for(const c of orden){
     const cands=filas.filter(h=>porId.get(h.obra).c===c);
-    const h=cands.slice().sort((a,b)=>((a.fin-a.ini)-(b.fin-b.ini)))[0];
+    const h=cands.slice().sort((a,b)=>(noCad(a)-noCad(b))||((a.fin-a.ini)-(b.fin-b.ini)))[0];
     elegidos.push(h); if(elegidos.length===4) break;
   }
   d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
@@ -1606,7 +1608,13 @@ function celdaCifrado(h){
     if(v.fun&&conRN) det+=`<span class="det" style="color:var(--fun)">${esc(etqTxt(traducir(p[2],h.tono,'fun')))}</span>`;
     return `<span class="lin rom">${esc(tonoEs(desde))} → ${esc(tonoEs(hasta))}</span><span class="tipo ${TIPOS[p[1]]}">${EN?TIPO_MOD[p[1]][1]:p[1]}</span>${det}`;
   }
-  return lineas(h.etq,h.tono);
+  return lineas(h.etq,h.tono)+marcaCtx(h);
+}
+// napolitana: si el acorde prepara la dominante (uso cadencial típico) o no
+function marcaCtx(h){
+  if(h.ctx==='c') return `<span class="tipo t-cad" title="${trd('Prepara la dominante: el uso cadencial típico','Leads to the dominant: the typical cadential use')}">${trd('cadencial','cadential')}</span>`;
+  if(h.ctx==='n') return `<span class="tipo t-nocad" title="${trd('No llega a la dominante: no es el uso cadencial típico','Does not lead to the dominant: not the typical cadential use')}">${trd('no cadencial','non-cadential')}</span>`;
+  return '';
 }
 function resumen(s){
   const tc=[]; if(s.tri) tc.push(`${s.tri} ${trd('tríadas','triads')}`); if(s.cua) tc.push(`${s.cua} ${trd('cuatríadas','seventh chords')}`); if(s.otro) tc.push(`${s.otro} ${trd('otros','other')}`);
