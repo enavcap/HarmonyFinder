@@ -8,6 +8,14 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- «Para empezar» elige ahora ejemplos canónicos y claros del procedimiento buscado, en lugar de los más cortos de los compositores con más resultados. Cada ejemplo se puntúa por la claridad del procedimiento (su cifrado es el habitual en esa búsqueda, la etiqueta no lleva notas añadidas ni omitidas, la longitud es la típica, cae en tiempo fuerte, es cadencial donde el concepto lo distingue); por su fiabilidad (nada al unísono, partitura no reconstruida; plus pequeño para los manuales); y, de forma secundaria, por la tonalidad (desempatan las de menos alteraciones, pero nunca ganan a la claridad).
+- En las búsquedas de cadencias pesa sobre todo la claridad de la cadencia: la marca del analista (PAC, IAC, HC, PC, DC…) cuando el corpus las anota, la llegada en tiempo fuerte, una predominante o un 6/4 previo, y que el modo del cifrado coincida con el de la tonalidad (una «I» en tonalidad menor es una tercera de Picardía, no la cadencia típica). En los acordes de predominante (sexta aumentada, napolitana) se premia que resuelvan en la dominante, y en el pedal de dominante que el pasaje sea sobre todo dominante.
+- Los cuatro ejemplos son de compositores distintos, con variedad de épocas y de tonalidades, e incluyen uno de J. S. Bach si lo hay y no es claramente peor que los demás.
+
+### Added
+- `web/canonicos.js` (la puntuación y la elección) y `herramientas/prueba_canonicos.js` (26 pruebas sobre los datos reales).
+
 ## [0.6.2] - 2026-11-05
 
 ### Fixed

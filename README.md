@@ -116,7 +116,8 @@ multicorpus/          catálogo multicorpus (modelo, identificación, adaptadore
 buscar.py             detectores armónicos sobre la secuencia de acordes
 indexar.py            lectura de RomanText con music21
 herramientas/         conversión de tablas DCML y Humdrum a MusicXML; prueba_idiomas.py (mismos resultados en los dos idiomas);
-                      prueba_progresiones.js (búsqueda de progresiones sobre los datos reales)
+                      prueba_progresiones.js (búsqueda de progresiones sobre los datos reales);
+                      prueba_canonicos.js («Para empezar»: ejemplos canónicos y variados)
 web/                  aplicación estática (index.html + data/ + scores/ + fonts/)
 docs/img/             imágenes de esta portada
 VERSION               versión vigente (Semantic Versioning); CHANGELOG.md: historial de cambios
@@ -145,6 +146,7 @@ python -m multicorpus.exportar_mc        # genera web/data y web/scores
 python -m pytest -q multicorpus/tests
 python herramientas/prueba_idiomas.py    # en navegador: español e inglés dan lo mismo
 node --test herramientas/prueba_progresiones.js   # progresiones: ii V I, inversiones, cualidades, sin duplicados
+node --test herramientas/prueba_canonicos.js      # «Para empezar»: compositores distintos, un Bach, cadencias claras
 ```
 
 **Versiones.** El proyecto sigue [Semantic Versioning 2.0.0](https://semver.org/lang/es/): la versión vigente está en [`VERSION`](VERSION) y el historial en [`CHANGELOG.md`](CHANGELOG.md). El pie de la web la muestra a partir de `web/version.js`, que se regenera con `herramientas/sincronizar_version.py`.

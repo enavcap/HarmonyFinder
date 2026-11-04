@@ -439,6 +439,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 (function(){const e=document.getElementById('version'),v=window.HF_VERSION;if(e&&v)e.textContent='v'+v;})();</script>
 <script src="jszip.min.js"></script>
 <script src="progresiones.js"></script>
+<script src="canonicos.js"></script>
 <script src="cifrado.js"></script>
 <script>
 (async function(){
@@ -1507,16 +1508,23 @@ function pintarResumen(frag,modoObras){
     elegir({t:'x',campo:c,valor:v,txt:c==='modo'?(v==='M'?trd('modo mayor','major mode'):trd('modo menor','minor mode')):c==='epoca'?perTxt(v):c==='seccion'?formaTxt(v):c==='formaGlobal'?formaGTxt(v):v})});
   const t=r.querySelector('[data-todos]'); if(t) t.onclick=()=>{r.dataset.todos=verTodos?'0':'1';pintarResumen(frag,modoObras)};
 }
+let destacadosTok=0;
+// «Para empezar»: cuatro ejemplos canónicos y claros del procedimiento, de compositores distintos (web/canonicos.js).
+// Primero sale una elección provisional (instantánea); en cuanto se cargan los acordes de los pocos candidatos
+// se afina con lo que solo se ve mirando el pasaje (cadencia marcada, acordes al unísono, resolución…).
 function pintarDestacados(frag,modoObras){
-  const d=$('#destacados');
+  const d=$('#destacados'), tok=++destacadosTok;
   if(modoObras||filas.length<6){d.hidden=true;return}
-  // uno por compositor (los de más ejemplos primero); preferencia por fragmentos breves
-  const orden=contar(filas,h=>porId.get(h.obra).c).map(x=>x[0]), elegidos=[];
-  for(const c of orden){
-    const cands=filas.filter(h=>porId.get(h.obra).c===c);
-    const h=cands.slice().sort((a,b)=>(noCad(a)-noCad(b))||((a.fin-a.ini)-(b.fin-b.ini)))[0];
-    elegidos.push(h); if(elegidos.length===4) break;
-  }
+  const info=h=>{const o=porId.get(h.obra);return {c:o.c,per:o.per,reconstruida:!!o.reconstruida,manual:/Textbooks/.test(o.col||'')}};
+  const pre=Canonicos.preseleccion(filas,actual?.t==='c'?actual.k:null,info);
+  pintarTarjetas(pre.rapida);
+  Canonicos.refinarPool(pre,acordesDe).then(fin=>{
+    if(tok!==destacadosTok||(fin.length===pre.rapida.length&&fin.every((h,i)=>h===pre.rapida[i]))) return;
+    pintarTarjetas(fin);
+  });
+}
+function pintarTarjetas(elegidos){
+  const d=$('#destacados');
   d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
     const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}`;
     const cif=etqTxt(cifLegible((h.etq||'').split(' · ')[0]));
