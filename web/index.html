@@ -206,7 +206,8 @@ tr.comp:hover td,.grupo:hover td{background:var(--accent-soft)}
 #destacados .et{font:500 10.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
 #destacados .tarjetas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 #estado:has(~ #resumen:not([hidden])){display:none}
-@media (max-width:600px){.tabla table{min-width:0} td.cif{min-width:0} th:nth-child(3),td.num+td.num{display:none}
+@media (max-width:600px){.tabla table{min-width:0} td.cif{min-width:0} td.cif .lin{white-space:normal;overflow-wrap:anywhere} th:nth-child(3),td.num+td.num{display:none}
+  th,td{padding-left:6px;padding-right:6px} th{white-space:normal} td.obra{max-width:38vw}
   tr.comp td,.grupo td{white-space:normal}}
 #destacados button{display:grid;gap:2px;text-align:left;font:13px var(--body);padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer;min-width:0}
 #destacados button:hover{border-color:var(--accent)}
@@ -226,11 +227,14 @@ tr.mas td{color:var(--accent);font-size:13px;cursor:pointer;padding-top:4px;padd
 .fu.anot{color:var(--fun);border-color:currentColor}
 #selAnalisis{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);align-items:center}
 #selAnalisis button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#selAnalisis button[aria-pressed=true] .fu{color:var(--accent-ink);border-color:currentColor}
 #ficha{border-top:1px solid var(--line);font-size:13.5px}
 #ficha summary{padding:10px 16px;cursor:pointer;color:var(--muted)}
 #ficha .cuerpo{padding:0 16px 14px;display:grid;gap:10px}
 #ficha dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:0}
 #ficha dt{color:var(--muted)} #ficha dd{margin:0;overflow-wrap:anywhere}
+#ficha details.tecnico summary{padding:2px 0;font-size:12.5px}
+#ficha details.tecnico dl{margin-top:6px}
 #ficha a{color:var(--accent)}
 .ctx{font:13.5px var(--mono);line-height:1.9;overflow-wrap:anywhere}
 .ctx .f{background:var(--hl);padding:1px 4px;border-radius:3px}
@@ -259,7 +263,10 @@ nav.pestanas a{font:500 14px var(--body);color:var(--muted);text-decoration:none
 nav.pestanas a:hover{color:var(--fg)}
 nav.pestanas a[aria-current=page]{color:var(--accent);border-bottom-color:var(--accent)}
 header .der{margin-left:0}
-@media (max-width:640px){header{gap:10px 8px}.marca{width:100%}nav.pestanas{margin-left:0;order:2;flex:1}header>.btn{order:3}.lema{margin-left:0}}
+/* hasta 900 px el título ocupa su línea y debajo van las pestañas y el botón de idioma (en español, «English» se
+   quedaba solo en una línea entre 640 y 880 px) */
+@media (max-width:900px){header{gap:10px 8px}.marca{width:100%}nav.pestanas{margin-left:0;order:2;flex:1}header>.btn{order:3}}
+@media (max-width:640px){.lema{margin-left:0}}
 /* portada: lo que se ve antes de buscar */
 #portada{margin-top:22px;display:grid;gap:18px}
 #portada .cifras{display:flex;flex-wrap:wrap;gap:8px 28px;padding:16px 0;border-block:1px solid var(--line)}
@@ -479,6 +486,9 @@ const badge=f=>`<span class="fu ${f}">${f==='wir'?'WiR':'DCML'}</span>`;
 
 // ============ filtros ============
 const apellido=c=>c.split(' ').pop();
+// apellido para mostrar; si dos compositores lo comparten (los Bach), con las iniciales: «J. S. Bach», «C. P. E. Bach»
+const nombreCorto=c=>{const ap=apellido(c);if(!comps.some(x=>x!==c&&apellido(x)===ap)) return ap;
+  return c.split(' ').slice(0,-1).map(x=>x[0]+'.').join(' ')+' '+ap};
 // «Bach, Johann Sebastian»: así la lista se lee en orden alfabético
 const porApellido=c=>{const p=c.split(' ');return p.length>1?p[p.length-1]+', '+p.slice(0,-1).join(' '):c};
 const comps=[...new Set(OBRAS.map(o=>o.c))].sort((a,b)=>porApellido(a).localeCompare(porApellido(b),'es',{sensitivity:'base'}));
@@ -895,7 +905,7 @@ function sugerirFiltros(t){
       const comp=$('#compositor').value, vistas=new Map(), pals=tc.split(' ').filter(Boolean);
       const empieza=o=>{const ws=norm(o.ob).replace(/n º/g,'n').split(' ');return pals.every(p=>ws.some(w=>w.startsWith(p)))||(tc.length>=6&&norm(o.ob).includes(tc))};
       for(const o of OBRAS) if((!comp||o.c===comp)&&!vistas.has(o.w)&&empieza(o)) vistas.set(o.w,o);
-      for(const o of [...vistas.values()].slice(0,comp?6:4)) x('obraSel',String(o.w),o.ob+(comp?'':' · '+apellido(o.c)),false);
+      for(const o of [...vistas.values()].slice(0,comp?6:4)) x('obraSel',String(o.w),o.ob+(comp?'':' · '+nombreCorto(o.c)),false);
     }
   }
   if(t.length>=2){
@@ -1467,7 +1477,7 @@ function pintarResumen(frag,modoObras){
   const r=$('#resumen');
   if(!filas.length){r.hidden=true;return}
   const ob=h=>porId.get(h.obra);
-  const unidad=modoObras?trd('movimientos','movements'):frag?trd('pasajes','passages'):trd('ejemplos','examples');
+  const uno=filas.length===1, unidad=modoObras?(uno?trd('movimiento','movement'):trd('movimientos','movements')):frag?(uno?trd('pasaje','passage'):trd('pasajes','passages')):(uno?trd('ejemplo','example'):trd('ejemplos','examples'));
   const porComp=contar(filas,h=>ob(h).c), porPer=contar(filas,h=>ob(h).per), porModo=contar(filas,h=>h.tono?(h.tono[0]===h.tono[0].toUpperCase()?'M':'m'):null);
   const max=Math.max(...porComp.map(x=>x[1]),1), maxP=Math.max(...porPer.map(x=>x[1]),1), maxM=Math.max(...porModo.map(x=>x[1]),1);
   const barra=(campo,valor,txt,n,mx)=>`<button type="button" data-campo="${campo}" data-valor="${esc(valor)}" title="${trd('Filtrar','Filter')}: ${esc(txt)}"><span>${esc(txt)}</span><span class="b" style="width:${Math.max(4,Math.round(56*n/mx))}px"></span><span class="c">${n.toLocaleString(LOC)}</span></button>`;
@@ -1475,7 +1485,7 @@ function pintarResumen(frag,modoObras){
   const nW=new Set(filas.map(x=>ob(x).w)).size;
   let h=EN?`<p class="tit"><strong>${filas.length.toLocaleString(LOC)}</strong> ${unidad} in <strong>${nW.toLocaleString(LOC)}</strong> work${nW>1?'s':''} by <strong>${porComp.length}</strong> composer${porComp.length>1?'s':''}</p>`
     :`<p class="tit"><strong>${filas.length.toLocaleString(LOC)}</strong> ${unidad} en <strong>${nW.toLocaleString(LOC)}</strong> obra${nW>1?'s':''} de <strong>${porComp.length}</strong> compositor${porComp.length>1?'es':''}</p>`;
-  if(porComp.length>1&&!$('#compositor').value) h+=`<div class="fila-b"><span class="et">${trd('Compositor','Composer')}</span><div>${comps.map(([c,n])=>barra('compositor',c,apellido(c),n,max)).join('')}${porComp.length>8?`<button type="button" class="mas-b" data-todos>${verTodos?trd('menos','fewer'):'+'+(porComp.length-8)+trd(' más',' more')}</button>`:''}</div></div>`;
+  if(porComp.length>1&&!$('#compositor').value) h+=`<div class="fila-b"><span class="et">${trd('Compositor','Composer')}</span><div>${comps.map(([c,n])=>barra('compositor',c,nombreCorto(c),n,max)).join('')}${porComp.length>8?`<button type="button" class="mas-b" data-todos>${verTodos?trd('menos','fewer'):'+'+(porComp.length-8)+trd(' más',' more')}</button>`:''}</div></div>`;
   if(porPer.length>1&&!$('#epoca').value) h+=`<div class="fila-b"><span class="et">${trd('Período','Period')}</span><div>${porPer.map(([p,n])=>barra('epoca',p,perTxt(p),n,maxP)).join('')}</div></div>`;
   if(porModo.length>1&&!$('#modo').value&&!$('#tonalidad').value) h+=`<div class="fila-b"><span class="et">${trd('Modo','Mode')}</span><div>${porModo.map(([m,n])=>barra('modo',m,m==='M'?trd('mayor','major'):trd('menor','minor'),n,maxM)).join('')}</div></div>`;
   // forma global de los movimientos de los resultados
@@ -1506,9 +1516,9 @@ function pintarDestacados(frag,modoObras){
     elegidos.push(h); if(elegidos.length===4) break;
   }
   d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
-    const donde=h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}`;
+    const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}`;
     const cif=etqTxt(cifLegible((h.etq||'').split(' · ')[0]));
-    return `<button type="button" data-i="${i}"><span class="cp">${esc(apellido(o.c))}</span><span class="ob">${esc(o.ob)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''}</span><span class="dn">${donde} · ${esc(tonoEs(h.tono))}${cif?' · <code>'+esc(cif)+'</code>':''}</span></button>`}).join('')}</div>`;
+    return `<button type="button" data-i="${i}"><span class="cp">${esc(nombreCorto(o.c))}</span><span class="ob">${esc(o.ob)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''}</span><span class="dn">${donde} · ${esc(tonoEs(h.tono))}${cif?' · <code>'+esc(cif)+'</code>':''}</span></button>`}).join('')}</div>`;
   d.hidden=false;
   d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const h=elegidos[+b.dataset.i];
     document.querySelectorAll('.fila[aria-selected=true],#destacados [aria-pressed=true]').forEach(x=>x.setAttribute(x.classList.contains('fila')?'aria-selected':'aria-pressed','false'));
@@ -1564,7 +1574,7 @@ function pintar(){
       }
     }
     if(lw.length>lim){const mas=document.createElement('tr');mas.className='mas';
-      mas.innerHTML=`<td colspan="${ncol}">${EN?`show ${Math.min(OBRAS_VISIBLES,lw.length-lim)} more works by ${esc(apellido(c))} (${lw.length-lim} left)`:`ver ${Math.min(OBRAS_VISIBLES,lw.length-lim)} obras más de ${esc(apellido(c))} (quedan ${lw.length-lim})`}</td>`;
+      mas.innerHTML=`<td colspan="${ncol}">${EN?`show ${Math.min(OBRAS_VISIBLES,lw.length-lim)} more works by ${esc(nombreCorto(c))} (${lw.length-lim} left)`:`ver ${Math.min(OBRAS_VISIBLES,lw.length-lim)} obras más de ${esc(nombreCorto(c))} (quedan ${lw.length-lim})`}</td>`;
       mas.onclick=()=>{masObras.set(c,lim+OBRAS_VISIBLES);pintar()}; cuerpo.append(mas)}
   }
   $('#tabla').hidden=!filas.length;
@@ -1578,9 +1588,9 @@ function filaHit(h,modoObras,frag){
   const tono=`<td style="white-space:nowrap">${esc(tonoEs(h.tono))}</td>`;
   if(modoObras) tr.innerHTML=`${mov}<td class="num">${h.primero}–${h.ultimo}</td>${tono}`;
   else if(frag){
-    tr.innerHTML=`${mov}<td class="num">${h.ini}–${h.fin}</td>${tono}<td class="cif"><span class="prog lin" style="color:var(--muted)">…</span></td>`;
+    tr.innerHTML=`${mov}<td class="num">${h.ini===h.fin?h.ini:h.ini+'–'+h.fin}</td>${tono}<td class="cif"><span class="prog lin" style="color:var(--muted)">…</span></td>`;
     acordesDe(h.obra).then(ac=>{const el=tr.querySelector('.prog');if(el)el.outerHTML=progresion(ac,h)});
-  } else tr.innerHTML=`${mov}<td class="num">${h.compas}</td><td class="num">${h.parte}</td>${tono}<td class="cif">${celdaCifrado(h)}</td>`;
+  } else tr.innerHTML=`${mov}<td class="num">${h.compas}</td><td class="num">${fmtParte(h.parte)}</td>${tono}<td class="cif">${celdaCifrado(h)}</td>`;
   const sel=()=>{document.querySelectorAll('.fila[aria-selected=true]').forEach(x=>x.setAttribute('aria-selected','false'));tr.setAttribute('aria-selected','true');mostrar(h);verVista();escribirURL()};
   tr.onclick=sel; tr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sel()}};
   return tr;
@@ -1671,7 +1681,7 @@ async function xmlDe(o){
        .replace(/<direction\b[^>]*>(?:\s*(?:<sound\b[^>]*\/>|<offset>[^<]*<\/offset>|<staff>[^<]*<\/staff>|<voice>[^<]*<\/voice>))*\s*<\/direction>/g,'');
   }
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=ordenarVoces(x,o.src.inst);
+  if(o.reconstruida) x=ordenarVoces(x,o.src.inst); else x=corregirClaves(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -1760,7 +1770,7 @@ function clavesDeInstrumento(nombre){
   if(/voice|voce|stimme/.test(t)) return {c:['G2','G2-1','F4'],d:null,voz:1};
   return {c:['G2','F4'],d:null};                     // teclado o desconocido: gran pentagrama sol / fa
 }
-function asignarClaves(doc,inst,hijo){
+function asignarClaves(doc,inst,hijo,solo=null){
   const partes=[...doc.getElementsByTagName('part')];
   const lineas=(pos,clave)=>{const d=Math.abs(pos-CLAVES[clave].c);return d>=6?Math.floor((d-4)/2):0};
   const coste=L=>L<=2?0.15*L:0.3+1.5*(L-2);
@@ -1769,7 +1779,12 @@ function asignarClaves(doc,inst,hijo){
   for(const parte of partes){
     const compases=[...parte.children].filter(c=>c.tagName==='measure'); if(!compases.length) continue;
     const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
-    for(let s=1;s<=n;s++) pent.push({parte,compases,s,n,alt:compases.map(()=>[])});
+    for(let s=1;s<=n;s++){
+      // clave que escribió el editor en cada compás (para respetarla cuando solo se corrigen algunos pentagramas)
+      let k=n===2&&s===2?'F4':'G2'; const orig=compases.map(m=>{for(const c of m.getElementsByTagName('clef')) if(+(c.getAttribute('number')||1)===s){
+        const x=(hijo(c,'sign')?.textContent||'')+(hijo(c,'line')?.textContent||'')+(+(hijo(c,'clef-octave-change')?.textContent||0)===-1?'-1':''); if(CLAVES[x]) k=x} return k});
+      pent.push({parte,compases,s,n,orig,alt:compases.map(()=>[])});
+    }
   }
   for(const P of pent){
     P.compases.forEach((m,i)=>{for(const no of m.children){if(no.tagName!=='note')continue;
@@ -1778,7 +1793,7 @@ function asignarClaves(doc,inst,hijo){
   }
   const nombres=inst.length===pent.length?inst:[];
   pent.forEach((P,g)=>{
-    const todas=P.alt.flat(); if(!todas.length){P.elegida=null;return}
+    const todas=P.alt.flat(); if(!todas.length||(solo&&!solo.has(g))){P.elegida=null;return}
     const nom=nombres[g]; let {c:cand,d:def,voz}=clavesDeInstrumento(nom);
     const total=k=>todas.reduce((s,q)=>s+coste(lineas(q,k)),0);
     if(!def){
@@ -1790,7 +1805,10 @@ function asignarClaves(doc,inst,hijo){
     }
     if(voz){const mejor=cand.reduce((a,b)=>total(b)<total(a)?b:a); if(total(mejor)<total(def)*0.5-2) def=mejor}
     const CAMBIO=voz?10:6, SESGO=voz?1.5:0.6;
-    const loc=P.alt.map(ps=>cand.map(k=>(k===def?0:SESGO)+ps.reduce((s,q)=>s+coste(lineas(q,k)),0)));
+    // con «solo» (partitura original) se parte de las claves del editor: cambiar una cuesta, y solo compensa
+    // donde ahorra muchas líneas adicionales
+    const cands=solo?[...new Set([...cand,...P.orig])]:cand; cand=cands;
+    const loc=P.alt.map((ps,i)=>cand.map(k=>(solo?(k===P.orig[i]?0:2):(k===def?0:SESGO))+ps.reduce((s,q)=>s+coste(lineas(q,k)),0)));
     let prev=loc[0].slice(); const atras=[];
     for(let i=1;i<loc.length;i++){
       const de=[], act=cand.map((k,j)=>{let mejor=Infinity,arg=0;cand.forEach((k2,j2)=>{const v=prev[j2]+(j2===j?0:CAMBIO);if(v<mejor){mejor=v;arg=j2}});de.push(arg);return mejor+loc[i][j]});
@@ -1822,6 +1840,36 @@ function asignarClaves(doc,inst,hijo){
       tras?at.insertBefore(cl,tras):at.append(cl);
     });
   }
+}
+// Partituras originales (no reconstruidas): se respetan las claves del editor, salvo en los pentagramas donde
+// producen notas a 4 o más líneas adicionales en varios compases (cruces de manos escritos sin cambiar de clave,
+// p. ej. Mozart, K. 457/iii, cc. 289-309: la mano izquierda toca re♭5 en clave de fa). Solo en esos pentagramas
+// se eligen las claves por tesitura (asignarClaves).
+function corregirClaves(xml){
+  let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
+  if(doc.querySelector('parsererror')) return xml;
+  const hijo=(n,t)=>[...n.children].find(c=>c.tagName===t), txt=(n,t)=>{const h=n&&hijo(n,t);return h?h.textContent.trim():''};
+  const solo=new Set(); let g=0;
+  for(const parte of doc.getElementsByTagName('part')){
+    const compases=[...parte.children].filter(c=>c.tagName==='measure');
+    const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
+    for(let st=1;st<=n;st++,g++){
+      let clave=n===2&&st===2?'F4':'G2', malos=0;
+      for(const m of compases){
+        for(const c of m.getElementsByTagName('clef')) if(+(c.getAttribute('number')||1)===st){
+          const k=txt(c,'sign')+txt(c,'line')+(+txt(c,'clef-octave-change')===-1?'-1':''); if(CLAVES[k]) clave=k}
+        let lejos=0;
+        for(const no of m.children){if(no.tagName!=='note'||(n>1&&+(txt(no,'staff')||1)!==st))continue;
+          const pi=hijo(no,'pitch'); if(!pi)continue;
+          const d=Math.abs(PASO[txt(pi,'step')]+7*+txt(pi,'octave')-CLAVES[clave].c); if(d>=6&&Math.floor((d-4)/2)>=4) lejos++}
+        if(lejos>=2) malos++;
+      }
+      if(malos>=2) solo.add(g);
+    }
+  }
+  if(!solo.size) return xml;
+  try{asignarClaves(doc,[],hijo,solo)}catch(e){return xml}
+  return new XMLSerializer().serializeToString(doc);
 }
 function ordenarVoces(xml,inst){
   let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
@@ -2128,7 +2176,7 @@ function tramo(E,a,b,occA){
 }
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
-  const donde=h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${h.parte}`;
+  const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`;
   $('#nav').hidden=!h.frag;
   if(h.obraEntera){$('#atras').disabled=h.ini<=h.primero;$('#adelante').disabled=h.fin>=h.ultimo}
   else{$('#atras').disabled=$('#adelante').disabled=false}
@@ -2160,7 +2208,7 @@ async function mostrar(h){
     const [p0,p1]=tramo(E,a,b,occA), pos={sel:`${p0+1}-${p1+1}`,p0,p1,fuente:o.f};
     let anchoPag=Math.max(700,Math.min(2000,cont.clientWidth*2.4)), svg=null;
     for(let intento=0;intento<3;intento++){
-      t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,svgFontFaceInclude:true,
+      t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,
         ...GRABADO});
       t.select({measureRange:pos.sel}); t.loadData(E.voltas?conCasillas(xml,E,o.id):xml);
       if(seleccion!==h) return;
@@ -2559,17 +2607,23 @@ $('#copiarPNG').onclick=async()=>{
 $('#margen').addEventListener('input',()=>{$('#margenV').textContent=$('#margen').value;if(seleccion){clearTimeout(temporizador);temporizador=setTimeout(()=>mostrar(seleccion),250)}});
 $('#copiar').onclick=async()=>{
   if(!seleccion) return; const o=porId.get(seleccion.obra);
-  const donde=seleccion.frag?`${trd('cc.','bb.')} ${seleccion.ini}–${seleccion.fin}`:`${trd('c.','b.')} ${seleccion.compas} (${trd('parte','beat')} ${seleccion.parte})`;
+  const donde=seleccion.frag?fmtCompases(seleccion.ini,seleccion.fin):`${trd('c.','b.')} ${seleccion.compas} (${trd('parte','beat')} ${fmtParte(seleccion.parte)})`;
   const txt=`${o.c}, ${o.t}, ${donde}, ${tonoEs(seleccion.tono)}`+(seleccion.etq?`: ${etqTxt(seleccion.etq.split(' · ')[0])}`:'');
   try{await navigator.clipboard.writeText(txt);aviso(trd('Cita copiada','Citation copied'))}catch(e){const r=document.createRange();r.selectNodeContents($('#cab'));const s=getSelection();s.removeAllRanges();s.addRange(r);aviso(trd('Selecciona el texto y cópialo','Select the text and copy it'))}
 };
 // ============ selector de análisis, comparador y ficha ============
 let comparando=false, ctxN=3;
+function nombreAnalista(x){
+  const a=analistas(x.src.autores)||NFUENTE[x.f];
+  const t=a.split(/[;|·(]/)[0].replace(/\s+(and|y)\s+(his|her|their|sus?)\s+\w+$/i,'').trim();
+  if(t.length<=40) return t;
+  const c=t.slice(0,40); return c.slice(0,c.lastIndexOf(' '))+'…';
+}
 function pintarSelector(h){
   const o=porId.get(h.obra), alts=porMov.get(o.m)||[o], el=$('#selAnalisis');
   if(alts.length<2){el.hidden=true;comparando=false;return}
   el.hidden=false;
-  el.innerHTML=`<span>${trd('Análisis:','Analyses:')}</span>`+alts.map(x=>`<button class="btn" type="button" data-id="${x.id}" aria-pressed="${x.id===o.id}" title="${esc(x.src.autores||'')}">${badge(x.f)} ${esc((x.src.autores||NFUENTE[x.f]).split(/[,|·(]/)[0].trim().slice(0,28))}</button>`).join('')
+  el.innerHTML=`<span>${trd('Análisis:','Analyses:')}</span>`+alts.map(x=>`<button class="btn" type="button" data-id="${x.id}" aria-pressed="${x.id===o.id}" title="${esc(x.src.autores||'')}">${badge(x.f)} ${esc(nombreAnalista(x))}</button>`).join('')
     +`<button class="btn" type="button" id="btnComparar" aria-pressed="${comparando}">${trd('Comparar análisis','Compare analyses')}</button>`;
   el.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{const x=porId.get(+b.dataset.id);mostrar({...h,obra:x.id})});
   $('#btnComparar').onclick=()=>{comparando=!comparando;mostrar(h)};
@@ -2602,14 +2656,44 @@ async function pintarComparacion(h,a,b){
     +`<table><thead><tr><th>${trd('Compás · parte','Bar · beat')}</th>${alts.map(x=>`<th>${badge(x.f)} ${esc((x.src.autores||'').split(/[,|·(]/)[0].slice(0,24))}</th>`).join('')}</tr></thead><tbody>${cuerpo}</tbody></table>`;
   caja.hidden=false;
 }
+// parte del compás para leer: 1.6666… → 1⅔, 2.5 → 2½ (las partes vienen como fracciones de pulso)
+function fmtParte(p){
+  const n=+p; if(!isFinite(n)) return String(p??'');
+  const e=Math.floor(n+1e-9), f=n-e, FR=[[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
+  if(f<1e-6) return String(e);
+  const x=FR.find(([v])=>Math.abs(f-v)<0.01); return x?`${e}${x[1]}`:String(+n.toFixed(2));
+}
+// «cc. 288–288» → «c. 288»
+const fmtCompases=(a,b)=>a===b||b==null?`${trd('c.','b.')} ${a}`:`${trd('cc.','bb.')} ${a}–${b}`;
+// autores tal como los declara la fuente, sin la licencia ni la nota de conversión que algunos análisis llevan pegadas
+function analistas(s){
+  return String(s||'').replace(/\.?\s*Licen[cs]e[^.]*\.?/i,'').replace(/\.?\s*This file is automatically converted from\s*\S+/i,'')
+    .replace(/\s*See https?:\/\/\S+/i,'').replace(/\s+/g,' ').replace(/[\s.]+$/,'').trim();
+}
+// licencia efectiva: un análisis de When in Rome convertido del DCML conserva la licencia del DCML (CC BY-NC-SA)
+function licencia(src){
+  const a=String(src.autores||'');
+  if(/CC[- ]?BY[- ]?NC[- ]?SA/i.test(a)||/DCMLab\//.test(String(src.origen||'')))
+    return 'CC BY-NC-SA 4.0'+(src.licencia&&!/NC/.test(src.licencia)?trd(' (análisis original del DCML)',' (original DCML analysis)'):'');
+  return src.licencia||'';
+}
 function descripcionBusqueda(){
   if(!actual) return {nombre:'—',tipo:'',criterio:''};
   const regla=trd('Derivado por regla a partir del cifrado romano','Derived by rule from the Roman-numeral analysis');
   if(actual.t==='c'){const m=META.conceptos[actual.k]||{};return {nombre:NOMBRE(actual.k),tipo:regla,criterio:EN?DESC(actual.k):(m.criterio||m.desc||'')}}
   if(actual.t==='f') return {nombre:etiquetaFacetas(actual.ids),tipo:regla,criterio:actual.ids.map(id=>FAC[id].desc).join(' · ')+trd(` (pasajes de ${filtros().L} compases)`,` (${filtros().L}-bar passages)`)};
-  if(actual.t==='p') return {nombre:trd('progresión ','progression ')+actual.q.join(' – '),tipo:trd('Coincidencia de sucesión de cifrados','Matching succession of chords'),
-    criterio:EN?`only what is written is required: a bare degree (ii, V, I) accepts any inversion, seventh or extension, while quality (ø, o, +), figures (6, 7, 6/5, 4/3…) and added notes filter; degree, accidental, secondary target and upper/lower case must match; the progression stays within one local key; ${$('#progInv').checked?'ignoring inversions':'written inversions are exact'}; up to ${$('#progGap').value} chords in between; at least ${$('#progMin').value||actual.q.length} chords; repeated chords count as one`
-      :`solo se exige lo que se escribe: un grado sin más (ii, V, I) admite cualquier inversión, séptima o extensión; la cualidad (ø, o, +), las cifras (6, 7, 6/5, 4/3…) y las notas añadidas filtran; el grado, la alteración, la dominante secundaria y la mayúscula/minúscula deben coincidir; la progresión no cruza un cambio de tonalidad local; ${$('#progInv').checked?'sin tener en cuenta inversiones':'las inversiones escritas son exactas'}; hasta ${$('#progGap').value} acordes intermedios; mínimo ${$('#progMin').value||actual.q.length} acordes; los acordes repetidos seguidos cuentan como uno`};
+  if(actual.t==='p'){
+    const gap=+$('#progGap').value, min=$('#progMin').value||actual.q.length, inv=$('#progInv').checked, fund=$('#progFund').checked;
+    const partes=EN?['only what is written is required: quality (ø, o, +), figures (6, 7, 6/5, 4/3…) and added notes filter',
+        inv?'inversions are ignored':fund?'a degree without figures (I, V) means root position; written inversions are exact':'a bare degree (ii, V, I) accepts any inversion, seventh or extension; written inversions are exact',
+        'degree, accidental, secondary target and upper/lower case must match','the progression stays within one local key',
+        gap?`up to ${gap} chord${gap>1?'s':''} in between`:'no chords in between',`at least ${min} chords`,'repeated chords count as one']
+      :['solo se exige lo que se escribe: la cualidad (ø, o, +), las cifras (6, 7, 6/5, 4/3…) y las notas añadidas filtran',
+        inv?'no se tienen en cuenta las inversiones':fund?'un grado sin cifra (I, V) es estado fundamental; las inversiones escritas son exactas':'un grado sin más (ii, V, I) admite cualquier inversión, séptima o extensión; las inversiones escritas son exactas',
+        'el grado, la alteración, la dominante secundaria y la mayúscula/minúscula deben coincidir','la progresión no cruza un cambio de tonalidad local',
+        gap?`hasta ${gap} acorde${gap>1?'s':''} intermedio${gap>1?'s':''}`:'sin acordes intermedios',`mínimo ${min} acordes`,'los acordes repetidos seguidos cuentan como uno'];
+    return {nombre:trd('progresión ','progression ')+actual.q.join(' – '),tipo:trd('Coincidencia de sucesión de cifrados','Matching succession of chords'),criterio:partes.join('; ')};
+  }
   return {nombre:trd('obra completa','whole work'),tipo:'',criterio:''};
 }
 // cadena «A → B → C» de un ejemplo (cadencias, 6/4 cadencial, napolitana → V…): índices del primer y último acorde.
@@ -2637,18 +2721,25 @@ function pintarFicha(h,ac){
   for(let i=desde;i<=hasta;i++){const c=ac[i]; if(c.tono!==tPrev) ctx+=`<span class="k">${esc(EN?tonoCorto(c.tono):tonoEs(c.tono))}:</span> `; tPrev=c.tono;
     const t=`<span title="${esc(c.orig)}">${esc(cifLegible(c.orig)||c.rn)}</span>`+(c.cad?` <span class="k">${esc(c.cad)}</span>`:''); ctx+=(i>=i0&&i<=i1?`<span class="f">${t}</span>`:t)+(i<hasta?' → ':'')}
   const fila=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
-  const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+` <span class="k" style="color:var(--muted)">(${FORMAS[o.m]?.[1]==='MEPC'?'Mozart Expositional Punctuation Corpus':'Taking Form'})</span>`:'';
-  const FUENTE_FG={'Taking Form':'Taking Form','título':trd('título','title'),'colección':trd('colección','collection'),'revisión':trd('revisión','review'),'BPSD':'BPSD','MEPC':'Mozart Expositional Punctuation Corpus'};
-  const fg=FORMAS[o.m], formaGV=fg?esc(formaGTxt(fg[0]))+` <span class="k" style="color:var(--muted)">(${esc(FUENTE_FG[fg[1]]||fg[1])})</span>`:'';
+  // de dónde sale la forma: se dice con palabras (antes solo «(Taking Form)», sin explicar)
+  const FUENTE_FG={'Taking Form':trd('según Taking Form, anotación formal de las sonatas (Gotham et al.)','according to Taking Form, formal annotation of the sonatas (Gotham et al.)'),
+    'título':trd('según el título del movimiento','from the movement title'),'colección':trd('según el género de la colección','from the genre of the collection'),
+    'revisión':trd('revisada a mano','checked by hand'),'BPSD':trd('según el Beethoven Piano Sonata Dataset','according to the Beethoven Piano Sonata Dataset'),
+    'MEPC':trd('según el Mozart Expositional Punctuation Corpus','according to the Mozart Expositional Punctuation Corpus')};
+  const notaF=t=>` <span class="k" style="color:var(--muted)">(${esc(t)})</span>`;
+  const fz=formaEn(o.m,h.compas??h.ini,h.parte??1), formaV=fz&&(fz[0]||fz[1])?[fz[0],fz[1]].filter(Boolean).map(formaTxt).join(' · ')+notaF(FUENTE_FG[FORMAS[o.m]?.[1]==='MEPC'?'MEPC':'Taking Form']):'';
+  const fg=FORMAS[o.m], formaGV=fg?esc(formaGTxt(fg[0]))+notaF(FUENTE_FG[fg[1]]||fg[1]):'';
+  const catEnTitulo=o.cat&&norm(o.ob).replace(/[^a-z0-9]/g,'').includes(norm(o.cat).replace(/[^a-z0-9]/g,''));
   $('#fichaCuerpo').innerHTML=`
     <dl>${fila(trd('Procedimiento','Device'),esc(d.nombre))}${fila(trd('Identificación','Detection'),esc(d.tipo))}${fila(trd('Criterio','Criterion'),esc(d.criterio))}
-      ${fila(trd('Obra','Work'),esc(o.ob)+(o.cat?` (${esc(o.cat)})`:''))}${fila(trd('Compositor','Composer'),esc(o.c)+(o.per?` · ${esc(perTxt(o.per))}`:''))}${fila(trd('Movimiento','Movement'),movDe(o)!=='—'?esc(movDe(o)):'')}
-      ${fila(trd('Posición','Position'),h.frag?`${trd('cc.','bb.')} ${h.ini}–${h.fin}`:`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${h.parte}`)}${fila(trd('Tonalidad','Key'),esc(tonoEs(h.tono)))}${fila(trd('Forma','Form'),formaGV)}${fila(trd('Sección','Section'),formaV)}</dl>
+      ${fila(trd('Obra','Work'),esc(o.ob)+(o.cat&&!catEnTitulo?` (${esc(o.cat)})`:''))}${fila(trd('Compositor','Composer'),esc(o.c)+(o.per?` · ${esc(perTxt(o.per))}`:''))}${fila(trd('Movimiento','Movement'),movDe(o)!=='—'?esc(movDe(o)):'')}
+      ${fila(trd('Posición','Position'),h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`)}${fila(trd('Tonalidad','Key'),esc(tonoEs(h.tono)))}${fila(trd('Forma','Form'),formaGV)}${fila(trd('Sección','Section'),formaV)}</dl>
     <div><span class="k" style="color:var(--muted)">${trd('Contexto','Context')}</span> <button class="btn" type="button" id="ctxMenos" aria-label="${trd('Menos contexto','Less context')}">−</button> <button class="btn" type="button" id="ctxMas" aria-label="${trd('Más contexto','More context')}">+</button>
       <div class="ctx">${ctx||'—'}</div></div>
-    <dl>${fila(trd('Fuente','Source'),`${badge(o.f)} ${esc(o.col)}`)}${fila(trd('Análisis','Analysis'),esc(s.autores||'—'))}${fila(trd('Estándar','Standard'),esc(s.anot||''))}
-      ${fila(trd('Licencia','Licence'),esc(s.licencia||''))}${fila(trd('Versión','Version'),esc(s.version||''))}${fila(trd('Archivo','File'),s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.archivo)}</a>`:esc(s.archivo||''))}
-      ${fila(trd('Partitura','Score'),esc(s.partitura||''))}${fila(trd('Referencia','Reference'),esc(s.ref||''))}${fila(trd('Procedencia declarada','Stated origin'),esc(s.origen||''))}</dl>
+    <dl>${fila(trd('Fuente','Source'),`${badge(o.f)} ${esc(o.col)}`)}${fila(trd('Análisis','Analysis'),esc(analistas(s.autores)||'—'))}${fila(trd('Licencia','Licence'),esc(licencia(s)))}</dl>
+    <details class="tecnico"><summary>${trd('Datos técnicos','Technical details')}</summary>
+    <dl>${fila(trd('Estándar','Standard'),esc(s.anot||''))}${fila(trd('Versión','Version'),esc(s.version||''))}${fila(trd('Archivo','File'),s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.archivo)}</a>`:esc(s.archivo||''))}
+      ${fila(trd('Partitura','Score'),esc(s.partitura||''))}${fila(trd('Referencia','Reference'),esc(s.ref||''))}${fila(trd('Procedencia declarada','Stated origin'),esc(s.origen||''))}</dl></details>
     <div id="zonaGuardar"></div>`;
   $('#ctxMenos').onclick=()=>{ctxN=Math.max(0,ctxN-2);pintarFicha(h,ac)};
   $('#ctxMas').onclick=()=>{ctxN=Math.min(20,ctxN+2);pintarFicha(h,ac)};
@@ -2866,7 +2957,7 @@ let bzContexto={};
 function bzCapturar(){
   const etq=[...document.querySelectorAll('#chips .chip')].map(x=>{const tp=x.querySelector('.tp'),tx=x.querySelector('.tx');return (tp?tp.textContent+': ':'')+(tx?tx.textContent:'')}).filter(Boolean);
   const v=$('#vista'), cab=v&&!v.hidden?v.querySelector('.cab'):null;
-  bzContexto={busqueda:etq.join(' + ')||(q.value||'').trim(),texto:(q.value||'').trim(),ejemplo:cab?cab.textContent.replace(/\s+/g,' ').trim():'',dir:location.origin+location.pathname+location.search};
+  bzContexto={busqueda:etq.join(' + ')||(q.value||'').trim(),texto:(q.value||'').trim(),ejemplo:cab?[...cab.children].map(x=>x.textContent.replace(/\s+/g,' ').trim()).filter(Boolean).join(' — '):'',dir:location.origin+location.pathname+location.search};
 }
 function bzDetectar(){
   const ua=navigator.userAgent, tactil=navigator.maxTouchPoints>1;

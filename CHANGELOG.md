@@ -8,6 +8,18 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Ficha del ejemplo: los datos técnicos (estándar, versión, archivo, partitura, referencia, procedencia) van plegados bajo «Datos técnicos». El campo «Análisis» muestra solo los analistas (sin la licencia ni la nota de conversión pegadas) y la licencia es la del análisis original: CC BY-NC-SA 4.0 en los análisis de When in Rome convertidos del DCML. La fuente de la forma se explica con palabras («según Taking Form, anotación formal de las sonatas»). El catálogo no se repite si ya está en el título («Op. 127 (Op. 127)»).
+- Compositores que comparten apellido con sus iniciales («J. S. Bach», «C. P. E. Bach», «W. F. Bach») en el resumen, las tarjetas y las sugerencias de obra.
+- Selector de análisis: el nombre del analista completo y limpio, y la marca WiR/DCML visible también en el botón pulsado.
+- Partituras originales con cruces de manos escritos sin cambiar de clave: en los pentagramas donde varias notas quedan a 4 o más líneas adicionales, se cambia la clave solo en esos pasajes y se respetan las del editor en el resto (p. ej. Mozart, K. 457/iii, cc. 289-309).
+
+### Fixed
+- Textos: la parte del compás con fracciones («parte 1⅔» en vez de «1.6666666666666667»), «c. 288» en vez de «cc. 288–288», el singular en el resumen («1 ejemplo», «1 movimiento») y el criterio de las progresiones sin «hasta 0 acordes intermedios».
+- Buzón: faltaba un espacio entre la obra y el compositor en los datos del ejemplo abierto.
+- Tablet: el botón de idioma ya no queda solo en una línea; móvil: el cifrado de la tabla de resultados se parte en líneas en vez de salirse de la tabla.
+- Consola: se quita la opción `svgFontFaceInclude`, que Verovio 6.3 ya no admite y solo producía un aviso.
+
 ## [0.5.0] - 2026-11-03
 
 ### Changed
