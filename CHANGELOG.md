@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-04
+
 ### Added
 - `herramientas/auditoria_notacion.js`: dibuja una muestra de fragmentos y mide silencios que pisan notas de otras voces, silencios que se pisan entre sí y cabezas de nota solapadas, además de los efectos secundarios de moverlos (cifrados, números de compás, salirse del dibujo). Termina con error si queda algún choque.
 
@@ -159,7 +161,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...v0.4.2
