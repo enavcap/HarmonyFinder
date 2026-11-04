@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Al buscar un acorde suelto no aparecían los botones ◀ ▶ para recorrer la partitura (solo salían al abrir una obra o un fragmento). Ahora salen siempre, y desde un acorde desplazan la ventana de compases sin perder el resalte del acorde; se desactivan al llegar al principio o al final de la obra.
+
 ## [0.7.0] - 2026-11-05
 
 ### Changed

@@ -1951,7 +1951,8 @@ function ordenarVoces(xml,inst){
   }
   return new XMLSerializer().serializeToString(doc);
 }
-function rango(h,primero){const m=+$('#margen').value;return [Math.max(primero,h.ini-m),h.fin+m]}
+// h.desp: desplazamiento (en compases) de la ventana cuando se navega desde un acorde suelto con ◀ ▶
+function rango(h,primero){const m=+$('#margen').value,d=h.desp||0;return [Math.max(primero,h.ini+d-m),h.fin+d+m]}
 // Estructura de la partitura, compás a compás (por posición): número de compás del análisis, a qué aparición
 // de ese número pertenece, duración escrita y compás vigente.
 //  · número: «24» → 24; «24X1», «4a», «8x» → 24, 4, 8 (otra pasada o un trozo de compás); sin número («X2») → el anterior
@@ -2240,7 +2241,7 @@ function tramo(E,a,b,occA){
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
   const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`;
-  $('#nav').hidden=!h.frag;
+  $('#nav').hidden=false;
   if(h.obraEntera){$('#atras').disabled=h.ini<=h.primero;$('#adelante').disabled=h.fin>=h.ultimo}
   else{$('#atras').disabled=$('#adelante').disabled=false}
   $('#cab').innerHTML=`<h3>${esc(o.ob)}</h3><span class="sub">${esc(o.c)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''} · ${donde} · ${esc(tonoEs(h.tono))}</span>`;
@@ -2250,6 +2251,10 @@ async function mostrar(h){
   const ac=await acordesDe(h.obra); if(seleccion!==h) return;
   const primero=ac.length?Math.min(...ac.map(x=>x.compas)):0;
   const [a,b]=rango(h,primero), dentro=ac.filter(x=>x.compas>=a&&x.compas<=b);
+  if(!h.frag){   // acorde suelto: los límites de la obra salen de su análisis
+    const ult=ac.length?Math.max(...ac.map(x=>x.compas)):h.fin; limitesNav={primero,ultimo:ult};
+    $('#atras').disabled=a<=primero; $('#adelante').disabled=b>=ult;
+  }
   pintarSelector(h); pintarFicha(h,ac); if(comparando) pintarComparacion(h,a,b); else $('#comparar').hidden=true;
   if(!o.pq){cont.innerHTML=`<div class="vacio">${trd('Esta obra tiene análisis pero no partitura en el corpus.','This work has an analysis but no score in the corpus.')}</div>`;pintarTira(h,dentro);return}
   $('#tira').hidden=true;
@@ -2921,8 +2926,15 @@ function pintarColecciones(){
   });
 }
 $('#verColecciones').onclick=()=>{const c=$('#colecciones');c.hidden=!c.hidden;if(!c.hidden)pintarColecciones()};
+let limitesNav={primero:0,ultimo:Infinity};
 function moverVista(d){
-  if(!seleccion||!seleccion.frag) return;
+  if(!seleccion) return;
+  if(!seleccion.frag){   // acorde suelto: se desplaza la ventana de compases (sin perder el resalte del acorde)
+    const m=+$('#margen').value, paso=seleccion.fin-seleccion.ini+1+2*m, h={...seleccion}, {primero,ultimo}=limitesNav;
+    const nmin=Math.min(0,primero-h.ini+m), nmax=Math.max(0,ultimo-h.fin-m);
+    h.desp=Math.max(nmin,Math.min(nmax,(h.desp||0)+d*paso));
+    h.s=null; mostrar(h); return;
+  }
   const L=seleccion.fin-seleccion.ini+1, h={...seleccion};
   h.ini+=d*L; h.fin+=d*L;
   if(h.obraEntera){if(h.ini<h.primero){h.ini=h.primero;h.fin=h.primero+L-1} if(h.fin>h.ultimo){h.fin=h.ultimo;h.ini=Math.max(h.primero,h.ultimo-L+1)}}
