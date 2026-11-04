@@ -1693,11 +1693,27 @@ async function xmlDe(o){
        .replace(/<direction-type>\s*<\/direction-type>/g,'')
        .replace(/<direction\b[^>]*>(?:\s*(?:<sound\b[^>]*\/>|<offset>[^<]*<\/offset>|<staff>[^<]*<\/staff>|<voice>[^<]*<\/voice>))*\s*<\/direction>/g,'');
   }
+  x=quitarExpresion(x);
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
   if(o.reconstruida) x=ordenarVoces(x,o.src.inst); else x=corregirClaves(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
+}
+// Los ejemplos se muestran solo con notas, ritmos y ligaduras: se quitan dinámicas, reguladores, pedales, textos de
+// expresión, metrónomos, articulaciones y fermatas, que chocan con los cifrados y con las demás voces. Se conservan
+// las ligaduras (<slur>, <tied>) y los cambios de octava (<octave-shift>), que afectan a la lectura de las notas.
+function quitarExpresion(x){
+  x=x.replace(/<direction\b[^>]*>[\s\S]*?<\/direction>/g,d=>{
+    if(!d.includes('<octave-shift')) return '';
+    const tipos=d.match(/<direction-type\b[^>]*>[\s\S]*?<\/direction-type>/g)||[];
+    const util=tipos.filter(t=>t.includes('<octave-shift'));
+    return util.length?d.replace(/<direction-type\b[^>]*>[\s\S]*?<\/direction-type>/g,'').replace(/(<direction\b[^>]*>)/,'$1'+util.join('')).replace(/<sound\b[^>]*\/>/g,''):'';
+  });
+  x=x.replace(/<dynamics\b[^>]*>[\s\S]*?<\/dynamics>/g,'').replace(/<dynamics\b[^>]*\/>/g,'')
+     .replace(/<articulations\b[^>]*>[\s\S]*?<\/articulations>/g,'').replace(/<fermata\b[^>]*>[\s\S]*?<\/fermata>/g,'').replace(/<fermata\b[^>]*\/>/g,'')
+     .replace(/<notations\b[^>]*>\s*<\/notations>/g,'');
+  return x;
 }
 function alinearAnacrusa(x){
   const parte=x.slice(0,x.indexOf('</part>')>0?x.indexOf('</part>'):x.length);
