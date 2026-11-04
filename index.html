@@ -162,7 +162,7 @@ button.btn:hover{border-color:var(--accent)}
 button.btn:disabled{opacity:.45;cursor:default}
 
 .tipo{display:inline-block;font:500 11px/1.6 var(--body);letter-spacing:.04em;text-transform:uppercase;padding:0 7px;border-radius:999px;margin:2px 0;vertical-align:1px;border:1px solid currentColor}
-.t-dia{color:var(--muted)} .t-cro{color:var(--accent)} .t-enh{color:var(--enh)} .t-dir{color:var(--dir)}
+.t-dia{color:var(--muted)} .t-cro{color:var(--accent)} .t-enh{color:var(--enh)} .t-dir{color:var(--dir)} .t-cad{color:var(--accent)} .t-nocad{color:var(--muted)}
 .det{display:block;font:12.5px var(--body);color:var(--muted);white-space:normal;margin-top:2px}
 
 #vista{border:1px solid var(--line);border-radius:8px;background:var(--panel);min-height:260px;display:flex;flex-direction:column;min-width:0}
@@ -634,7 +634,7 @@ function lineas(texto,tono){
 // ============ conceptos (detectores precalculados) ============
 const GRUPOS={
  'Cadencias':['cadencia_autentica_perfecta','cadencia_autentica_imperfecta','cadencia_rota','semicadencia','cadencia_frigia','cadencia_plagal','sexta_cuarta_cadencial','tercera_picardia'],
- 'Acordes':['napolitana','napolitana_a_dominante','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','sexta_aumentada_a_64','acorde_disminuido','quinta_aumentada','sexta_anadida','intercambio_modal','acorde_vecino_cromatico'],
+ 'Acordes':['napolitana','sexta_napolitana','bii_fundamental','sexta_napolitana_a_dominante','bii_fundamental_a_dominante','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','sexta_aumentada_a_64','acorde_disminuido','quinta_aumentada','sexta_anadida','intercambio_modal','acorde_vecino_cromatico'],
  'Dominantes secundarias':['dominante_secundaria','dominante_secundaria_resuelta','dominante_de_la_dominante','septima_disminuida_secundaria'],
  'Modulación':['modulacion','modulacion_diatonica','modulacion_cromatica','modulacion_enarmonica','modulacion_directa','modulacion_a_relativo','modulacion_a_dominante','modulacion_a_homonimo','modulacion_a_tercera'],
  'Secuencias y pedales':['secuencia_quintas','pedal_de_dominante'],
@@ -682,7 +682,7 @@ function puntuarConceptos(t){
   if(el){const r=res.find(x=>x[0]===el); if(r) r[1]+=100; else res.push([el,100])}
   for(const r of res){
     const k=r[0], req=META.requiere[k];
-    // una subclase («napolitana → dominante») solo pasa delante si se escribe lo que la distingue
+    // una subclase («sexta napolitana → dominante») solo pasa delante si se escribe lo que la distingue
     if(req&&!req.every(g=>g.some(x=>t.includes(norm(x))))) r[1]-=300;
     // el nombre o un sinónimo escrito tal cual gana siempre («napolitana», «septima disminuida»)
     else if(norm(NOMBRE(k))===t||(META.sinonimos[k]||[]).some(s=>norm(s)===t)) r[1]+=1000;
@@ -1155,7 +1155,7 @@ function pintarInicio(){
     return n};
   const FAM=[
     ['Cadencias',GRUPOS['Cadencias'].map(k=>({k}))],
-    ['Acordes alterados',['napolitana','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','intercambio_modal'].map(k=>({k}))],
+    ['Acordes alterados',['napolitana','sexta_napolitana','bii_fundamental','sexta_aumentada','sexta_aumentada_italiana','sexta_aumentada_francesa','sexta_aumentada_alemana','intercambio_modal'].map(k=>({k}))],
     ['Dominantes secundarias',GRUPOS['Dominantes secundarias'].map(k=>({k}))],
     ['Modulación',GRUPOS['Modulación'].map(k=>({k}))],
     ['Otros recursos',['acorde_disminuido','quinta_aumentada','sexta_anadida','secuencia_quintas','pedal_de_dominante'].map(k=>({k}))],
@@ -1401,7 +1401,9 @@ function etqTxt(e){
     .replace(/ en ([A-Ga-g][#-]*)/g,' in $1');
 }
 for(const t of TONOS){const op=document.createElement('option');op.value=t;op.textContent=tonoEs(t);$('#tonalidad').append(op)}
-function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
+// los ejemplos cadenciales (los que preparan la dominante) van antes que los demás, donde el concepto distingue unos de otros
+const noCad=h=>h.ctx==='n'?1:0;
+function ordenar(a,b){const oa=porId.get(a.obra),ob=porId.get(b.obra);return (!!ob.pq-!!oa.pq)||(noCad(a)-noCad(b))||apellido(oa.c).localeCompare(apellido(ob.c),'es')||oa.t.localeCompare(ob.t,'es')||(a.ini-b.ini)}
 // alterna compositores para que la primera página no la llene uno solo (p. ej. 371 corales de Bach)
 // Un mismo movimiento puede tener dos análisis (When in Rome y DCML, o dos analistas): el mismo pasaje sale
 // en los dos. Se cuenta y se muestra una vez; los demás análisis quedan en h.otros (la vista deja cambiar de
@@ -1412,7 +1414,7 @@ function fusionarAnalisis(lista){
     const o=porId.get(h.obra); if(!o){out.push(h);continue}
     const k=o.m+'|'+(h.frag?h.ini+'-'+h.fin:h.compas+'@'+h.parte);
     const p=vistos.get(k);
-    if(p){if(p.obra!==h.obra&&!p.otros.some(x=>x.obra===h.obra)) p.otros.push(h); continue}
+    if(p){if(h.ctx==='c') p.ctx='c'; if(p.obra!==h.obra&&!p.otros.some(x=>x.obra===h.obra)) p.otros.push(h); continue}
     h.otros=[]; vistos.set(k,h); out.push(h);
   }
   return out;
@@ -1447,7 +1449,7 @@ async function ejecutar(o){
     const cuenta={}, todas=[];
     for(const h of hitsCache[k]){
       const ob=porId.get(h[0]); if(!pasaObra(ob,f)||!pasaTono(h[3],f)||!pasaForma(ob,f,h[1],h[2])) continue;
-      todas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6]});
+      todas.push({obra:h[0],compas:h[1],parte:h[2],tono:h[3],etq:h[4],ini:h[5],fin:h[6],ctx:h[7]});
     }
     filas=fusionarAnalisis(todas).filter(h=>{const w=porId.get(h.obra).w;cuenta[w]=(cuenta[w]||0)+1;return cuenta[w]<=f.lim});
     filas=intercalar(filas);
@@ -1517,7 +1519,7 @@ function pintarDestacados(frag,modoObras){
   const orden=contar(filas,h=>porId.get(h.obra).c).map(x=>x[0]), elegidos=[];
   for(const c of orden){
     const cands=filas.filter(h=>porId.get(h.obra).c===c);
-    const h=cands.slice().sort((a,b)=>((a.fin-a.ini)-(b.fin-b.ini)))[0];
+    const h=cands.slice().sort((a,b)=>(noCad(a)-noCad(b))||((a.fin-a.ini)-(b.fin-b.ini)))[0];
     elegidos.push(h); if(elegidos.length===4) break;
   }
   d.innerHTML=`<p class="et">${trd('Para empezar','To start with')}</p><div class="tarjetas">${elegidos.map((h,i)=>{const o=porId.get(h.obra);
@@ -1611,7 +1613,13 @@ function celdaCifrado(h){
     if(v.fun&&conRN) det+=`<span class="det" style="color:var(--fun)">${esc(etqTxt(traducir(p[2],h.tono,'fun')))}</span>`;
     return `<span class="lin rom">${esc(tonoEs(desde))} → ${esc(tonoEs(hasta))}</span><span class="tipo ${TIPOS[p[1]]}">${EN?TIPO_MOD[p[1]][1]:p[1]}</span>${det}`;
   }
-  return lineas(h.etq,h.tono);
+  return lineas(h.etq,h.tono)+marcaCtx(h);
+}
+// napolitana: si el acorde prepara la dominante (uso cadencial típico) o no
+function marcaCtx(h){
+  if(h.ctx==='c') return `<span class="tipo t-cad" title="${trd('Prepara la dominante: el uso cadencial típico','Leads to the dominant: the typical cadential use')}">${trd('cadencial','cadential')}</span>`;
+  if(h.ctx==='n') return `<span class="tipo t-nocad" title="${trd('No llega a la dominante: no es el uso cadencial típico','Does not lead to the dominant: not the typical cadential use')}">${trd('no cadencial','non-cadential')}</span>`;
+  return '';
 }
 function resumen(s){
   const tc=[]; if(s.tri) tc.push(`${s.tri} ${trd('tríadas','triads')}`); if(s.cua) tc.push(`${s.cua} ${trd('cuatríadas','seventh chords')}`); if(s.otro) tc.push(`${s.otro} ${trd('otros','other')}`);
@@ -2895,7 +2903,7 @@ const fijarCampo=(id,v)=>{const sel=$('#'+id); if(sel.tagName==='SELECT'&&![...s
 const EJEMPLOS=[
   {es:'sexta alemana en el desarrollo',en:'German sixth in the development',f:{seccion:'desarrollo'},o:{t:'c',k:'sexta_aumentada_alemana'}},
   {es:'cadencia rota en Mozart',en:'deceptive cadence in Mozart',f:{compositor:'Wolfgang Amadeus Mozart'},o:{t:'c',k:'cadencia_rota'}},
-  {es:'napolitana en forma sonata',en:'Neapolitan sixth in sonata form',f:{formaGlobal:'forma_sonata'},o:{t:'c',k:'napolitana'}},
+  {es:'sexta napolitana en forma sonata',en:'Neapolitan sixth in sonata form',f:{formaGlobal:'forma_sonata'},o:{t:'c',k:'sexta_napolitana'}},
   {es:'modulación enarmónica',en:'enharmonic modulation',f:{},o:{t:'c',k:'modulacion_enarmonica'}},
   {es:'progresión ii6 – V7 – I',en:'progression ii6 – V7 – I',f:{},o:{t:'p',q:['ii6','V7','I']}},
   {es:'corales de Bach en modo menor',en:'Bach chorales in the minor mode',f:{formaGlobal:'coral',modo:'m'},o:null},
@@ -2939,7 +2947,7 @@ function pintarProyecto(){
     <li><a href="https://github.com/MarkGotham/When-in-Rome" target="_blank" rel="noopener">When in Rome</a> (Gotham et al.), que reúne en un solo formato análisis de varios proyectos: corales de Bach, sonatas y cuartetos de Beethoven, sonatas de Mozart, lieder, ejemplos de manuales de armonía…</li>
     <li><a href="https://github.com/DCMLab/distant_listening_corpus" target="_blank" rel="noopener">Distant Listening Corpus</a> del Digital and Cognitive Musicology Lab (EPFL), con cifrado romano y cadencias anotadas.</li>
   </ul>
-  <p>Algunos procedimientos vienen marcados en el propio análisis; otros se deducen del cifrado (una napolitana es un ♭II en primera inversión, por ejemplo), y las cadencias se afinan con rasgos de la partitura: metro, bajo, calderones, final de frase. Puede haber falsos positivos y ausencias. La ficha de cada ejemplo dice cómo se ha identificado y enlaza el análisis original.</p>
+  <p>Algunos procedimientos vienen marcados en el propio análisis; otros se deducen del cifrado (la sexta napolitana es un ♭II en primera inversión, y el ♭II en estado fundamental se busca aparte, por ejemplo), y las cadencias se afinan con rasgos de la partitura: metro, bajo, calderones, final de frase. Puede haber falsos positivos y ausencias. La ficha de cada ejemplo dice cómo se ha identificado y enlaza el análisis original.</p>
   <h3>Forma y secciones</h3>
   <p>La forma global (forma sonata, rondó, minueto con trío…) solo se asigna cuando una fuente la indica: <a href="https://github.com/MarkGotham/Taking-Form" target="_blank" rel="noopener">Taking Form</a>, <a href="https://transactions.ismir.net/articles/196" target="_blank" rel="noopener">BPSD</a> para Beethoven, el <a href="https://github.com/corpusTAU/The-Mozart-Expositional-Punctuation-Corpus" target="_blank" rel="noopener">Mozart Expositional Punctuation Corpus</a>, el título del movimiento o el género de la colección. Por ahora la tienen ${nn0(nForma)} de ${nn0(porMov.size)} movimientos. Las secciones (exposición, desarrollo, reexposición…) solo están en ${nn0(nSecc)} movimientos de sonatas de Beethoven y Mozart.</p>
   <h3>Partituras</h3>
