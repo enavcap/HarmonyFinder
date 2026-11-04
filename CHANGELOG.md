@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-05
+
 ### Changed
 - Los ejemplos se muestran solo con notas, ritmos y ligaduras: la web quita de la partitura las dinámicas, los reguladores, los pedales, los textos de expresión («smorz.»…), los metrónomos, las articulaciones (acentos, picados…) y las fermatas, que chocaban con los cifrados y con las demás voces. Se conservan las ligaduras y los cambios de octava (8va). Los datos no cambian: el filtro se aplica al cargar cada partitura.
 
@@ -183,7 +185,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/enavcap/harmonyfinder/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/enavcap/harmonyfinder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...v0.5.2
