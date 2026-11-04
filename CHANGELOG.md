@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-04
+
 ### Changed
 - Ficha del ejemplo: los datos técnicos (estándar, versión, archivo, partitura, referencia, procedencia) van plegados bajo «Datos técnicos». El campo «Análisis» muestra solo los analistas (sin la licencia ni la nota de conversión pegadas) y la licencia es la del análisis original: CC BY-NC-SA 4.0 en los análisis de When in Rome convertidos del DCML. La fuente de la forma se explica con palabras («según Taking Form, anotación formal de las sonatas»). El catálogo no se repite si ya está en el título («Op. 127 (Op. 127)»).
 - Compositores que comparten apellido con sus iniciales («J. S. Bach», «C. P. E. Bach», «W. F. Bach») en el resumen, las tarjetas y las sugerencias de obra.
@@ -151,7 +153,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.0...v0.4.1
