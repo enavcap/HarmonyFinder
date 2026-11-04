@@ -8,6 +8,12 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- `herramientas/auditoria_notacion.js`: dibuja una muestra de fragmentos y mide silencios que pisan notas de otras voces, silencios que se pisan entre sí y cabezas de nota solapadas, además de los efectos secundarios de moverlos (cifrados, números de compás, salirse del dibujo). Termina con error si queda algún choque.
+
+### Fixed
+- Partitura: los silencios que pisaban una nota de otra voz en el mismo pentagrama se apartan ahora, en múltiplos de media línea y alejándose de lo que pisan, hasta quedar libres. Eran sobre todo las partituras reconstruidas desde el DCML (suites de Bach, Couperin, Scarlatti, Rachmaninoff…), donde el silencio de la voz aguda se fijaba siempre en la misma altura sin mirar a las demás voces, pero también ocurría en originales (p. ej. Schubert, *Winterreise* n.º 9). En tres muestras de unos 1.100 fragmentos, 60 fragmentos (127 silencios) tenían el choque; ahora no queda ninguno, y los silencios movidos no invaden cifrados ni números de compás.
+
 ## [0.5.1] - 2026-11-04
 
 ### Changed

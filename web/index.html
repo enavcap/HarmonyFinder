@@ -2224,6 +2224,7 @@ async function mostrar(h){
         const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
+      despejarSilencios(cont.querySelector('svg'));
       despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       svg=cont.querySelector('svg');
@@ -2344,6 +2345,52 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
     return num+marca+(p.dig||'');
   }
   return null;
+}
+// Silencios que pisan notas: en un pentagrama con varias voces, Verovio no siempre mira lo que hacen las otras voces en
+// ese instante, y las partituras reconstruidas fijan el silencio de la voz aguda en una altura fija. Si un silencio pisa
+// una cabeza de nota o un silencio de otra voz, se desplaza en múltiplos de media línea, alejándose de lo que pisa (si no
+// hay preferencia, hacia arriba en la primera voz y hacia abajo en las demás), hasta quedar libre. Devuelve cuántos movió.
+// El desplazamiento va en un <g> interno del silencio, no en él mismo: getBBox() ignora el transform propio del elemento
+// y despejarNumeros() (que se ejecuta después, y otra vez al acabar de maquetar) necesita la caja ya movida.
+function despejarSilencios(svg){
+  const pm=svg&&svg.querySelector('g.page-margin'); if(!pm) return 0;
+  const caja=e=>{try{const b=e.getBBox();return b.width>0&&b.height>0?{x:b.x,y:b.y,w:b.width,h:b.height}:null}catch(_){return null}};
+  let movidos=0;
+  for(const st of pm.querySelectorAll('g.measure > g.staff')){
+    const capas=[...st.querySelectorAll(':scope > g.layer')]; if(capas.length<2) continue;
+    // un espacio del pentagrama, leído de sus dos primeras líneas (en Verovio, 180 unidades)
+    const ys=[...st.querySelectorAll(':scope > path')].slice(0,2).map(p=>+(p.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)||[])[1]);
+    const sp=ys.length===2&&ys[1]>ys[0]?ys[1]-ys[0]:180, paso=sp/2, m=sp*0.06;
+    const pisa=(a,b)=>a.x+m<b.x+b.w&&a.x+a.w-m>b.x&&a.y+m<b.y+b.h&&a.y+a.h-m>b.y;
+    const voces=capas.map(c=>({
+      silencios:[...c.querySelectorAll('g.rest,g.mRest')].map(e=>({e,b:caja(e),dy:0})).filter(r=>r.b),
+      notas:[...c.querySelectorAll('g.note g.notehead')].map(caja).filter(Boolean)}));
+    voces.forEach((v,iv)=>{
+      for(const r of v.silencios){
+        const choques=dy=>{
+          const c={x:r.b.x,y:r.b.y+dy,w:r.b.w,h:r.b.h}, fuera=[];
+          voces.forEach((w,jw)=>{ if(jw===iv) return;
+            for(const n of w.notas) if(pisa(c,n)) fuera.push(n);
+            for(const s of w.silencios){const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h}; if(pisa(c,sb)) fuera.push(sb)}
+          });
+          return fuera;
+        };
+        const c0=choques(0); if(!c0.length) continue;
+        const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
+        const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
+        let mejor=null;
+        for(let k=1;k<=10;k++) for(const signo of [pref,-pref]){
+          const coste=k+(signo===pref?0:1.5);
+          if((!mejor||coste<mejor.coste)&&!choques(signo*k*paso).length) mejor={coste,dy:signo*k*paso};
+        }
+        if(!mejor) continue;
+        const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('transform',`translate(0,${mejor.dy})`);
+        while(r.e.firstChild) g.appendChild(r.e.firstChild);
+        r.e.appendChild(g); r.dy=mejor.dy; movidos++;
+      }
+    });
+  }
+  return movidos;
 }
 // Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
 // líneas adicionales, plicas, barras, tresillos, ligaduras, casillas de repetición o indicaciones, se sube por encima de todas ellas.
@@ -3098,7 +3145,7 @@ async function aplicarURL(vaciar=false){
 }
 window.addEventListener('popstate',()=>{if(location.search!==urlActual) aplicarURL(true)});
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,acordesDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
   fijarTexto:t=>{q.value=t},get actual(){return actual},
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
