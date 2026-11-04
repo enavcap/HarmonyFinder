@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Los ejemplos se muestran solo con notas, ritmos y ligaduras: la web quita de la partitura las dinámicas, los reguladores, los pedales, los textos de expresión («smorz.»…), los metrónomos, las articulaciones (acentos, picados…) y las fermatas, que chocaban con los cifrados y con las demás voces. Se conservan las ligaduras y los cambios de octava (8va). Los datos no cambian: el filtro se aplica al cargar cada partitura.
+
 ## [0.6.0] - 2026-11-04
 
 ### Added
