@@ -467,7 +467,7 @@ const OBRAS=await (await fetch('data/obras.json')).json();
 for(const o of OBRAS){const n=NUMEROS[o.w]; if(!n) continue;
   for(const k of ['t','ob']) o[k]=o[k].replace(/^(Sonata para piano|Cuarteto de cuerda), /,(a,p)=>`${p} n.º ${n}, `)}
 // títulos que genera el catálogo en español
-const TITULOS_EN=[[/^Sonata para piano n\.º (\d+)/,'Piano Sonata No. $1'],[/^Cuarteto de cuerda n\.º (\d+)/,'String Quartet No. $1'],[/^Sonata para piano/,'Piano Sonata'],[/^Cuarteto de cuerda/,'String Quartet'],[/^Madrigali, libro/,'Madrigals, book']];
+const TITULOS_EN=[[/^Sonata para piano n\.º (\d+)/,'Piano Sonata No. $1'],[/^Cuarteto de cuerda n\.º (\d+)/,'String Quartet No. $1'],[/^Sonata para piano/,'Piano Sonata'],[/^Cuarteto de cuerda/,'String Quartet'],[/^Madrigali, libro/,'Madrigals, book'],[/^El clave bien temperado, libro/,'The Well-Tempered Clavier, Book'],[/\. Preludio$/,'. Prelude']];
 // compositores con transliteración española: en inglés, la inglesa (el buscador acepta las dos)
 const COMP_EN={'Piotr Ilich Chaikovski':'Pyotr Ilyich Tchaikovsky','Serguéi Rajmáninov':'Sergei Rachmaninoff','Nikolái Rimski-Kórsakov':'Nikolai Rimsky-Korsakov'};
 const COMP_OTRO=Object.fromEntries(Object.entries(COMP_EN).flatMap(([a,b])=>[[a,b],[b,a]]));

@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- *El clave bien temperado* (Bach, libro I): los 24 ejemplos aparecían como «The Well-Tempered Clavier I · 1» sin decir que son solo los preludios (When in Rome no analiza las fugas). Ahora se titulan «El clave bien temperado, libro I · 1. Preludio» (en inglés, «The Well-Tempered Clavier, Book I · 1. Prelude») y llevan el catálogo BWV 846–869. La regla está en el adaptador de When in Rome; los datos ya generados (`web/data/obras.json`) se han actualizado sin regenerar el corpus.
+
 ## [0.5.2] - 2026-11-04
 
 ### Added

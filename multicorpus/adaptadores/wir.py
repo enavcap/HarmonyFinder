@@ -76,6 +76,14 @@ def obra_y_movimiento(rel, meta, remote):
         if t:
             return dict(obra_titulo=t["titulo"], obra_catalogo=t["catalogo"], movimiento_numero=None,
                         movimiento_titulo=None, genero=genero, instrumentacion=inst)
+    # El clave bien temperado: When in Rome solo analiza los preludios (cada número es un preludio y fuga)
+    if "Bach" in comp and len(resto) >= 2 and re.fullmatch(r"The_Well-Tempered_Clavier_(I|II)", resto[-2]) \
+            and re.fullmatch(r"\d{1,2}", resto[-1]):
+        libro = resto[-2].rsplit("_", 1)[-1]
+        return dict(obra_titulo=f"El clave bien temperado, libro {libro}",
+                    obra_catalogo="BWV 846–869" if libro == "I" else "BWV 870–893",
+                    movimiento_numero=resto[-1].lstrip("0") or "0", movimiento_titulo="Preludio",
+                    genero="Preludio y fuga", instrumentacion=inst)
     if col == "OpenScore-LiederCorpus":
         coleccion, cancion = (resto + ["", ""])[:2]
         m = re.match(r"0*(\d+)[_ ](.*)", cancion)

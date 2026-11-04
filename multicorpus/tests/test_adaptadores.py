@@ -29,6 +29,13 @@ def test_tonalidades_locales():
     assert tono_local("Eb", "V/V") == "F"
     assert tono_local("g", "i") == "g"
 
+def test_clave_bien_temperado_indica_que_es_el_preludio():
+    om = obra_y_movimiento("Keyboard_Other/Bach,_Johann_Sebastian/The_Well-Tempered_Clavier_I/01", {}, {})
+    assert om["obra_titulo"] == "El clave bien temperado, libro I" and om["obra_catalogo"] == "BWV 846–869"
+    assert om["movimiento_numero"] == "1" and om["movimiento_titulo"] == "Preludio"
+    om = obra_y_movimiento("Keyboard_Other/Bach,_Johann_Sebastian/The_Well-Tempered_Clavier_I/14", {}, {})
+    assert om["movimiento_numero"] == "14"
+
 def test_posicion_metrica():
     assert parte_de("3/4", "4/4") == 4.0          # anacrusa en la cuarta parte
     assert parte_de("0", "3/4") == 1.0
