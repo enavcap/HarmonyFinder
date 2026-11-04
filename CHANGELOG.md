@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-04
+
 ### Fixed
 - *El clave bien temperado* (Bach, libro I): los 24 ejemplos aparecían como «The Well-Tempered Clavier I · 1» sin decir que son solo los preludios (When in Rome no analiza las fugas). Ahora se titulan «El clave bien temperado, libro I · 1. Preludio» (en inglés, «The Well-Tempered Clavier, Book I · 1. Prelude») y llevan el catálogo BWV 846–869. La regla está en el adaptador de When in Rome; los datos ya generados (`web/data/obras.json`) se han actualizado sin regenerar el corpus.
 
@@ -164,7 +166,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.4.2...v0.5.0
