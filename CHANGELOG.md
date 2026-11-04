@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-05
+
 ### Fixed
 - Partitura: los silencios que pisan una nota, una plica, una barra, un corchete o una alteración de otra voz del mismo pentagrama se ocultan (esa otra voz suena en ese instante, y el silencio no aporta nada al ejemplo). Antes solo se apartaban de las cabezas de nota, y la plica de un acorde de la segunda voz atravesaba el silencio de la primera (p. ej. Beethoven, Op. 31 n.º 2, 1.er mov., c. 191). Si el silencio pisa el de otra voz, se sigue apartando. En una muestra de 250 fragmentos, 7 tenían silencios sobre plicas; ahora no queda ningún choque y ya no hay silencios desplazados lejos de su sitio.
 - Cifrados mal alineados con los acordes: cuando el análisis cuenta las partes en blancas (partes 1, 1.5, 2, 2.5 en un compás de 4/4) los cifrados se dibujaban apelmazados en la mitad izquierda del compás. Ahora, si ningún acorde pasa de la mitad del compás y a escala doble caen claramente más acordes sobre ataques de nota, las partes se cuentan en blancas. Afecta a cinco obras: los análisis de When in Rome de la Op. 31 n.º 2 de Beethoven (1.er mov.) y de la K. 570 de Mozart (3.er mov.), y el madrigal «O dolc' anima mia» de Monteverdi.
@@ -193,7 +195,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/harmonyfinder/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/enavcap/harmonyfinder/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.5.2...v0.5.3
