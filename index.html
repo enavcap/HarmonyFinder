@@ -1956,6 +1956,29 @@ function rango(h,primero){const m=+$('#margen').value;return [Math.max(primero,h
 //    si el anterior ya estaba completo, o el número vuelve a salir más adelante (casillas, repeticiones escritas,
 //    numeración que vuelve a empezar), es una aparición nueva
 //  · compás vigente: una obra puede cambiar de compás (K. 331, I: tema en 6/8, var. VI en 4/4)
+// ataques de nota de cada compás de la partitura, en todas las partes (milésimas de negra desde el comienzo del compás)
+function calcularAtaques(xml,nCompases){
+  const A=Array.from({length:nCompases},()=>new Set());
+  for(const pt of xml.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)){
+    let i=0, dv=1;
+    for(const m of pt[1].matchAll(/<measure\b[^>]*>([\s\S]*?)<\/measure>/g)){
+      if(i>=nCompases) break;
+      const d=m[1].match(/<divisions>(\d+)/); if(d) dv=+d[1]||1;
+      let t=0, prev=0;
+      for(const tok of m[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
+        const du=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
+        if(tok.startsWith('<backup')){t-=du;continue}
+        if(tok.startsWith('<forward')){t+=du;continue}
+        if(/<grace\b/.test(tok)) continue;
+        const acorde=/<chord\b/.test(tok), t0=acorde?t-prev:t;
+        if(!/<rest\b/.test(tok)&&!/<tie\b[^>]*type="stop"/.test(tok)) A[i].add(Math.round(t0/dv*1000));
+        if(!acorde){prev=du;t+=du}
+      }
+      i++;
+    }
+  }
+  return A;
+}
 const estrCache=new Map();
 function estructura(id,xml){
   if(estrCache.has(id)) return estrCache.get(id);
@@ -1986,28 +2009,13 @@ function estructura(id,xml){
     E.etq.push(etq);E.n.push(num);E.occ.push(k);E.dur.push(dur);E.metro.push({c,u,full});
     E.rep.push(/<repeat\b[^>]*direction=["']backward/.test(cuerpo)); E.ida.push(/<repeat\b[^>]*direction=["']forward/.test(cuerpo));
   }
-  // ataques de nota de cada compás, en todas las partes (en milésimas de negra desde el comienzo del compás)
-  E.ataques=E.n.map(()=>new Set());
-  if(E.metro.some(m=>m.c%3===0)){                             // solo hacen falta para decidir la unidad de los ternarios
-    for(const pt of xml.matchAll(/<part\b[^>]*>([\s\S]*?)<\/part>/g)){
-      let i=0, dv=1;
-      for(const m of pt[1].matchAll(/<measure\b[^>]*>([\s\S]*?)<\/measure>/g)){
-        if(i>=E.n.length) break;
-        const d=m[1].match(/<divisions>(\d+)/); if(d) dv=+d[1]||1;
-        let t=0, prev=0;
-        for(const tok of m[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
-          const du=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
-          if(tok.startsWith('<backup')){t-=du;continue}
-          if(tok.startsWith('<forward')){t+=du;continue}
-          if(/<grace\b/.test(tok)) continue;
-          const acorde=/<chord\b/.test(tok), t0=acorde?t-prev:t;
-          if(!/<rest\b/.test(tok)&&!/<tie\b[^>]*type="stop"/.test(tok)) E.ataques[i].add(Math.round(t0/dv*1000));
-          if(!acorde){prev=du;t+=du}
-        }
-        i++;
-      }
-    }
-  }
+  // ataques de nota de cada compás, en todas las partes (en milésimas de negra desde el comienzo del compás).
+  // Se calculan al principio solo si hay compases ternarios (deciden la unidad de sus partes); en los demás, solo si
+  // escalar() necesita comprobar la escala de las partes (ataquesTodos(), una sola vez por partitura).
+  const ternarios=E.metro.some(m=>m.c%3===0);
+  E.ataques=ternarios?calcularAtaques(xml,E.n.length):E.n.map(()=>new Set());
+  let memoAtaques=ternarios?E.ataques:null;
+  E.ataquesTodos=()=>memoAtaques||(memoAtaques=calcularAtaques(xml,E.n.length));
   estrCache.set(id,E); return E;
 }
 // duración de una parte del análisis, en negras. Por defecto: When in Rome cuenta 3/8 en corcheas y el adaptador
@@ -2152,8 +2160,31 @@ function alinear(E,ac,id,fuente){
 // compás y a escala ½ caben casi todos, las partes se cuentan a esa escala.
 function escalar(E,ac,clave,fuente){
   const d=desajustes(E,ac,fuente,true), M={...E,escala:0.5};
-  const R=d>=4&&d>ac.length*0.1&&desajustes(M,ac,fuente,true)<d/4?M:E;
+  let R=d>=4&&d>ac.length*0.1&&desajustes(M,ac,fuente,true)<d/4?M:E;
+  if(R===E) R=escalaDoble(E,ac,fuente);
   alinCache.set(clave,R); return R;
+}
+// Caso contrario: el análisis cuenta las partes en blancas en una partitura escrita en 4/4 (los análisis de When in Rome
+// de las sonatas de Beethoven: partes 1, 1.5, 2, 2.5 por compás). A escala 1 todos los acordes caben, pero se dibujan
+// apelmazados en la mitad izquierda del compás. Se cambia a escala 2 solo si ningún acorde pasa de la mitad del compás
+// y a escala 2 caen claramente más acordes sobre ataques de nota de la partitura (y ninguno fuera de su compás).
+function escalaDoble(E,ac,fuente){
+  if(E.escala||ac.length<10) return E;
+  const occ=ocurrencias(ac,E), zs=ac.map((c,j)=>situar(E,c,occ[j],fuente)).filter(Boolean);
+  if(zs.length<10) return E;
+  const pasan=zs.filter(z=>z.q>=E.metro[z.p].full/2-1e-6).length;
+  if(pasan>zs.length*0.02) return E;
+  const X={...E,escala:2}, A=E.ataquesTodos();
+  // solo cuentan los acordes que cambian de sitio con la escala (los de la parte 1 caen igual en las dos)
+  const mueven=ac.map((c,j)=>c.parte>1+1e-6?j:-1).filter(j=>j>=0);
+  if(mueven.length<8) return E;
+  const nota=Y=>{let v=0;
+    for(const j of mueven){const z=situar(Y,ac[j],occ[j],fuente); if(!z) continue;
+      if(z.q>Y.dur[z.p]+1e-6){v-=2;continue}
+      const r=Math.round(z.q*1000), S=A[z.p]; if(S) for(let e=-3;e<=3;e++) if(S.has(r+e)){v++;break}}
+    return v};
+  const v1=nota(E), v2=nota(X);
+  return v2>=mueven.length*0.9&&v2-v1>=Math.max(3,mueven.length*0.1)?X:E;
 }
 // compás (posición) y parte, en negras desde su comienzo, donde cae el acorde j; null si la partitura no lo tiene
 function situar(E,c,occ,fuente){
@@ -2377,13 +2408,16 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
 }
 // Silencios que pisan notas: en un pentagrama con varias voces, Verovio no siempre mira lo que hacen las otras voces en
 // ese instante, y las partituras reconstruidas fijan el silencio de la voz aguda en una altura fija. Si un silencio pisa
-// una cabeza de nota o un silencio de otra voz, se desplaza en múltiplos de media línea, alejándose de lo que pisa (si no
-// hay preferencia, hacia arriba en la primera voz y hacia abajo en las demás), hasta quedar libre. Devuelve cuántos movió.
+// una cabeza de nota, una plica, una barra, un corchete o una alteración de otra voz, se oculta: esa otra voz suena en ese
+// instante y el silencio no aporta nada a un ejemplo armónico. Si pisa el silencio de otra voz, se desplaza en múltiplos de
+// media línea, alejándose de lo que pisa, hasta quedar libre. Devuelve cuántos ocultó o movió.
 // El desplazamiento va en un <g> interno del silencio, no en él mismo: getBBox() ignora el transform propio del elemento
 // y despejarNumeros() (que se ejecuta después, y otra vez al acabar de maquetar) necesita la caja ya movida.
 function despejarSilencios(svg){
   const pm=svg&&svg.querySelector('g.page-margin'); if(!pm) return 0;
   const caja=e=>{try{const b=e.getBBox();return b.width>0&&b.height>0?{x:b.x,y:b.y,w:b.width,h:b.height}:null}catch(_){return null}};
+  // las plicas son líneas sin anchura propia: se les da la de la plica más un margen a cada lado, para que el silencio no las roce
+  const cajaFina=(e,sp)=>{try{const b=e.getBBox(); if(!(b.height>0)) return null; const w=Math.max(b.width,0)+sp*0.28; return {x:b.x+b.width/2-w/2,y:b.y,w,h:b.height}}catch(_){return null}};
   let movidos=0;
   for(const st of pm.querySelectorAll('g.measure > g.staff')){
     const capas=[...st.querySelectorAll(':scope > g.layer')]; if(capas.length<2) continue;
@@ -2393,18 +2427,22 @@ function despejarSilencios(svg){
     const pisa=(a,b)=>a.x+m<b.x+b.w&&a.x+a.w-m>b.x&&a.y+m<b.y+b.h&&a.y+a.h-m>b.y;
     const voces=capas.map(c=>({
       silencios:[...c.querySelectorAll('g.rest,g.mRest')].map(e=>({e,b:caja(e),dy:0})).filter(r=>r.b),
-      notas:[...c.querySelectorAll('g.note g.notehead')].map(caja).filter(Boolean)}));
+      notas:[...c.querySelectorAll('g.note g.notehead')].map(caja).filter(Boolean),
+      // plicas, barras, corchetes y alteraciones: el silencio de otra voz tampoco puede quedar encima de ellos
+      trazos:[...c.querySelectorAll('g.stem,g.beam,g.flag,g.accid')].map(e=>cajaFina(e,sp)).filter(Boolean)}));
     voces.forEach((v,iv)=>{
       for(const r of v.silencios){
         const choques=dy=>{
           const c={x:r.b.x,y:r.b.y+dy,w:r.b.w,h:r.b.h}, fuera=[];
           voces.forEach((w,jw)=>{ if(jw===iv) return;
             for(const n of w.notas) if(pisa(c,n)) fuera.push(n);
-            for(const s of w.silencios){const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h}; if(pisa(c,sb)) fuera.push(sb)}
+            for(const n of w.trazos) if(pisa(c,n)) fuera.push(n);
+            for(const s of w.silencios){ if(s.oculto) continue; const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h,sil:true}; if(pisa(c,sb)) fuera.push(sb)}
           });
           return fuera;
         };
         const c0=choques(0); if(!c0.length) continue;
+        if(!c0.some(b=>b.sil)){ r.e.setAttribute('display','none'); r.oculto=true; movidos++; continue }   // solo pisa notas, plicas o alteraciones: se oculta
         const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
         const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
         let mejor=null;
@@ -3174,7 +3212,7 @@ async function aplicarURL(vaciar=false){
 }
 window.addEventListener('popstate',()=>{if(location.search!==urlActual) aplicarURL(true)});
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,xmlDe,estructura,alinear,situar,parteDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
   fijarTexto:t=>{q.value=t},get actual(){return actual},
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
