@@ -60,7 +60,7 @@ La web está **en español y en inglés** (botón junto al título). El buscador
 | Familia | Conceptos |
 |---|---|
 | Cadencias | auténtica perfecta e imperfecta, rota, semicadencia, frigia, plagal, 6/4 cadencial |
-| Acordes alterados | napolitana (y → V), sextas aumentadas italiana / francesa / alemana (y → 6/4), intercambio modal |
+| Acordes alterados | napolitana (♭II en cualquier posición), sexta napolitana (♭II6) y ♭II en estado fundamental, cada uno también → V; sextas aumentadas italiana / francesa / alemana (y → 6/4), intercambio modal |
 | Dominantes secundarias | dominante secundaria (resuelta o no), dominante de la dominante, séptima disminuida secundaria |
 | Modulación | diatónica, cromática, enarmónica (verificada con la grafía de la partitura), directa; a relativo, dominante, homónimo, tercera |
 | Otros | secuencia de quintas, pedal de dominante, acorde disminuido, aumentado, sexta añadida |

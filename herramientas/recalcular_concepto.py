@@ -104,6 +104,7 @@ def recalcular(conceptos):
         if k in vocabulario.CONCEPTOS:
             meta["sinonimos"][k] = vocabulario.sinonimos_concepto(k)
         print(f"{k:32} {anterior.get('n', '?'):>6} → {len(hits[k]):6}")
+    meta["requiere"] = vocabulario.REQUIERE         # los conceptos compuestos nuevos o renombrados
     json.dump(meta, open(DATA / "meta.json", "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     json.dump(vocabulario.exportar(), open(DATA / "vocab.json", "w", encoding="utf-8"), ensure_ascii=False)
 

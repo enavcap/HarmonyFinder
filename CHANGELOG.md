@@ -8,6 +8,17 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- Sexta napolitana y II rebajado en estado fundamental, como procedimientos distintos. La sexta napolitana (♭II en primera inversión, N6) y el ♭II fundamental son funcionalmente lo mismo (subdominante alterada que prepara la dominante), pero la sexta napolitana no nació como inversión del ♭II, que no se usó en estado fundamental hasta el siglo XIX. Conceptos nuevos: «sexta napolitana» (664 coincidencias), «II rebajado en estado fundamental» (467), «sexta napolitana → dominante» (274) y «II rebajado fundamental → dominante» (106). Solo cuentan tríadas; las cuatríadas y las segundas inversiones siguen solo en el concepto general.
+- Prueba `multicorpus/tests/test_napolitana.py`.
+
+### Changed
+- «napolitana» pasa a llamarse «napolitana (♭II)» y sigue reuniendo el ♭II en cualquier posición (1.358 coincidencias, sin cambios). «sexta napolitana» y «N6» ya no llevan a ella, sino al concepto nuevo.
+- `herramientas/recalcular_concepto.py` también actualiza los conceptos compuestos (`requiere`) de `web/data/meta.json`. Los datos de estos conceptos se han recalculado con él, sin regenerar el corpus.
+
+### Removed
+- «napolitana → dominante» (`napolitana_a_dominante`): decía «♭II6 → (I64) → V», pero reunía también el ♭II fundamental. La sustituyen los dos conceptos nuevos.
+
 ## [0.5.3] - 2026-11-04
 
 ### Fixed

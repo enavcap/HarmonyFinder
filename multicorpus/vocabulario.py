@@ -56,16 +56,32 @@ CONCEPTOS = {
         ["tercera de picardia", "picardia", "tercera picarda", "picarda", "final mayor en menor"],
         ["picardy third", "picardy", "tierce de picardie"]),
     "napolitana": T(
+        "napolitana (♭II)", "Neapolitan chord (♭II)",
+        "acorde de II rebajado en cualquier posición", "chord on the lowered 2nd degree in any position",
+        ["napolitana", "segundo rebajado", "ii rebajado", "bii", "napolitano", "acorde napolitano",
+         "acorde de napolitana"],
+        ["neapolitan", "neapolitan chord", "lowered second", "flat two"]),
+    "sexta_napolitana": T(
         "sexta napolitana", "Neapolitan sixth",
-        "acorde de II rebajado", "chord on the lowered 2nd degree",
-        ["napolitana", "sexta napolitana", "segundo rebajado", "ii rebajado", "bii", "napolitano", "acorde napolitano",
-         "acorde de napolitana", "acorde de sexta napolitana", "bii6", "n"],
-        ["neapolitan", "neapolitan chord", "n6", "neapolitan sixth chord"]),
-    "napolitana_a_dominante": T(
-        "napolitana → dominante", "Neapolitan to dominant",
-        "bII6 → (I64) → V", "bII6 → (I64) → V",
-        ["napolitana", "sexta napolitana", "dominante", "a la dominante", "resuel", "resolv", "64"],
-        ["neapolitan", "neapolitan to dominant", "dominant"]),
+        "♭II en primera inversión (N6), función subdominante alterada", "♭II in first inversion (N6), altered subdominant function",
+        ["sexta napolitana", "napolitana en sexta", "acorde de sexta napolitana", "n6", "bii6", "n"],
+        ["neapolitan sixth", "neapolitan sixth chord", "n6", "neapolitan 6th"]),
+    "bii_fundamental": T(
+        "II rebajado en estado fundamental", "root-position lowered II",
+        "♭II en estado fundamental, distinto de la sexta napolitana", "♭II in root position, distinct from the Neapolitan sixth",
+        ["ii rebajado fundamental", "bii fundamental", "bii en estado fundamental", "segundo rebajado fundamental",
+         "napolitana fundamental"],
+        ["root position neapolitan", "neapolitan in root position", "root-position bii", "lowered ii root position"]),
+    "sexta_napolitana_a_dominante": T(
+        "sexta napolitana → dominante", "Neapolitan sixth to dominant",
+        "N6 → (I64) → V", "N6 → (I64) → V",
+        ["sexta napolitana", "napolitana", "dominante", "a la dominante", "resuel", "resolv", "64"],
+        ["neapolitan sixth", "neapolitan", "dominant"]),
+    "bii_fundamental_a_dominante": T(
+        "II rebajado fundamental → dominante", "root-position lowered II to dominant",
+        "♭II → (I64) → V", "♭II → (I64) → V",
+        ["ii rebajado fundamental", "bii fundamental", "dominante", "a la dominante", "resuel", "resolv"],
+        ["root position neapolitan", "root-position bii", "dominant"]),
     "sexta_aumentada": T(
         "sexta aumentada", "augmented sixth chord",
         "It / Fr / Ger", "It / Fr / Ger",
@@ -214,8 +230,10 @@ CONCEPTOS = {
 REQUIERE = {
     "sexta_aumentada_a_64": [["alemana", "sexta aumentada", "aumentada", "german", "augmented sixth"],
                              ["64", "cadencial", "sexta y cuarta", "cuarta y sexta", "cadential", "six-four"]],
-    "napolitana_a_dominante": [["napolitana", "bii", "segundo rebajado", "ii rebajado", "neapolitan"],
-                               ["dominante", "resuel", "resolv", "64", "dominant"]],
+    "sexta_napolitana_a_dominante": [["sexta napolitana", "napolitana en sexta", "n6", "bii6", "neapolitan sixth", "neapolitan 6th"],
+                                     ["dominante", "resuel", "resolv", "64", "dominant"]],
+    "bii_fundamental_a_dominante": [["ii rebajado fundamental", "bii fundamental", "napolitana fundamental", "root position",
+                                     "root-position"], ["dominante", "resuel", "resolv", "dominant"]],
     "dominante_secundaria_resuelta": [["dominante secundaria", "dominantes secundarias", "secondary dominant",
                                        "applied dominant"], ["resuel", "resolv"]],
 }

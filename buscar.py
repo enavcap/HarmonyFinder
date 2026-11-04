@@ -83,19 +83,37 @@ def cadencia_plagal(ac):
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
-def napolitana(ac):
-    return [(i, a["cifrado"], 1) for i, a in enumerate(ac)
-            if a["cifrado"].startswith("N") or (a["grado"] == 2 and a["alteracion"] == -1 and a["calidad"] == "major")]
+def _es_napolitana(a):
+    return a["cifrado"].startswith("N") or (a["grado"] == 2 and a["alteracion"] == -1 and a["calidad"] == "major")
 
-def napolitana_a_dominante(ac):
-    """bII6 → V o bII6 → I64 → V."""
+def napolitana(ac):
+    """Acorde de II rebajado (♭II o N) en cualquier posición; la sexta napolitana y el ♭II fundamental se buscan aparte."""
+    return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if _es_napolitana(a)]
+
+def sexta_napolitana(ac):
+    """♭II (tríada) en primera inversión: la sexta napolitana (N6)."""
+    return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if _es_napolitana(a) and not a["septima"] and a["inversion"] == 1]
+
+def bii_fundamental(ac):
+    """♭II (tríada) en estado fundamental: distinto de la sexta napolitana."""
+    return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if _es_napolitana(a) and not a["septima"] and a["inversion"] == 0]
+
+def _napolitana_a_dominante(ac, origen):
+    """Acordes de `origen` que van a V (de su misma tonalidad) directamente o pasando por un solo acorde (I64, viio7/V…)."""
     out = []
-    nap = {i for i, _, _ in napolitana(ac)}
-    for i in nap:
+    for i, _, _ in origen(ac):
         for j in (i + 1, i + 2):
             if j < len(ac) and _misma_tonalidad(ac[i], ac[j]) and _es_V(ac[j]):
                 out.append((i, " → ".join(x["cifrado"] for x in ac[i:j + 1]), j - i + 1)); break
     return out
+
+def sexta_napolitana_a_dominante(ac):
+    """N6 → V o N6 → I64 → V."""
+    return _napolitana_a_dominante(ac, sexta_napolitana)
+
+def bii_fundamental_a_dominante(ac):
+    """♭II en estado fundamental → V o ♭II → I64 → V."""
+    return _napolitana_a_dominante(ac, bii_fundamental)
 
 def sexta_aumentada(ac):
     return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if a["cifrado"][:2] in ("It", "Fr", "Ge", "Sw")]
@@ -633,8 +651,11 @@ CONCEPTOS = {
     "semicadencia": (semicadencia, "ii/IV → V en parte fuerte"),
     "cadencia_frigia": (cadencia_frigia, "iv6 → V en menor"),
     "cadencia_plagal": (cadencia_plagal, "IV → I"),
-    "napolitana": (napolitana, "acorde de II rebajado"),
-    "napolitana_a_dominante": (napolitana_a_dominante, "bII6 → (I64) → V"),
+    "napolitana": (napolitana, "acorde de II rebajado en cualquier posición"),
+    "sexta_napolitana": (sexta_napolitana, "bII6 (N6)"),
+    "bii_fundamental": (bii_fundamental, "bII en estado fundamental"),
+    "sexta_napolitana_a_dominante": (sexta_napolitana_a_dominante, "N6 → (I64) → V"),
+    "bii_fundamental_a_dominante": (bii_fundamental_a_dominante, "bII → (I64) → V"),
     "sexta_aumentada": (sexta_aumentada, "It / Fr / Ger"),
     "sexta_aumentada_italiana": (sexta_aumentada_italiana, "It6"),
     "sexta_aumentada_francesa": (sexta_aumentada_francesa, "Fr43"),
@@ -669,8 +690,11 @@ SINONIMOS = {
     "semicadencia": ["semicadencia", "cadencia suspensiva", "media cadencia"],
     "cadencia_frigia": ["frigia", "cadencia frigia", "iv6 v"],
     "cadencia_plagal": ["plagal", "cadencia plagal", "iv i", "amen"],
-    "napolitana_a_dominante": ["napolitana", "sexta napolitana", "dominante", "a la dominante", "resuel", "resolv", "64"],
-    "napolitana": ["napolitana", "sexta napolitana", "segundo rebajado", "ii rebajado", "bii", "neapolitan"],
+    "sexta_napolitana_a_dominante": ["sexta napolitana", "napolitana", "dominante", "a la dominante", "resuel", "resolv", "64"],
+    "bii_fundamental_a_dominante": ["ii rebajado fundamental", "bii fundamental", "dominante", "a la dominante", "resuel", "resolv"],
+    "sexta_napolitana": ["sexta napolitana", "napolitana en sexta", "n6", "bii6"],
+    "bii_fundamental": ["ii rebajado fundamental", "bii fundamental", "bii en estado fundamental", "segundo rebajado fundamental"],
+    "napolitana": ["napolitana", "segundo rebajado", "ii rebajado", "bii", "neapolitan"],
     "sexta_aumentada_a_64": ["alemana", "sexta aumentada", "64 cadencial", "sexta y cuarta cadencial", "cuarta y sexta", "i64", "64", "resolviendo en 64", "cadencial"],
     "sexta_aumentada_italiana": ["italiana", "sexta italiana"],
     "sexta_aumentada_francesa": ["francesa", "sexta francesa"],
@@ -698,7 +722,8 @@ SINONIMOS = {
 # Conceptos compuestos: todos los grupos deben aparecer en la consulta.
 REQUIERE = {
     "sexta_aumentada_a_64": [["alemana", "sexta aumentada", "aumentada"], ["64", "cadencial", "sexta y cuarta", "cuarta y sexta"]],
-    "napolitana_a_dominante": [["napolitana", "bii", "segundo rebajado", "ii rebajado"], ["dominante", "resuel", "resolv", "64"]],
+    "sexta_napolitana_a_dominante": [["sexta napolitana", "napolitana en sexta", "n6", "bii6"], ["dominante", "resuel", "resolv", "64"]],
+    "bii_fundamental_a_dominante": [["ii rebajado fundamental", "bii fundamental", "fundamental"], ["dominante", "resuel", "resolv"]],
     "dominante_secundaria_resuelta": [["dominante secundaria", "dominantes secundarias"], ["resuel", "resolv"]],
 }
 
