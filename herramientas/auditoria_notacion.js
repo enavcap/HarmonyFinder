@@ -2,8 +2,9 @@
 //   · silencios que pisan una nota de otra voz (silNota)
 //   · silencios de voces distintas que se pisan (silSil)
 //   · cabezas de nota de voces distintas que se pisan sin ser unísono (notaNota)
+//   · silencios que pisan una plica, una barra, un corchete o una alteración de otra voz (silPlica)
 // y los efectos secundarios de despejarSilencios() (silencios movidos, cuánto, si invaden cifrados o números de compás
-// o se salen del dibujo). Termina con código 1 si queda algún silencio pisando una nota o un silencio.
+// o se salen del dibujo). Termina con código 1 si queda algún silencio pisando una nota, un silencio, una plica, una barra, un corchete o una alteración.
 // uso (con la web servida en http://localhost:8767/ y verovio-toolkit-wasm.js en el directorio actual):
 //   node herramientas/auditoria_notacion.js [N=300] [salida.json] [semilla=12345] [orig|rec|todos]
 // variables: VEROVIO_JS (ruta de verovio-toolkit-wasm.js), URL_WEB, CHROME (ejecutable de Chrome si Playwright no tiene el suyo)
@@ -46,7 +47,7 @@ const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = proce
       const caja = e => { const r = e.getBoundingClientRect(); return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom, w: r.width, h: r.height } };
       const visible = e => { const c = caja(e); if (c.w < 0.5 || c.h < 0.5) return false; const cs = getComputedStyle(e); return cs.visibility !== 'hidden' && cs.display !== 'none' && e.closest('[visibility="hidden"],[display="none"]') == null };
       const inter = (a, b) => { const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? { w, h } : null };
-      const out = { silNota: [], silSil: [], notaNota: [], silencios: 0, notas: 0 };
+      const out = { silNota: [], silSil: [], silPlica: [], notaNota: [], silencios: 0, notas: 0 };
       const medidas = [...svg.querySelectorAll('g.measure')];
       medidas.forEach((m, im) => {
         for (const st of m.querySelectorAll(':scope > g.staff')) {
@@ -55,14 +56,17 @@ const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = proce
           capas.forEach((ly, il) => {
             for (const r of ly.querySelectorAll('g.rest, g.mRest')) if (visible(r)) items.push({ tipo: 'rest', il, e: r, c: caja(r) });
             for (const nh of ly.querySelectorAll('g.note g.notehead')) if (visible(nh)) items.push({ tipo: 'nota', il, e: nh, c: caja(nh) });
+            for (const tz of ly.querySelectorAll('g.stem, g.beam, g.flag, g.accid')) { const c = caja(tz); if (c.h >= 0.5) items.push({ tipo: 'trazo', il, e: tz, c }) }
           });
           out.silencios += items.filter(x => x.tipo === 'rest').length; out.notas += items.filter(x => x.tipo === 'nota').length;
           const u = (items.find(x => x.tipo === 'nota') || { c: { h: 10 } }).c.h;      // ≈ un espacio del pentagrama
           const tol = u * 0.12;
+          for (const x of items) if (x.tipo === 'trazo') x.c = { ...x.c, x0: x.c.x0 - tol * 1.5, x1: x.c.x1 + tol * 1.5, w: x.c.w + tol * 3 };   // las plicas no tienen anchura propia
           for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
             const A = items[i], B = items[j]; if (A.il === B.il) continue;
             const a = { x0: A.c.x0 + tol, x1: A.c.x1 - tol, y0: A.c.y0 + tol, y1: A.c.y1 - tol }, bb = { x0: B.c.x0 + tol, x1: B.c.x1 - tol, y0: B.c.y0 + tol, y1: B.c.y1 - tol };
             const I = inter(a, bb); if (!I) continue;
+            if (A.tipo === 'trazo' || B.tipo === 'trazo') { if (A.tipo === 'rest' || B.tipo === 'rest') out.silPlica.push({ m: im }); continue }
             if (A.tipo === 'nota' && B.tipo === 'nota') {
               // unísono (misma posición) → Verovio los une o los separa a propósito; se cuentan solo los solapes parciales
               const mismoX = Math.abs(A.c.x0 - B.c.x0) < tol, mismoY = Math.abs(A.c.y0 - B.c.y0) < tol;
@@ -91,13 +95,13 @@ const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = proce
   }
   fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1));
   const ok = res.filter(r => !r.fallo && !r.sinPartitura);
-  const resumen = f => { const g = ok.filter(f); return { fragmentos: g.length, conSilNota: g.filter(r => r.silNota.length).length, conSilSil: g.filter(r => r.silSil.length).length, conNotaNota: g.filter(r => r.notaNota.length).length,
-    totalSilNota: g.reduce((s, r) => s + r.silNota.length, 0), totalSilSil: g.reduce((s, r) => s + r.silSil.length, 0), totalNotaNota: g.reduce((s, r) => s + r.notaNota.length, 0) } };
+  const resumen = f => { const g = ok.filter(f); return { fragmentos: g.length, conSilNota: g.filter(r => r.silNota.length).length, conSilSil: g.filter(r => r.silSil.length).length, conSilPlica: g.filter(r => r.silPlica.length).length, conNotaNota: g.filter(r => r.notaNota.length).length,
+    totalSilNota: g.reduce((s, r) => s + r.silNota.length, 0), totalSilSil: g.reduce((s, r) => s + r.silSil.length, 0), totalSilPlica: g.reduce((s, r) => s + r.silPlica.length, 0), totalNotaNota: g.reduce((s, r) => s + r.notaNota.length, 0) } };
   console.log('errores de página', errores.length, '· fallos', res.filter(r => r.fallo).length, '· sin partitura', res.filter(r => r.sinPartitura).length);
   console.log('ORIGINALES  ', JSON.stringify(resumen(r => !r.rec)));
   console.log('RECONSTRUIDAS', JSON.stringify(resumen(r => r.rec)));
   console.log('EFECTOS     ', JSON.stringify({ fragmentosConMovidos: ok.filter(r => r.movidos > 0).length, silenciosMovidos: ok.reduce((s, r) => s + (r.movidos || 0), 0), maxPasos: Math.max(0, ...ok.map(r => r.maxPasos || 0)),
     sobreCifrados: ok.reduce((s, r) => s + (r.sobreCifrados || 0), 0), sobreNumeros: ok.reduce((s, r) => s + (r.sobreNumeros || 0), 0), fuera: ok.reduce((s, r) => s + (r.fuera || 0), 0) }));
-  if (ok.some(r => r.silNota.length || r.silSil.length)) process.exitCode = 1;
+  if (ok.some(r => r.silNota.length || r.silSil.length || r.silPlica.length)) process.exitCode = 1;
   await b.close();
 })();
