@@ -9,6 +9,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 ## [Unreleased]
 
 ### Changed
+- 30 movimientos de las sonatas para piano de Beethoven (68 análisis) se dibujan ahora con la codificación Humdrum de Craig Sapp, hecha de una edición impresa (Durand 1915, P. Dukas), en lugar de la reconstrucción desde las tablas del DCML. Traen las voces, los silencios, las barras y las ligaduras de la edición (p. ej. Op. 2 n.º 2, 2.º mov.: fusas staccato con sus silencios, silencios agrupados por pulsos). Solo se adoptan los movimientos cuyo contenido coincide con la reconstrucción compás a compás (≥ 97 %, misma longitud ±1) y en los que los cifrados siguen cayendo sobre notas (≥ 97 %); en los otros 28 (repeticiones sin desplegar, casillas) se mantiene la reconstrucción. Conversión con `herramientas/krn_beethoven_a_mxl.py`. La licencia del repositorio de origen no está declarada: pendiente de confirmar antes de publicar.
 - Grabado de la partitura: más distancia de seguridad entre las ligaduras y las plicas, barras y notas de otras voces (`slurMargin`, `slurCurveFactor`, `slurSymmetry`), más aire a los lados de alteraciones y silencios, y ligaduras de unión con una longitud mínima. Mejora los roces típicos del piano a varias voces (p. ej. Mozart, K. 333/ii, cc. 59-61). No elimina los choques entre voces con cabezas de nota encimadas ni los cruces entre pentagramas, que siguen pendientes.
 
 ## [0.7.2] - 2026-11-05

@@ -162,7 +162,7 @@ node --test herramientas/prueba_canonicos.js      # «Para empezar»: compositor
 ## Licencias y créditos
 
 - Análisis: **When in Rome** (CC BY-SA 4.0) y **Distant Listening Corpus, DCML** (CC BY-NC-SA 4.0). Forma: **Taking Form** (MIT), **BPSD** (CC BY 4.0) y **Mozart Expositional Punctuation Corpus** (CC0). Por la licencia del DCML, los datos de `web/` solo pueden usarse sin fines comerciales, con atribución y compartiendo igual.
-- Partituras: OpenScore, corpus de music21 y reconstrucciones a partir de las tablas del DCML.
+- Partituras: OpenScore, corpus de music21 y reconstrucciones a partir de las tablas del DCML. 30 movimientos de las sonatas para piano de Beethoven (68 análisis) usan en su lugar la codificación Humdrum de Craig Sapp ([beethoven-piano-sonatas](https://github.com/craigsapp/beethoven-piano-sonatas), de la edición Durand 1915, P. Dukas), convertida con `herramientas/krn_beethoven_a_mxl.py`. **Pendiente:** ese repositorio no declara licencia; hay que confirmarla con su autor antes de publicar.
 - Fuentes: Bravura y Academico (Steinberg, SIL Open Font License 1.1).
 - Grabado: Verovio (LGPL).
 
