@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-11-05
+
 ### Changed
 - Las partituras de los ejemplos conservan ahora las fermatas (calderones), que antes se quitaban junto con la expresión: marcan el final de frase y ayudan a leer las cadencias. Siguen sin mostrarse dinámicas, reguladores, pedales, textos de expresión, metrónomos ni articulaciones.
 
@@ -213,7 +215,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.6.1...v0.6.2
