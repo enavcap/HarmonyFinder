@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Grabado de la partitura: más distancia de seguridad entre las ligaduras y las plicas, barras y notas de otras voces (`slurMargin`, `slurCurveFactor`, `slurSymmetry`), más aire a los lados de alteraciones y silencios, y ligaduras de unión con una longitud mínima. Mejora los roces típicos del piano a varias voces (p. ej. Mozart, K. 333/ii, cc. 59-61). No elimina los choques entre voces con cabezas de nota encimadas ni los cruces entre pentagramas, que siguen pendientes.
+
 ## [0.7.2] - 2026-11-05
 
 ### Changed

@@ -1665,7 +1665,10 @@ function toolkit(){
 }
 // grabado al estilo de Dorico: fuente musical Bravura, líneas y plicas finas, ligaduras más ligeras, espaciado amplio
 const GRABADO={font:'Bravura',staffLineWidth:0.12,stemWidth:0.14,barLineWidth:0.2,ledgerLineThickness:0.2,slurMidpointThickness:0.5,slurEndpointThickness:0.06,
-  tieMidpointThickness:0.45,tieEndpointThickness:0.06,spacingLinear:0.3,spacingNonLinear:0.62};
+  tieMidpointThickness:0.45,tieEndpointThickness:0.06,spacingLinear:0.3,spacingNonLinear:0.62,
+  // distancias de seguridad de las ligaduras (a plicas, barras y notas de otras voces), más aire para alteraciones y silencios
+  // y ligaduras de unión no demasiado cortas: evitan los roces típicos del piano a varias voces
+  slurMargin:2,slurCurveFactor:1.3,slurSymmetry:0.4,slurEndpointFlexibility:0.3,leftMarginAccid:2.2,rightMarginAccid:0.8,leftMarginRest:2,rightMarginRest:1,tieMinLength:3};
 const fuentesListas=(document.fonts?Promise.all([document.fonts.load("40px Academico"),document.fonts.load("bold 40px Academico")]):Promise.resolve()).catch(()=>{});
 // fuente incrustada en el SVG copiado, para que se vea igual en cualquier programa
 const fuenteB64=fetch('fonts/academico.woff2').then(r=>r.arrayBuffer()).then(b=>{let s='';const u=new Uint8Array(b);for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(s)}).catch(()=>null);
