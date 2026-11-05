@@ -1912,6 +1912,62 @@ function corregirClaves(xml){
   try{asignarClaves(doc,[],hijo,solo)}catch(e){return xml}
   return new XMLSerializer().serializeToString(doc);
 }
+// Barras de las partituras reconstruidas: la reconstrucción solo agrupa algunas figuras; las demás (tresillos de fusas,
+// grupos sueltos) quedan con corchetes. Aquí se agrupan, por pentagrama y voz, las figuras de corchea o menos que no
+// tienen barra: se cortan en cada pulso (de 3 corcheas en compases compuestos), en silencios y en notas largas.
+const NIVEL_BARRA={eighth:1,'16th':2,'32nd':3,'64th':4,'128th':5};
+function barrasAutomaticas(doc,hijo){
+  for(const parte of doc.getElementsByTagName('part')){
+    let dv=1, pulso=null;
+    for(const m of [...parte.children].filter(c=>c.tagName==='measure')){
+      const dd=m.getElementsByTagName('divisions')[0]; if(dd) dv=+dd.textContent||dv;
+      const ti=m.getElementsByTagName('time')[0];
+      if(ti){const b=+(hijo(ti,'beats')?.textContent||4), bt=+(hijo(ti,'beat-type')?.textContent||4);
+        pulso=(bt===8&&b%3===0&&b>=6)?dv*1.5:dv*4/bt}
+      const P=pulso||dv;
+      let pos=0, prev=0; const porVoz=new Map();
+      for(const n of [...m.children]){
+        if(n.tagName==='backup'){pos-=+(hijo(n,'duration')?.textContent||0);continue}
+        if(n.tagName==='forward'){pos+=+(hijo(n,'duration')?.textContent||0);continue}
+        if(n.tagName!=='note') continue;
+        const du=+(hijo(n,'duration')?.textContent||0), acorde=!!hijo(n,'chord'), grace=!!hijo(n,'grace');
+        const ini=acorde?pos-prev:pos;
+        if(!acorde&&!grace){prev=du;pos+=du}
+        const clave=(hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');
+        if(!porVoz.has(clave)) porVoz.set(clave,[]);
+        porVoz.get(clave).push({n,ini,acorde,grace,sil:!!hijo(n,'rest'),nivel:NIVEL_BARRA[hijo(n,'type')?.textContent]||0});
+      }
+      for(const lista of porVoz.values()){
+        // se agrupan los acordes en su primera nota
+        const cab=[]; for(const x of lista){if(x.acorde&&cab.length) cab[cab.length-1].acorde_n.push(x.n); else cab.push({...x,acorde_n:[]})}
+        let grupo=[]; const cerrar=()=>{
+          if(grupo.length>=2&&grupo.every(g=>!hijo(g.n,'beam')&&!g.acorde_n.some(c=>hijo(c,'beam')))){
+            grupo.forEach((g,i)=>{
+              const ant=grupo[i-1], sig=grupo[i+1];
+              for(let l=1;l<=g.nivel;l++){
+                const a=ant&&ant.nivel>=l, s=sig&&sig.nivel>=l;
+                const est=a&&s?'continue':a?'end':s?'begin':(i===0?'forward hook':'backward hook');
+                if(!a&&!s&&!(g.nivel>1&&l>1)) continue;           // el nivel 1 aislado no existe (grupo de ≥2)
+                for(const nt of [g.n,...g.acorde_n]){
+                  const be=doc.createElement('beam'); be.setAttribute('number',String(l)); be.textContent=est;
+                  const ref=[...nt.children].find(c=>c.tagName==='notations'||c.tagName==='lyric'||c.tagName==='play'||c.tagName==='listen');
+                  ref?nt.insertBefore(be,ref):nt.append(be);
+                }
+              }
+            });
+          }
+          grupo=[];
+        };
+        for(const x of cab){
+          if(x.sil||x.grace||x.nivel<1){cerrar();continue}
+          if(grupo.length){const a=grupo[0]; if(Math.floor(x.ini/P+1e-6)!==Math.floor(a.ini/P+1e-6)) cerrar()}
+          grupo.push(x);
+        }
+        cerrar();
+      }
+    }
+  }
+}
 function ordenarVoces(xml,inst){
   let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
   if(doc.querySelector('parsererror')) return xml;
@@ -1958,6 +2014,7 @@ function ordenarVoces(xml,inst){
       }
     }
   }
+  try{barrasAutomaticas(doc,hijo)}catch(e){console.warn('barras',e)}
   return new XMLSerializer().serializeToString(doc);
 }
 // h.desp: desplazamiento (en compases) de la ventana cuando se navega desde un acorde suelto con ◀ ▶
