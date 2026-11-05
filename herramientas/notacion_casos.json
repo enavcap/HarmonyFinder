@@ -1,0 +1,9 @@
+[
+  {"obra": 206,  "ini": 0,  "fin": 7,  "nota": "J. S. Bach, Suite inglesa n.º 1, Allemande, cc. 0-7 (el caso de la captura): 4 voces en la mano derecha (c. 2), mano izquierda con 6 líneas adicionales (c. 5), clave de sol en la izquierda al inicio"},
+  {"obra": 867,  "ini": 71, "fin": 75, "nota": "Beethoven, Op. 10 n.º 3, iv, cc. 71-75: fragmento a mitad de obra (antes sin indicación de compás)"},
+  {"obra": 959,  "ini": 20, "fin": 24, "nota": "Beethoven, Op. 53, ii, cc. 20-24: alteraciones y reconstrucción con voces cruzadas"},
+  {"obra": 1363, "ini": 10, "fin": 13, "nota": "Couperin, L'Art de toucher le clavecin, 8.ª, cc. 10-13: alteraciones, ligaduras y plicas cruzadas entre voces"},
+  {"obra": 1447, "ini": 3,  "fin": 6,  "nota": "Frescobaldi, La Messa degli Apostoli, Christe, cc. 3-6: dos voces en cada mano"},
+  {"obra": 2296, "ini": 21, "fin": 25, "nota": "Schumann, Dichterliebe 7, cc. 21-25: octavas graves con 4 líneas adicionales (legítimo: así lo escribe la edición)"},
+  {"obra": 1681, "ini": 12, "fin": 15, "nota": "Medtner, Tales Op. 26 n.º 4, cc. 12-15: ligaduras y alteraciones"}
+]

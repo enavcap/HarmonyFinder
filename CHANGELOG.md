@@ -8,6 +8,13 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- Reglas de notación del proyecto (`web/notacion.js`, `docs/NOTACION.md`), basadas por temas en *Behind Bars* (Elaine Gould): catálogo de reglas con identificador estable (`N-…`), separado en tres capas (opciones de Verovio, correcciones del MusicXML y retoques del SVG). Las opciones de grabado de Verovio, antes en `index.html`, pasan a `Notacion.opciones`.
+- `herramientas/auditoria_gould.js`: auditoría de notación sobre una muestra reproducible o sobre los casos fijos de `herramientas/notacion_casos.json` (barras empinadas, líneas adicionales, ligaduras y alteraciones que chocan, plicas que cruzan cabezas ajenas, compás y clave al inicio). `herramientas/prueba_notacion.js` comprueba las reglas y que el catálogo coincide con la documentación.
+
+### Changed
+- Regla `N-INI-1`: un fragmento que empieza a mitad de obra muestra ahora la indicación de compás vigente (antes salía sin ella en 99 de 119 fragmentos de la muestra).
+
 ## [0.8.1] - 2026-11-05
 
 ### Changed
