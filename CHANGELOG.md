@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-05
+
 ### Changed
 - Partituras reconstruidas (DCML): las figuras de corchea o menos sin barra (tresillos de fusas, grupos sueltos; p. ej. la cadenza del Op. 109 de Beethoven) se agrupan automáticamente por pulso, en lugar de quedar con corchetes.
 - Otros 14 movimientos de las sonatas de Beethoven (Op. 2 n.º 3, Op. 10 n.º 2 y 3, Op. 13 no, Op. 14 n.º 1, Op. 31 n.º 1 y 3, Op. 53, Op. 57…) pasan de la reconstrucción DCML a la edición codificada por Craig Sapp, conservando la numeración de compases del análisis (alineada por contenido).
@@ -226,7 +228,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.0...v0.7.1
