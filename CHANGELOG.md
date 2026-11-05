@@ -9,6 +9,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 ## [Unreleased]
 
 ### Changed
+- Partituras reconstruidas (DCML): las figuras de corchea o menos sin barra (tresillos de fusas, grupos sueltos; p. ej. la cadenza del Op. 109 de Beethoven) se agrupan automáticamente por pulso, en lugar de quedar con corchetes.
 - Otros 14 movimientos de las sonatas de Beethoven (Op. 2 n.º 3, Op. 10 n.º 2 y 3, Op. 13 no, Op. 14 n.º 1, Op. 31 n.º 1 y 3, Op. 53, Op. 57…) pasan de la reconstrucción DCML a la edición codificada por Craig Sapp, conservando la numeración de compases del análisis (alineada por contenido).
 - El conversor `krn_beethoven_a_mxl.py` admite `--etiquetas-de` para copiar la numeración DCML.
 
