@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Las partituras de los ejemplos conservan ahora las fermatas (calderones), que antes se quitaban junto con la expresión: marcan el final de frase y ayudan a leer las cadencias. Siguen sin mostrarse dinámicas, reguladores, pedales, textos de expresión, metrónomos ni articulaciones.
+
 ## [0.7.1] - 2026-11-05
 
 ### Fixed

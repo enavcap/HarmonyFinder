@@ -1704,8 +1704,9 @@ async function xmlDe(o){
   xmlCache.set(o.m,x); return x;
 }
 // Los ejemplos se muestran solo con notas, ritmos y ligaduras: se quitan dinámicas, reguladores, pedales, textos de
-// expresión, metrónomos, articulaciones y fermatas, que chocan con los cifrados y con las demás voces. Se conservan
-// las ligaduras (<slur>, <tied>) y los cambios de octava (<octave-shift>), que afectan a la lectura de las notas.
+// expresión, metrónomos y articulaciones, que chocan con los cifrados y con las demás voces. Se conservan las
+// ligaduras (<slur>, <tied>), los cambios de octava (<octave-shift>) y las fermatas (<fermata>), que marcan el final
+// de frase y afectan a la lectura de las cadencias.
 function quitarExpresion(x){
   x=x.replace(/<direction\b[^>]*>[\s\S]*?<\/direction>/g,d=>{
     if(!d.includes('<octave-shift')) return '';
@@ -1714,7 +1715,7 @@ function quitarExpresion(x){
     return util.length?d.replace(/<direction-type\b[^>]*>[\s\S]*?<\/direction-type>/g,'').replace(/(<direction\b[^>]*>)/,'$1'+util.join('')).replace(/<sound\b[^>]*\/>/g,''):'';
   });
   x=x.replace(/<dynamics\b[^>]*>[\s\S]*?<\/dynamics>/g,'').replace(/<dynamics\b[^>]*\/>/g,'')
-     .replace(/<articulations\b[^>]*>[\s\S]*?<\/articulations>/g,'').replace(/<fermata\b[^>]*>[\s\S]*?<\/fermata>/g,'').replace(/<fermata\b[^>]*\/>/g,'')
+     .replace(/<articulations\b[^>]*>[\s\S]*?<\/articulations>/g,'')
      .replace(/<notations\b[^>]*>\s*<\/notations>/g,'');
   return x;
 }
