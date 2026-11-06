@@ -3,6 +3,7 @@
 //   · sinClave / sinCompas       pentagramas del primer compás sin clave; fragmento sin indicación de compás
 //   · lineasAdic4 / lineasAdic6  cabezas con ≥ 4 / ≥ 6 líneas adicionales (clave o octava mal elegidas)
 //   · barraEmpinada              barras con pendiente excesiva (> PEND_MAX grados)
+//   · barraSubida                barras que suben más de SUBIDA_MAX (1,1 por defecto) espacios de pentagrama de punta a punta
 //   · plicaCorta                 plicas de nota suelta de menos de 2 espacios
 //   · plicaNoLlega               notas fuera del pentagrama cuya plica apunta a él sin llegar a la línea central
 //   · lazoChoque                 ligaduras / ligaduras de unión que atraviesan una cabeza, plica o barra ajena
@@ -21,15 +22,15 @@
 const { chromium } = require('playwright'); const fs = require('fs');
 const N = +(process.argv[2] || 200), SALIDA = process.argv[3] || 'auditoria_gould.json', SEMILLA = +(process.argv[4] || 12345),
   FILTRO = process.argv[5] || 'todos', COMP = process.argv[6] || '';
-const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = process.env.URL_WEB || 'http://localhost:8767/index.html', PEND_MAX = +(process.env.PEND_MAX || 10), POR_MOV = +(process.env.POR_MOV || 0);
+const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = process.env.URL_WEB || 'http://localhost:8767/index.html', PEND_MAX = +(process.env.PEND_MAX || 10), POR_MOV = +(process.env.POR_MOV || 0), SUBIDA_MAX = +(process.env.SUBIDA_MAX || 1.1);
 
 // Se ejecuta dentro de la página, sobre el SVG ya dibujado de #partitura
-function medir(PEND_MAX) {
+function medir([PEND_MAX, SUBIDA_MAX]) {
   const svg = document.querySelector('#partitura svg'); if (!svg) return { sinPartitura: true };
   const caja = e => { const r = e.getBoundingClientRect(); return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom, w: r.width, h: r.height } };
   const inter = (a, b) => { const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? { w, h } : null };
   const encoge = (c, k) => ({ x0: c.x0 + k, x1: c.x1 - k, y0: c.y0 + k, y1: c.y1 - k });
-  const out = { lineasAdic4: 0, lineasAdic6: 0, barraEmpinada: 0, barras: 0, plicaCorta: 0, plicaNoLlega: 0, plicas: 0, lazoChoque: 0, lazos: 0, plicaCruza: 0, alteracionChoque: 0, notaNota: 0, notas: 0, medidas: 0, sinClave: 0, sinCompas: 0, maxPendiente: 0, peores: [],
+  const out = { lineasAdic4: 0, lineasAdic6: 0, barraEmpinada: 0, barras: 0, plicaCorta: 0, plicaNoLlega: 0, plicas: 0, lazoChoque: 0, lazos: 0, plicaCruza: 0, alteracionChoque: 0, notaNota: 0, notas: 0, medidas: 0, sinClave: 0, sinCompas: 0, maxPendiente: 0, peores: [], barraSubida: 0, maxSubida: 0, peoresSubida: [],
     plicaVoz: 0, pentVoces: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
   const medidas = [...svg.querySelectorAll('g.measure')]; out.medidas = medidas.length;
   // clave en cada pentagrama y compás al principio del fragmento
@@ -90,6 +91,11 @@ function medir(PEND_MAX) {
         const l = (v[0][1] + v[1][1]) / 2, r = (v[v.length - 1][1] + v[v.length - 2][1]) / 2;
         const ang = Math.abs(Math.atan2(r - l, dx)) * 180 / Math.PI;
         out.barras++; if (ang > out.maxPendiente) out.maxPendiente = ang;
+        // subida de la barra en espacios de pentagrama (el criterio de los manuales de grabado es la subida, no el ángulo:
+        // el ángulo depende de lo juntas que estén las notas; una barra de dos corcheas que sube un espacio mide 16,4°)
+        const ctmB = pg.getScreenCTM(), subida = ctmB ? Math.abs(r - l) * Math.abs(ctmB.a) / u : 0;
+        if (subida > out.maxSubida) out.maxSubida = Math.round(subida * 100) / 100;
+        if (subida > SUBIDA_MAX) { out.barraSubida++; out.peoresSubida.push({ m: medidas.indexOf(m), esp: Math.round(subida * 100) / 100 }) }
         if (ang > PEND_MAX) { out.barraEmpinada++; out.peores.push({ m: medidas.indexOf(m), ang: Math.round(ang * 10) / 10 }) }
         items.push({ tipo: 'barra', il: capa, c: caja(pg) });
         // silencio de la misma voz dentro del tramo de la barra (la barra pasa por encima de un silencio)
@@ -126,13 +132,18 @@ function medir(PEND_MAX) {
       const a = encoge(alts[i].c, k * 0.5);
       if (alts.some((b, j) => j > i && inter(a, encoge(b.c, k * 0.5))) || notas.some(n => inter(a, encoge(n.c, k)))) out.alteracionChoque++;
     }
-    // ligaduras y ligaduras de unión: muestreo del trazo frente a cabezas, plicas y barras (se omiten los extremos)
+    // ligaduras y ligaduras de unión: muestreo del interior del trazo frente a cabezas, plicas y barras (se omiten los extremos)
     for (const lz of m.querySelectorAll('g.slur path, g.tie path')) {
       let L; try { L = lz.getTotalLength() } catch (e) { continue } if (!(L > 2 * u)) continue;
       const ctm = lz.getScreenCTM(); if (!ctm) continue;
       const union = !!lz.closest('g.tie');
       out.lazos++; union ? out.uniones++ : out.expresiones++; let choca = false;
-      for (let d = L * 0.12; d <= L * 0.88 && !choca; d += u * 0.35) {
+      // El trazo de Verovio es una forma cerrada (curva exterior de ida y curva interior de vuelta): las posiciones 0,12-0,88 de
+      // la longitud total cubrían entero el extremo de destino (donde la ligadura debe tocar su nota y su plica) y se saltaban el
+      // de origen. Solo se muestrea el interior de cada curva: 0,12-0,38 (exterior) y 0,62-0,88 (interior).
+      const posiciones = []; for (const [a, z] of [[0.12, 0.38], [0.62, 0.88]]) for (let d = L * a; d <= L * z; d += u * 0.35) posiciones.push(d);
+      for (const d of posiciones) {
+        if (choca) break;
         const q = lz.getPointAtLength(d), px = ctm.a * q.x + ctm.c * q.y + ctm.e, py = ctm.b * q.x + ctm.d * q.y + ctm.f;
         for (const o of items) {
           if (o.tipo === 'alt') continue;
@@ -187,13 +198,13 @@ function medir(PEND_MAX) {
       await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && (c.querySelector('svg g.cifrados') || /No se pudo|No encuentro|no partitura|repeticiones desplegadas/.test(c.textContent)) }, null, { timeout: 60000 });
       await p.waitForTimeout(150);
     } catch (e) { res.push({ ...m, fallo: 'tiempo agotado' }); continue }
-    const r = await p.evaluate(medir, PEND_MAX);
+    const r = await p.evaluate(medir, [PEND_MAX, SUBIDA_MAX]);
     res.push({ ...m, ...r });
     if (k % 25 === 0) { console.log(k, '/', muestra.length); fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1)) }
   }
   fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1));
   const ok = res.filter(r => !r.fallo && !r.sinPartitura);
-  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'barraSilencio'];
+  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'barraSilencio'];
   const resumen = f => { const g = ok.filter(f), o = { fragmentos: g.length, notas: g.reduce((s, r) => s + r.notas, 0), barras: g.reduce((s, r) => s + r.barras, 0), lazos: g.reduce((s, r) => s + r.lazos, 0), uniones: g.reduce((s, r) => s + r.uniones, 0) };
     for (const c of CLAVES) { o[c] = g.reduce((s, r) => s + r[c], 0); o['frag_' + c] = g.filter(r => r[c] > 0).length } return o };
   console.log('errores de página', errores.length, '· fallos', res.filter(r => r.fallo).length, '· sin partitura', res.filter(r => r.sinPartitura).length);

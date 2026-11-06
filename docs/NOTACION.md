@@ -31,7 +31,8 @@ reconstruida):
 |---|---|
 | `sinClave`, `sinCompas` | pentagramas del primer compás sin clave; fragmento sin indicación de compás |
 | `lineasAdic4`, `lineasAdic6` | cabezas con ≥ 4 / ≥ 6 líneas adicionales (cada nota se asigna al pentagrama donde se dibuja, también con cruce de pentagrama) |
-| `barraEmpinada` | barras con pendiente > 10° (`PEND_MAX`) |
+| `barraEmpinada` | barras con pendiente > 10° (`PEND_MAX`). **Solo orientativa**: marca como «empinada» la inclinación normal de un espacio entre dos corcheas (16,4°); ver «Revisión de `N-BARRA-2`» |
+| `barraSubida` | barras que suben más de 1,1 espacios de pentagrama (`SUBIDA_MAX`) de punta a punta; es la medida que usan los manuales de grabado |
 | `plicaCorta`, `plicaNoLlega` | plicas de nota suelta de < 2 espacios; notas fuera del pentagrama cuya plica apunta a él sin llegar a la línea central |
 | `lazoChoque` | ligaduras (de unión o de expresión) que atraviesan una cabeza, plica o barra ajena (muestreo del trazo) |
 | `plicaCruza` | plicas que atraviesan la cabeza de una nota de otra voz |
@@ -89,6 +90,71 @@ son las de la edición y no sobran.
 > La métrica `lineasAdic4` **no es un error por sí misma**: las octavas graves de Schumann (*Dichterliebe* 7) llevan 4 líneas
 > adicionales en la edición. Sirve para localizar candidatos, no para dar el visto bueno ni el rechazo.
 
+### Revisión de `N-BARRA-2` (v0.8.6) y lo que queda realmente
+
+La línea base de arriba (v0.8.1) contaba como defecto cualquier barra de más de 10°. Al mirar los polígonos del SVG el 16,4° casi
+exacto de la mayoría resultó ser **un espacio de pentagrama de subida entre dos corcheas contiguas** (1905,2070 → 2517,2250 en
+unidades de Verovio: 180 de subida en 612): la inclinación cuantizada habitual en el grabado. El ángulo depende de lo juntas que
+estén las notas, no de lo empinada que sea la barra; por eso se añade `barraSubida` (subida en espacios, `SUBIDA_MAX=1,1`).
+
+Misma muestra (120 fragmentos, semilla 777, v0.8.6):
+
+| | Originales (760 barras) | Reconstruidas (844 barras) |
+|---|---|---|
+| Barras de más de 10° (`barraEmpinada`) | 119 (16 %) | 276 (33 %) |
+| Barras que suben más de 1,1 espacios (`barraSubida`) | 37 (4,9 %), 12 fragmentos | 44 (5,2 %), 14 fragmentos |
+
+Máximo medido: 2 espacios. Revisadas a ojo (Op. 53 ii cc. 21-24, Corelli Op. 4 n.º 2) son escalas de fusas y pares de corcheas con
+aspecto normal. Por qué `beamMaxSlope` no limita ese ángulo sigue sin investigarse. **Conclusión:** sin evidencia de defecto no se
+toca el grabado de las barras.
+
+Lo que sí se ve en capturas y no es una métrica de barras: acordes de fusas a dos voces con ligaduras de unión amontonadas (Op. 14
+n.º 2, i, cc. 1-3), alteraciones o líneas adicionales sueltas entre pentagramas en figuras con cruce (Clara Schumann, Op. 23 n.º 6,
+c. 34; `N-CRUCE-1`) y la maraña de 3+ voces de las reconstrucciones. Esta última es **rara**: solo 288 de 164 613 pentagramas-compás
+del corpus (0,17 %) tienen 3 o más voces con notas (13 con 4 o más), concentrados en Schumann (R.), Bach y Lang, así que `N-VOC-1`
+mejoraría pocos fragmentos aunque se hiciera bien.
+
+### Reglas de MuseScore frente a las del proyecto (v0.8.6)
+
+MuseScore Studio es de código abierto, pero con licencia **GPL-3.0**. Se leyeron sus reglas de grabado en
+`src/engraving/rendering/score/` (`chordlayout.cpp`: `computeUp` y `calculateChordOffsets`; `slurtielayout.cpp`:
+`calculateDirection`; `restlayout.cpp`: `resolveRestVSChord` y `resolveRestVSRest`) y se reescriben aquí como criterios, no como
+código: este proyecto no declara licencia para su código y sus datos son CC BY-NC-SA, así que **no se pega código de MuseScore**.
+
+| Regla de MuseScore | Equivalente en Harmony Finder |
+|---|---|
+| Plicas: con varias voces a la vez en el pentagrama manda el número de voz (1 y 3 arriba, 2 y 4 abajo); con una voz, la distancia de las notas a la línea central; con barra y con trémolo, casos propios | `N-PLICA-2` (la aguda arriba y la grave abajo, por altura media) y Verovio para una sola voz |
+| Cabezas entre voces: si el acorde de plica abajo queda a una segunda del de plica arriba, se desplaza a la derecha el ancho de una cabeza (menos el grosor de la plica); un unísono comparte cabeza solo con la misma línea y grafía, el mismo tipo de cabeza, los mismos puntillos y las dos con plica; si no, la de plica abajo se aparta 0,15 espacios; se cuidan líneas adicionales y corchetes | Verovio lo resuelve: la auditoría mide **0** cabezas de voces distintas pisadas (`notaNota`) |
+| Ligaduras de unión: con varias voces, del lado de la plica; con una sola nota, del lado contrario (y arriba si las plicas de salida y llegada difieren); en un acorde, las notas por debajo de un «pivote» (la segunda o el unísono) van abajo y las de encima arriba; separación entre ligaduras de 0,65 espacios en vertical y 0,35 en horizontal | `N-LIG-3` (varias voces; en un acorde, solo la nota exterior) y Verovio en el resto |
+| Silencios: separación mínima de 0,35 espacios a un acorde (0,55 si es redonda o blanca) y de 0,55 entre silencios de voces distintas; se mueven en pasos de línea entera (de media línea fuera del pentagrama) | `N-SIL-1` (`despejarSilencios`) |
+
+Es decir: lo central de MuseScore ya está cubierto, y copiarlo mejoraría poco. Dos comprobaciones medidas:
+
+- **La métrica de ligaduras tenía un sesgo.** El trazo de Verovio es una forma cerrada (curva exterior de ida y curva interior de
+  vuelta), y el muestreo del 12-88 % de su longitud cubría entero el extremo de destino, donde la ligadura debe tocar su nota y su
+  plica, y se saltaba el de origen. Ahora solo se muestrea el interior de cada curva (0,12-0,38 y 0,62-0,88). El efecto es pequeño
+  (sonatas de Beethoven: 17 choques de ligaduras de unión antes y después, en 6 de 174 fragmentos; muestra estándar: 14 → 13 en
+  reconstrucciones y 4 → 3 en originales), así que los choques que quedan son reales.
+- **Más espaciado no lo arregla.** Sobre los 15 fragmentos con más choques (12 alteraciones y 17 ligaduras): `spacingLinear` 0,4 → 16 y 11;
+  0,5 → 15 y 11; `spacingLinear` 0,4 con `spacingNonLinear` 0,7 → 15 y 11. No justifica cambiar el valor (0,3).
+
+El patrón real que quedaba: ligaduras de unión **del lado de la plica entre notas cortas con corchete de la voz grave** (Op. 14
+n.º 2, i, cc. 1-3; Op. 31 n.º 1, i; Op. 10 n.º 1, ii), en las que el arco cruzaba las plicas y los corchetes de sus propias notas.
+MuseScore también las pone del lado de la plica, así que su regla de dirección no lo resuelve; se corrige con `N-LIG-2`.
+
+#### Efecto de `N-LIG-2` (misma muestra y semilla, regla apagada → encendida)
+
+| Ligaduras de unión que chocan | Antes | Después |
+|---|---|---|
+| Originales, muestra estándar (124 ligaduras) | 2 | 0 |
+| Reconstruidas, muestra estándar (157) | 13 | 2 |
+| Sonatas de Beethoven, 174 fragmentos (295) | 17 | 6 |
+
+Ninguna otra métrica cambia (alteraciones, plicas, cabezas, silencios y barras iguales). La regla se evalúa con su propio muestreo
+(denso, 0,1 espacios) y la auditoría la mide con otro (0,35), de modo que el resultado no es circular. Comprobado a ojo en el
+Op. 14 n.º 2, i (la ligadura de la mano izquierda ya no atraviesa el corchete ni la plica de la nota anterior) y en Couperin.
+Se apaga con `Notacion.config.ligadurasDespejadas = false`.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
@@ -104,10 +170,10 @@ poder medirla) o **pendiente**.
 | `N-BARRA-1` | Barras: agrupación por pulso | xml | existente | `barrasAutomaticas` (`web/index.html`), solo reconstrucciones. |
 | `N-SIL-1` | Silencios con varias voces | svg | existente | `ordenarVoces`, `despejarSilencios` (`web/index.html`). |
 | `N-LIG-1` | Ligaduras: distancia de seguridad | opciones | existente | `slurMargin`, `tieMinLength`… en `OPCIONES`. |
-| `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | Ver «Lo que no se arregla con opciones». |
+| `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | **Replanteada**: el criterio es la subida en espacios, no el ángulo. Con `barraSubida` solo el 5 % de las barras sube más de 1,1 espacios y no se ve defecto en las capturas; sin evidencia, no se actúa (ver «Revisión de `N-BARRA-2`»). |
 | `N-VOC-1` | Tres o más voces en un pentagrama | xml | pendiente | Causa de la maraña de la mano derecha en la *Allemande* (c. 2). |
 | `N-VOC-2` | Unísonos con duraciones distintas | xml | pendiente | Cabeza compartida o dos cabezas. |
-| `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | pendiente | 2 % (originales) y 7 % (reconstruidas) de las ligaduras. |
+| `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | **aplicada** | Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca (`CONFIG.ligadurasDespejadas`, `despejarLigaduras` en `notacion.js`). No toca las ligaduras de expresión. |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |
@@ -150,6 +216,6 @@ después de cada regla (`CASOS=1`).
 ## Decisiones abiertas
 
 - **Compás al inicio de un fragmento** (`N-INI-1`): activado. Se apaga con `Notacion.config.compasAlInicio = false`.
-- **Pendiente máxima de las barras** (`N-BARRA-2`): hay que decidir el umbral y si se recalcula en el SVG.
+- **Pendiente máxima de las barras** (`N-BARRA-2`): replanteada (ver «Revisión»); no actuar sin un caso concreto que contrastar con la edición.
 - **Muchas líneas adicionales** (`N-OCT-1`): cambio de clave, 8va o pasar de pentagrama; y a partir de cuántas líneas.
-- **Reparto de voces de las reconstrucciones** (`N-VOC-1`): es el cambio con mayor efecto visible y también el más grande.
+- **Reparto de voces de las reconstrucciones** (`N-VOC-1`): el de mayor efecto visible por fragmento y el más grande, pero afecta al 0,17 % de los pentagramas-compás.
