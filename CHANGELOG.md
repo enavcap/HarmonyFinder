@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- `N-ALT-2` también en las ediciones de Beethoven convertidas desde Humdrum (Sapp): la conversión escribía la alteración en cada nota alterada (p. ej. Op. 53 i, cc. 5-6, con un bemol en cada acorde de si♭) y ahora sale una vez por compás y pentagrama. Se quitan 12 846 alteraciones repetidas en esos 58 movimientos; los becuadros y las alteraciones necesarias se conservan, y las demás ediciones (OpenScore, etc.) no cambian.
+
 ## [0.8.3] - 2026-11-06
 
 ### Changed

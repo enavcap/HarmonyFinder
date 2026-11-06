@@ -478,6 +478,7 @@ const DATOS_EN=[[/versión «/g,'version «'],[/^reconstruida desde las tablas d
   [/^corpus de music21$/,'music21 corpus'],[/^convertida desde Humdrum \(Craig Sapp\)$/,'converted from Humdrum (Craig Sapp)']];
 // se marca antes de traducir: el arreglo de voces de las partituras reconstruidas no debe depender del idioma
 for(const o of OBRAS) o.reconstruida=/^reconstruida/.test(o.src.partitura||'');
+for(const o of OBRAS) o.convertida=/^convertida/.test(o.src.partitura||'');   // edición Humdrum → MusicXML: las alteraciones salen en cada nota, no son las impresas
 if(EN) for(const o of OBRAS){for(const [re,en] of TITULOS_EN){o.t=o.t.replace(re,en);o.ob=o.ob.replace(re,en)} if(COMP_EN[o.c]) o.c=COMP_EN[o.c]
   for(const k of ['autores','partitura','origen']) if(o.src[k]) for(const [re,en] of DATOS_EN) o.src[k]=o.src[k].replace(re,en)}
 const porId=new Map(OBRAS.map(o=>[o.id,o]));
@@ -1698,7 +1699,7 @@ async function xmlDe(o){
   }
   x=quitarExpresion(x);
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst)); else x=corregirClaves(x);
+  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst)); else x=o.convertida?Notacion.alteracionesRedundantes(corregirClaves(x)):corregirClaves(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
