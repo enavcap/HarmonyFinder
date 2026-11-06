@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-11-06
+
 ### Fixed
 - `N-ALT-2` también en las ediciones de Beethoven convertidas desde Humdrum (Sapp): la conversión escribía la alteración en cada nota alterada (p. ej. Op. 53 i, cc. 5-6, con un bemol en cada acorde de si♭) y ahora sale una vez por compás y pentagrama. Se quitan 12 846 alteraciones repetidas en esos 58 movimientos; los becuadros y las alteraciones necesarias se conservan, y las demás ediciones (OpenScore, etc.) no cambian.
 
@@ -253,7 +255,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...v0.8.2
