@@ -37,12 +37,16 @@ reconstruida):
 | `plicaCruza` | plicas que atraviesan la cabeza de una nota de otra voz |
 | `alteracionChoque` | alteraciones que pisan otra alteración o una cabeza |
 | `notaNota` | cabezas de voces distintas que se pisan sin ser unísono |
+| `plicaVoz` / `pentVoces` | pentagramas con 2+ voces cuyas plicas no siguen la convención (aguda arriba, grave abajo) / total de pentagramas con 2+ voces |
+| `unionChoque`, `expresionChoque` | como `lazoChoque`, separando las ligaduras de unión (prolongación) de las de expresión |
+| `barraSilencio` | barras que pasan por encima de un silencio de su misma voz |
 
 ```
 node herramientas/auditoria_gould.js 120 salida.json 777 todos        # muestra aleatoria reproducible
 CASOS=1 node herramientas/auditoria_gould.js 0 casos.json 1 todos     # solo los casos fijos
 CFG='{"compasAlInicio":false}' …                                      # apaga una regla para medir su efecto
 OPC='{"slurMargin":3}' …                                              # prueba una opción de Verovio sin tocar el código
+POR_MOV=12 node herramientas/auditoria_gould.js 200 sonatas.json 1 todos "beethoven && sonata"   # 12 fragmentos repartidos por cada movimiento; «a && b» exige todos los términos
 node herramientas/prueba_notacion.js                                  # pruebas de las reglas y del catálogo
 ```
 
@@ -64,6 +68,24 @@ accesible (`VEROVIO_JS`), Playwright y Chrome (`CHROME`).
 
 Efecto de `N-INI-1` sobre esa muestra: fragmentos sin compás 99 → 0. Los demás indicadores no cambian.
 
+### Sonatas de Beethoven (edición de Sapp): `N-PLICA-2` y `N-LIG-3`
+
+Medición sobre las 58 sonatas completas, con 12 fragmentos de 4 compases repartidos por cada movimiento (689 fragmentos), y después
+sobre los 262 que mostraban algún fallo, con las reglas apagadas y encendidas (`CFG='{"plicasPorVoz":false,"ligadurasPorVoz":false}'`):
+
+| | Sin las reglas | Con las reglas |
+|---|---|---|
+| Pentagramas con 2+ voces cuyas plicas no siguen la convención (de 1 459) | 463 (32 %) | 29 |
+| Ligaduras de unión que chocan con cabezas, plicas o barras (de 1 374) | 159 (11,6 %) | 87 |
+| Plicas que cruzan la cabeza de otra voz (sin contar unísonos) | 10 | 6 |
+| Alteraciones que chocan | 43 | 42 |
+| Barras que pasan por encima de un silencio de su voz | 165 | 167 |
+
+Quedan 12 fragmentos de 262 que empeoran en una o dos unidades en alguna métrica (p. ej. ligaduras de unión en el Op. 14 n.º 2, i, y
+el Op. 10 n.º 3, i); la lista sale de comparar dos ejecuciones de `herramientas/auditoria_gould.js`. De las 21 384 combinaciones de pentagrama y compás de las 58 sonatas, 3 496 tienen
+2 o más voces; solo 24 tienen voces que nunca suenan a la vez (fusionables) y solo 2 tienen 3 o más: las voces del archivo de Sapp
+son las de la edición y no sobran.
+
 > La métrica `lineasAdic4` **no es un error por sí misma**: las octavas graves de Schumann (*Dichterliebe* 7) llevan 4 líneas
 > adicionales en la edición. Sirve para localizar candidatos, no para dar el visto bueno ni el rechazo.
 
@@ -76,6 +98,8 @@ poder medirla) o **pendiente**.
 |---|---|---|---|---|
 | `N-INI-1` | Indicaciones al inicio del sistema | xml | **aplicada** | Un fragmento que empieza a mitad de obra muestra el compás vigente (`CONFIG.compasAlInicio`). Claves y armadura ya las resuelve Verovio (0 pentagramas sin clave en la muestra). |
 | `N-CLAVE-1` | Elección y cambio de clave | xml | existente | Reconstrucciones (DCML): `asignarClaves` (`web/index.html`), clave por tesitura penalizando líneas adicionales y cambios breves. Ediciones profesionales (Sapp, OpenScore…): se mantienen sus claves, también los cambios a mitad de compás (`CONFIG.clavesDeLaEdicion`; con `false` actúa `corregirClaves`). |
+| `N-LIG-3` | Ligaduras de unión: por arriba en la voz aguda, por abajo en la grave | xml | **aplicada** | Con dos o más voces simultáneas en un pentagrama, la ligadura de unión de la voz aguda se dibuja por arriba y la de la grave por abajo (`placement`/`orientation` de `<tied>`), para que no atraviese las notas de la otra voz; en un acorde, solo la nota exterior. Todas las fuentes (`CONFIG.ligadurasPorVoz`). |
+| `N-PLICA-2` | Plicas: una dirección por voz | xml | **aplicada** | Con dos o más voces simultáneas en un pentagrama, la más aguda lleva la plica hacia arriba y la más grave hacia abajo en todo el compás; las voces intermedias, como las resuelva Verovio. Solo si las voces coinciden en el tiempo. Se aplica a **todas** las fuentes (`CONFIG.plicasPorVoz`). |
 | `N-PLICA-1` | Plicas: dirección y longitud | opciones | existente | Verovio. Medido: 0 plicas de < 2 espacios. |
 | `N-BARRA-1` | Barras: agrupación por pulso | xml | existente | `barrasAutomaticas` (`web/index.html`), solo reconstrucciones. |
 | `N-SIL-1` | Silencios con varias voces | svg | existente | `ordenarVoces`, `despejarSilencios` (`web/index.html`). |

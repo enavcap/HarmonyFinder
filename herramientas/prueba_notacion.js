@@ -47,6 +47,35 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   const apagada = await p.evaluate(x => Notacion.alteracionesRedundantes(x) === x, xmlAlt);
   ok(apagada, 'N-ALT-2 apagada: el XML no cambia');
   await p.evaluate(() => { Notacion.config.alteracionesUnaVez = true });
+  // N-PLICA-2: una dirección de plica por voz
+  const nv = (paso, oct, voz, staff = 1, extra = '', dur = 2, tipo = 'half') => `<note><pitch><step>${paso}</step><octave>${oct}</octave></pitch><duration>${dur}</duration><voice>${voz}</voice><type>${tipo}</type>${extra}<staff>${staff}</staff><beam number="1">begin</beam></note>`;
+  const env = m => `<score-partwise><part-list><score-part id="P1"/></part-list><part id="P1"><measure number="1"><attributes><divisions>2</divisions></attributes>${m}</measure></part></score-partwise>`;
+  const plicas = (x) => p.evaluate(x => { const y = Notacion.plicasPorVoz(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('note')].map(n => (n.querySelector('voice').textContent + ':' + (n.querySelector('stem') ? n.querySelector('stem').textContent : '-'))).join(' ') }, x);
+  // la voz grave se escribe antes que la aguda (como en muchas ediciones convertidas): la grave abajo, la aguda arriba
+  ok(await plicas(env(nv('D', 3, 2) + nv('E', 3, 2) + '<backup><duration>4</duration></backup>' + nv('A', 4, 1) + nv('B', 4, 1))) === '2:down 2:down 1:up 1:up', 'N-PLICA-2: dos voces simultáneas, la aguda arriba y la grave abajo, venga en el orden que venga');
+  // voces que no coinciden en el tiempo: no se toca nada
+  ok(await plicas(env(nv('D', 3, 2) + '<forward><duration>2</duration></forward><backup><duration>4</duration></backup><forward><duration>2</duration></forward>' + nv('A', 4, 1))) === '2:- 1:-', 'N-PLICA-2: voces que no suenan a la vez: sin cambios');
+  // la plica que ya traía el archivo se corrige y la que ya es correcta se deja
+  ok(await plicas(env(nv('D', 3, 2, 1, '<stem>up</stem>') + '<backup><duration>2</duration></backup>' + nv('A', 4, 1, 1, '<stem>up</stem>'))) === '2:down 1:up', 'N-PLICA-2: corrige la plica errónea y respeta la correcta');
+  // tres voces: solo las de los extremos
+  ok(await plicas(env(nv('A', 4, 1) + '<backup><duration>2</duration></backup>' + nv('E', 4, 2) + '<backup><duration>2</duration></backup>' + nv('C', 3, 3))) === '1:up 2:- 3:down', 'N-PLICA-2: con tres voces, aguda arriba, grave abajo y la intermedia como la resuelva el grabador');
+  // pentagramas distintos no se mezclan; la voz de otro pentagrama no cuenta
+  ok(await plicas(env(nv('A', 4, 1, 1) + '<backup><duration>2</duration></backup>' + nv('C', 3, 1, 2))) === '1:- 1:-', 'N-PLICA-2: una sola voz por pentagrama: sin cambios');
+  // la plica se inserta en el sitio que manda MusicXML (antes de staff/beam), para que el archivo siga siendo válido
+  const orden = await p.evaluate(x => { const y = Notacion.plicasPorVoz(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelector('note').children].map(c => c.tagName).join(',') }, env(nv('D', 3, 2) + '<backup><duration>2</duration></backup>' + nv('A', 4, 1)));
+  ok(/type,stem,staff,beam/.test(orden), `N-PLICA-2: <stem> va tras <type> y antes de <staff>/<beam> (${orden})`);
+  await p.evaluate(() => { Notacion.config.plicasPorVoz = false });
+  ok(await p.evaluate(x => Notacion.plicasPorVoz(x) === x, env(nv('D', 3, 2) + '<backup><duration>2</duration></backup>' + nv('A', 4, 1))), 'N-PLICA-2 apagada: el XML no cambia');
+  await p.evaluate(() => { Notacion.config.plicasPorVoz = true });
+  // N-LIG-3: ligaduras de unión por arriba (voz aguda) y por abajo (voz grave); en un acorde, solo la nota exterior
+  const lig = '<notations><tied type="start"/></notations>';
+  const notaAcorde = (paso, oct, voz) => `<note><chord/><pitch><step>${paso}</step><octave>${oct}</octave></pitch><duration>2</duration><voice>${voz}</voice><type>half</type><staff>1</staff>${lig}</note>`;
+  const tied = x => p.evaluate(x => { const y = Notacion.plicasPorVoz(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('note')].map(n => { const t = n.querySelector('tied'); return t ? (t.getAttribute('placement') || '-') + '/' + (t.getAttribute('orientation') || '-') : '·' }).join(' ') }, x);
+  ok(await tied(env(nv('A', 4, 1, 1, lig) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig))) === 'above/over below/under', 'N-LIG-3: voz aguda por arriba, voz grave por abajo');
+  ok(await tied(env(nv('A', 4, 1, 1, lig) + notaAcorde('C', 5, 1) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig) + notaAcorde('F', 3, 2))) === '-/- above/over below/under -/-', 'N-LIG-3: en un acorde solo la nota exterior (la más aguda en la voz aguda, la más grave en la grave)');
+  await p.evaluate(() => { Notacion.config.ligadurasPorVoz = false; Notacion.config.plicasPorVoz = false });
+  ok(await p.evaluate(x => Notacion.plicasPorVoz(x) === x, env(nv('A', 4, 1, 1, lig) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig))), 'N-LIG-3 y N-PLICA-2 apagadas: el XML no cambia');
+  await p.evaluate(() => { Notacion.config.ligadurasPorVoz = true; Notacion.config.plicasPorVoz = true });
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();
