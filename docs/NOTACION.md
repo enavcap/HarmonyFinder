@@ -114,6 +114,35 @@ c. 34; `N-CRUCE-1`) y la maraña de 3+ voces de las reconstrucciones. Esta últi
 del corpus (0,17 %) tienen 3 o más voces con notas (13 con 4 o más), concentrados en Schumann (R.), Bach y Lang, así que `N-VOC-1`
 mejoraría pocos fragmentos aunque se hiciera bien.
 
+### Reglas de MuseScore frente a las del proyecto (v0.8.6)
+
+MuseScore Studio es de código abierto, pero con licencia **GPL-3.0**. Se leyeron sus reglas de grabado en
+`src/engraving/rendering/score/` (`chordlayout.cpp`: `computeUp` y `calculateChordOffsets`; `slurtielayout.cpp`:
+`calculateDirection`; `restlayout.cpp`: `resolveRestVSChord` y `resolveRestVSRest`) y se reescriben aquí como criterios, no como
+código: este proyecto no declara licencia para su código y sus datos son CC BY-NC-SA, así que **no se pega código de MuseScore**.
+
+| Regla de MuseScore | Equivalente en Harmony Finder |
+|---|---|
+| Plicas: con varias voces a la vez en el pentagrama manda el número de voz (1 y 3 arriba, 2 y 4 abajo); con una voz, la distancia de las notas a la línea central; con barra y con trémolo, casos propios | `N-PLICA-2` (la aguda arriba y la grave abajo, por altura media) y Verovio para una sola voz |
+| Cabezas entre voces: si el acorde de plica abajo queda a una segunda del de plica arriba, se desplaza a la derecha el ancho de una cabeza (menos el grosor de la plica); un unísono comparte cabeza solo con la misma línea y grafía, el mismo tipo de cabeza, los mismos puntillos y las dos con plica; si no, la de plica abajo se aparta 0,15 espacios; se cuidan líneas adicionales y corchetes | Verovio lo resuelve: la auditoría mide **0** cabezas de voces distintas pisadas (`notaNota`) |
+| Ligaduras de unión: con varias voces, del lado de la plica; con una sola nota, del lado contrario (y arriba si las plicas de salida y llegada difieren); en un acorde, las notas por debajo de un «pivote» (la segunda o el unísono) van abajo y las de encima arriba; separación entre ligaduras de 0,65 espacios en vertical y 0,35 en horizontal | `N-LIG-3` (varias voces; en un acorde, solo la nota exterior) y Verovio en el resto |
+| Silencios: separación mínima de 0,35 espacios a un acorde (0,55 si es redonda o blanca) y de 0,55 entre silencios de voces distintas; se mueven en pasos de línea entera (de media línea fuera del pentagrama) | `N-SIL-1` (`despejarSilencios`) |
+
+Es decir: lo central de MuseScore ya está cubierto, y copiarlo mejoraría poco. Dos comprobaciones medidas:
+
+- **La métrica de ligaduras tenía un sesgo.** El trazo de Verovio es una forma cerrada (curva exterior de ida y curva interior de
+  vuelta), y el muestreo del 12-88 % de su longitud cubría entero el extremo de destino, donde la ligadura debe tocar su nota y su
+  plica, y se saltaba el de origen. Ahora solo se muestrea el interior de cada curva (0,12-0,38 y 0,62-0,88). El efecto es pequeño
+  (sonatas de Beethoven: 17 choques de ligaduras de unión antes y después, en 6 de 174 fragmentos; muestra estándar: 14 → 13 en
+  reconstrucciones y 4 → 3 en originales), así que los choques que quedan son reales.
+- **Más espaciado no lo arregla.** Sobre los 15 fragmentos con más choques (12 alteraciones y 17 ligaduras): `spacingLinear` 0,4 → 16 y 11;
+  0,5 → 15 y 11; `spacingLinear` 0,4 con `spacingNonLinear` 0,7 → 15 y 11. No justifica cambiar el valor (0,3).
+
+El patrón real que queda: ligaduras de unión **del lado de la plica entre notas cortas con corchete de la voz grave** (Op. 14 n.º 2,
+i, cc. 1-3; Op. 31 n.º 1, i; Op. 10 n.º 1, ii), en las que el arco cruza las plicas y los corchetes de sus propias notas. MuseScore
+también las pone del lado de la plica, así que su regla de dirección no lo resuelve; habría que mover los extremos o la altura de
+la ligadura en el SVG (`N-LIG-2`), y hoy no hay un caso que se pueda contrastar con la edición.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para

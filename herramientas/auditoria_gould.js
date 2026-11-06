@@ -132,13 +132,18 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
       const a = encoge(alts[i].c, k * 0.5);
       if (alts.some((b, j) => j > i && inter(a, encoge(b.c, k * 0.5))) || notas.some(n => inter(a, encoge(n.c, k)))) out.alteracionChoque++;
     }
-    // ligaduras y ligaduras de unión: muestreo del trazo frente a cabezas, plicas y barras (se omiten los extremos)
+    // ligaduras y ligaduras de unión: muestreo del interior del trazo frente a cabezas, plicas y barras (se omiten los extremos)
     for (const lz of m.querySelectorAll('g.slur path, g.tie path')) {
       let L; try { L = lz.getTotalLength() } catch (e) { continue } if (!(L > 2 * u)) continue;
       const ctm = lz.getScreenCTM(); if (!ctm) continue;
       const union = !!lz.closest('g.tie');
       out.lazos++; union ? out.uniones++ : out.expresiones++; let choca = false;
-      for (let d = L * 0.12; d <= L * 0.88 && !choca; d += u * 0.35) {
+      // El trazo de Verovio es una forma cerrada (curva exterior de ida y curva interior de vuelta): las posiciones 0,12-0,88 de
+      // la longitud total cubrían entero el extremo de destino (donde la ligadura debe tocar su nota y su plica) y se saltaban el
+      // de origen. Solo se muestrea el interior de cada curva: 0,12-0,38 (exterior) y 0,62-0,88 (interior).
+      const posiciones = []; for (const [a, z] of [[0.12, 0.38], [0.62, 0.88]]) for (let d = L * a; d <= L * z; d += u * 0.35) posiciones.push(d);
+      for (const d of posiciones) {
+        if (choca) break;
         const q = lz.getPointAtLength(d), px = ctm.a * q.x + ctm.c * q.y + ctm.e, py = ctm.b * q.x + ctm.d * q.y + ctm.f;
         for (const o of items) {
           if (o.tipo === 'alt') continue;
