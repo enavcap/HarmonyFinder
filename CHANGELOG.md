@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-11-06
+
 ### Changed
 - Notación de las partituras con varias voces, para **todas** las fuentes (Sapp, OpenScore y reconstrucciones del DCML): regla `N-PLICA-2`, con dos o más voces simultáneas en un pentagrama la más aguda lleva la plica hacia arriba y la más grave hacia abajo en todo el compás; antes la dirección dependía del orden en que el archivo escribía las voces y en muchas ediciones convertidas las plicas de una voz atravesaban las cabezas de la otra (p. ej. la mano izquierda del Op. 2 n.º 2, ii). En las 58 sonatas de Beethoven pasa de 463 de 1 459 pentagramas con las plicas al revés a 29. Se apaga con `Notacion.config.plicasPorVoz = false`.
 - Regla `N-LIG-3`: las ligaduras de unión de la voz aguda se dibujan por arriba y las de la grave por abajo (en un acorde, solo la nota exterior), para que no atraviesen las notas de la otra voz (p. ej. Op. 31 n.º 1, iii, cc. 44-46). Los choques de ligaduras de unión en las sonatas bajan de 159 a 87 de 1 374. Se apaga con `Notacion.config.ligadurasPorVoz = false`.
@@ -263,7 +265,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...HEAD
+[0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...v0.8.3
