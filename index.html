@@ -2390,6 +2390,7 @@ async function mostrar(h){
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
       despejarSilencios(cont.querySelector('svg'));
+      Notacion.despejarLigaduras(cont.querySelector('svg'));   // N-LIG-2
       despejarNumeros(cont.querySelector('svg'));
       cargado.tm=t.renderToTimemap({includeMeasures:true});
       svg=cont.querySelector('svg');
