@@ -8,6 +8,25 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- Especificación de grabado musical (`docs/ESPECIFICACION_GRABADO_MUSICAL.md`): fichas de todas las reglas del motor de notación (plicas, cabezas, barras, alteraciones, silencios, ligaduras, espaciado, elementos expresivos), cada una con su fundamento en el manual de MuseScore, la *Notation Reference* de LilyPond o las guías de grabado de DAISY (o marcada como decisión propia), su implementación y su prueba. Auditoría del sistema anterior en `docs/AUDITORIA_MOTOR_NOTACION.md`.
+- Integridad musical en la preparación de las partituras (`web/musica.js`): cada transformación del MusicXML declara qué propiedades puede cambiar y se comprueba antes y después de cada paso que las demás (notas, alturas, duraciones, posiciones, voces, acordes, ligaduras, compás, armadura, instrumentos…) no cambian, y que ninguna nota pasa a leerse mal. Si algo cambia sin declararlo, el paso se deshace y se registra un error `HF-INTEGRIDAD`.
+- Pruebas en tres niveles: `herramientas/prueba_motor.js` (una prueba por regla e integridad), `herramientas/prueba_integridad.js` (todo el corpus en modo estricto) y `herramientas/regresion_visual.js` (23 fragmentos representativos comparados con imágenes de referencia).
+
+### Changed
+- Motor de notación reorganizado: un único registro de transformaciones (`web/notacion.js`) y los retoques del SVG en `web/notacion_svg.js`; la lógica que vivía en `web/index.html` (claves, voces, silencios, barras, expresión, anacrusa) se ha trasladado sin cambiar su comportamiento salvo lo que se indica abajo. El MusicXML se lee y se escribe una sola vez por obra, sin expresiones regulares.
+- Plicas con varias voces: una sola regla para todas las fuentes (`N-PLICA-2`); las reconstrucciones del DCML ya no fijan además las plicas por su cuenta, y en compases donde las voces se alternan sin sonar a la vez la plica sigue la posición de las notas. Con tres o más voces, las intermedias siguen la convención de LilyPond y MuseScore (la segunda más aguda arriba, la segunda más grave abajo; `N-PLICA-3`).
+- Barras automáticas de las reconstrucciones (`N-BARRA-3`): en 4/4 las corcheas se agrupan por medio compás, en 3/4 por compás entero y en 3/8 las tres corcheas van juntas (antes quedaban sueltas, con corchete).
+- Silencios que pisan una nota de otra voz (`N-SIL-2`): se apartan en vertical, dejando 0,35 espacios libres, antes de ocultarse (antes se ocultaban siempre).
+
+### Fixed
+- `N-ALT-2` quitaba alteraciones necesarias en dos casos: tras una nota ligada desde el compás anterior (p. ej. Beethoven, Op. 53, iii, c. 239) y tras una nota alterada a la que la fuente no ponía alteración (Op. 31 n.º 2, iii, c. 170). Ahora el estado de las alteraciones sigue lo escrito, la alteración de una nota ligada desde el compás anterior no rige para el resto del compás y se conserva el becuadro de precaución que sigue a una nota ligada.
+- Con un solo instrumento, un nombre de instrumento vacío (`<part-name/>`) también se oculta.
+- `herramientas/prueba_notacion.js`: condición de carrera al esperar la partitura de cada caso.
+
+### Removed
+- Limpieza previa de las «dinámicas» vacías de la conversión desde Humdrum: era redundante (la eliminación de dinámicas ya las quitaba todas).
+
 ## [0.8.7] - 2026-11-06
 
 ### Fixed

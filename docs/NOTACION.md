@@ -1,5 +1,13 @@
 # Reglas de notación de Harmony Finder
 
+> **Desde la v0.9 la referencia normativa es [`ESPECIFICACION_GRABADO_MUSICAL.md`](ESPECIFICACION_GRABADO_MUSICAL.md)**
+> (fuentes documentales, arquitectura del motor, integridad musical, fichas de todas las reglas y pruebas). Este documento se
+> conserva como **registro de mediciones** de la auditoría (`auditoria_gould.js`) y de la evolución de cada regla; su
+> catálogo y su sección de arquitectura en tres capas describen el estado de la v0.8.7. Cambios de la v0.9 en el código:
+> las funciones que aquí se sitúan en `web/index.html` (`asignarClaves`, `corregirClaves`, `barrasAutomaticas`,
+> `ordenarVoces`, `despejarSilencios`) están ahora en `web/notacion.js` y `web/notacion_svg.js`, y `ordenarVoces` ya no
+> fija plicas (lo hace solo `N-PLICA-2/3`).
+
 Conjunto único de criterios de grabado para todas las partituras del proyecto (corales de Bach, sonatas de Beethoven,
 reconstrucciones del DCML, canciones…). Los criterios siguen las prácticas de grabado profesional que recoge Elaine Gould en
 *Behind Bars* (Faber Music, 2011), aplicadas **por temas**. Dos aclaraciones de honestidad:
