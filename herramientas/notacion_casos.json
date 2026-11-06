@@ -5,5 +5,9 @@
   {"obra": 1363, "ini": 10, "fin": 13, "nota": "Couperin, L'Art de toucher le clavecin, 8.ª, cc. 10-13: alteraciones, ligaduras y plicas cruzadas entre voces"},
   {"obra": 1447, "ini": 3,  "fin": 6,  "nota": "Frescobaldi, La Messa degli Apostoli, Christe, cc. 3-6: dos voces en cada mano"},
   {"obra": 2296, "ini": 21, "fin": 25, "nota": "Schumann, Dichterliebe 7, cc. 21-25: octavas graves con 4 líneas adicionales (legítimo: así lo escribe la edición)"},
-  {"obra": 1681, "ini": 12, "fin": 15, "nota": "Medtner, Tales Op. 26 n.º 4, cc. 12-15: ligaduras y alteraciones"}
+  {"obra": 1681, "ini": 12, "fin": 15, "nota": "Medtner, Tales Op. 26 n.º 4, cc. 12-15: ligaduras y alteraciones"},
+  {"obra": 890, "ini": 9, "fin": 20, "nota": "Beethoven, Op. 2 n.º 1, i, cc. 9-20 (captura del usuario): voces de la mano izquierda con tresillos, alteraciones y plicas cruzadas"},
+  {"obra": 893, "ini": 0, "fin": 6, "nota": "Beethoven, Op. 2 n.º 1, ii, cc. 0-6 (captura del usuario): varias voces con silencios, ligaduras y plicas en el piano"},
+  {"obra": 905, "ini": 1, "fin": 8, "nota": "Beethoven, Op. 2 n.º 2, ii, cc. 1-8 (captura del usuario): mano izquierda a dos voces (negra + semicorcheas con silencios) con las plicas al revés"},
+  {"obra": 926, "ini": 44, "fin": 47, "nota": "Beethoven, Op. 31 n.º 1, iii, cc. 44-47: ligadura de unión larga de la voz aguda atravesando las notas de la voz grave"}
 ]
