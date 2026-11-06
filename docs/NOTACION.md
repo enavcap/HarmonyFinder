@@ -138,10 +138,22 @@ Es decir: lo central de MuseScore ya está cubierto, y copiarlo mejoraría poco.
 - **Más espaciado no lo arregla.** Sobre los 15 fragmentos con más choques (12 alteraciones y 17 ligaduras): `spacingLinear` 0,4 → 16 y 11;
   0,5 → 15 y 11; `spacingLinear` 0,4 con `spacingNonLinear` 0,7 → 15 y 11. No justifica cambiar el valor (0,3).
 
-El patrón real que queda: ligaduras de unión **del lado de la plica entre notas cortas con corchete de la voz grave** (Op. 14 n.º 2,
-i, cc. 1-3; Op. 31 n.º 1, i; Op. 10 n.º 1, ii), en las que el arco cruza las plicas y los corchetes de sus propias notas. MuseScore
-también las pone del lado de la plica, así que su regla de dirección no lo resuelve; habría que mover los extremos o la altura de
-la ligadura en el SVG (`N-LIG-2`), y hoy no hay un caso que se pueda contrastar con la edición.
+El patrón real que quedaba: ligaduras de unión **del lado de la plica entre notas cortas con corchete de la voz grave** (Op. 14
+n.º 2, i, cc. 1-3; Op. 31 n.º 1, i; Op. 10 n.º 1, ii), en las que el arco cruzaba las plicas y los corchetes de sus propias notas.
+MuseScore también las pone del lado de la plica, así que su regla de dirección no lo resuelve; se corrige con `N-LIG-2`.
+
+#### Efecto de `N-LIG-2` (misma muestra y semilla, regla apagada → encendida)
+
+| Ligaduras de unión que chocan | Antes | Después |
+|---|---|---|
+| Originales, muestra estándar (124 ligaduras) | 2 | 0 |
+| Reconstruidas, muestra estándar (157) | 13 | 2 |
+| Sonatas de Beethoven, 174 fragmentos (295) | 17 | 6 |
+
+Ninguna otra métrica cambia (alteraciones, plicas, cabezas, silencios y barras iguales). La regla se evalúa con su propio muestreo
+(denso, 0,1 espacios) y la auditoría la mide con otro (0,35), de modo que el resultado no es circular. Comprobado a ojo en el
+Op. 14 n.º 2, i (la ligadura de la mano izquierda ya no atraviesa el corchete ni la plica de la nota anterior) y en Couperin.
+Se apaga con `Notacion.config.ligadurasDespejadas = false`.
 
 ## Catálogo de reglas
 
@@ -161,7 +173,7 @@ poder medirla) o **pendiente**.
 | `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | **Replanteada**: el criterio es la subida en espacios, no el ángulo. Con `barraSubida` solo el 5 % de las barras sube más de 1,1 espacios y no se ve defecto en las capturas; sin evidencia, no se actúa (ver «Revisión de `N-BARRA-2`»). |
 | `N-VOC-1` | Tres o más voces en un pentagrama | xml | pendiente | Causa de la maraña de la mano derecha en la *Allemande* (c. 2). |
 | `N-VOC-2` | Unísonos con duraciones distintas | xml | pendiente | Cabeza compartida o dos cabezas. |
-| `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | pendiente | 2 % (originales) y 7 % (reconstruidas) de las ligaduras. |
+| `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | **aplicada** | Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca (`CONFIG.ligadurasDespejadas`, `despejarLigaduras` en `notacion.js`). No toca las ligaduras de expresión. |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |

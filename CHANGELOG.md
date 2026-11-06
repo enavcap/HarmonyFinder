@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Regla `N-LIG-2`: las ligaduras de unión que atravesaban plicas, corchetes, barras o cabezas de nota (sobre todo entre notas cortas con corchete de la voz grave, p. ej. la mano izquierda del Op. 14 n.º 2, i, cc. 1-3) se acortan por los extremos y/o se hacen más profundas hasta librarlos; si ninguna variante los libra, no se tocan. Choques de ligaduras de unión en la auditoría: de 2 a 0 en originales, de 13 a 2 en reconstrucciones y de 17 a 6 en las 174 muestras de las sonatas de Beethoven; ninguna otra métrica cambia. Se apaga con `Notacion.config.ligadurasDespejadas = false`.
+
 ### Changed
 - `herramientas/auditoria_gould.js`: nueva métrica `barraSubida` (barras que suben más de `SUBIDA_MAX`=1,1 espacios de pentagrama). La métrica por ángulo (`barraEmpinada`) contaba como defecto la inclinación normal de un espacio entre dos corcheas (16,4°): con la subida en espacios queda un 5 % de las barras (antes 16-33 %), sin defecto visible. `N-BARRA-2` queda replanteada en `docs/NOTACION.md`, que además recoge la incidencia real de las voces múltiples en las reconstrucciones (0,17 % de los pentagramas-compás con 3+ voces). No cambia el grabado de las partituras.
 - `herramientas/auditoria_gould.js`: las ligaduras (de unión y de expresión) se muestrean solo por el interior de cada curva; antes se medía entero el extremo de destino, donde la ligadura toca su nota. Se documenta además la comparación con las reglas de MuseScore (GPL-3.0; solo como criterios, sin copiar código) y que aumentar el espaciado horizontal no reduce de forma apreciable los choques.

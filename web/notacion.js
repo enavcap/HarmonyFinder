@@ -51,6 +51,8 @@
     // N-CLAVE-1: en las partituras que ya tienen edición profesional (no reconstruidas) se respetan sus claves, con los
     // cambios a mitad de compás; a false se vuelve a corregir la clave por tesitura (corregirClaves, index.html)
     clavesDeLaEdicion: true,
+    // N-LIG-2: apartar de plicas, corchetes, barras y cabezas las ligaduras de unión que las cruzan (retoque sobre el SVG)
+    ligadurasDespejadas: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -210,6 +212,70 @@
   regla('N-LIG-3', 'Ligaduras de unión: por arriba en la voz aguda, por abajo en la grave', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, las ligaduras de unión de la voz aguda se dibujan por arriba y las de la grave por abajo, para que no pasen por las notas de la otra voz (CONFIG.ligadurasPorVoz). En acordes, solo la nota exterior. Se aplica a todas las fuentes.');
   regla('N-PLICA-2', 'Plicas: una dirección por voz', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, la más aguda lleva la plica hacia arriba y la más grave hacia abajo en todo el compás (CONFIG.plicasPorVoz). Se aplica a todas las fuentes.');
 
+  // N-LIG-2 (Gould: una ligadura de unión no atraviesa plicas, corchetes ni cabezas; empieza y acaba junto a su nota)
+  // Retoque sobre el SVG ya dibujado. Verovio dibuja cada ligadura de unión como una forma cerrada de dos curvas cúbicas
+  // («M x,y C … C …»: la curva exterior de ida y la interior de vuelta) y no la aparta de las plicas y corchetes de las voces
+  // vecinas ni de los de sus propias notas cuando las notas están muy juntas. Si el interior de la ligadura cruza algo, se
+  // prueba, por este orden, (1) acortarla por los extremos hasta librar el obstáculo, (2) hacer el arco más profundo y (3) las
+  // dos cosas; se conserva la primera variante que no deja ningún choque y, si ninguna lo logra, la ligadura no se toca.
+  const bezier = (t, a, b, c, d) => { const u = 1 - t; return [u * u * u * a[0] + 3 * u * u * t * b[0] + 3 * u * t * t * c[0] + t * t * t * d[0], u * u * u * a[1] + 3 * u * u * t * b[1] + 3 * u * t * t * c[1] + t * t * t * d[1]] };
+  function despejarLigaduras(svg) {
+    if (!CONFIG.ligadurasDespejadas || !svg) return 0;
+    let cambiadas = 0;
+    for (const m of svg.querySelectorAll('g.measure')) {
+      const lig = [...m.querySelectorAll(':scope > g.tie')]; if (!lig.length) continue;
+      // un espacio de pentagrama, leído de las dos primeras líneas (180 unidades en Verovio)
+      const lin = [...(m.querySelector(':scope > g.staff') || document.createElement('g')).querySelectorAll(':scope > path')].slice(0, 2).map(q => +((q.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g) || [])[1]);
+      const sp = lin.length === 2 && lin[1] > lin[0] ? lin[1] - lin[0] : 180;
+      const caja = e => { try { const b = e.getBBox(); return b.width > 0 || b.height > 0 ? b : null } catch (_) { return null } };
+      const obst = [];
+      const rect = (e, dx, dy) => { const b = caja(e); if (b) obst.push({ x0: b.x + dx, x1: b.x + b.width - dx, y0: b.y + dy, y1: b.y + b.height - dy }) };
+      for (const e of m.querySelectorAll('g.notehead')) rect(e, sp * 0.18, sp * 0.18);
+      for (const e of m.querySelectorAll('g.stem > path')) { const b = caja(e); if (b) obst.push({ x0: b.x - sp * 0.06, x1: b.x + b.width + sp * 0.06, y0: b.y + sp * 0.2, y1: b.y + b.height - sp * 0.2 }) }
+      for (const e of m.querySelectorAll('g.flag')) rect(e, sp * 0.1, sp * 0.1);
+      for (const e of m.querySelectorAll('g.beam polygon')) rect(e, sp * 0.05, sp * 0.05);
+      if (!obst.length) continue;
+      for (const g of lig) {
+        const q = g.querySelector('path'); if (!q) continue;
+        const d0 = q.getAttribute('d') || '', n = (d0.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+        if (n.length !== 14 || !/^\s*M[^C]*C[^C]*C[^C]*$/.test(d0)) continue;                       // solo la forma de dos curvas cúbicas
+        const ancho = n[6] - n[0]; if (!(ancho > sp * 1.2)) continue;                                   // las ligaduras muy cortas no se tocan
+        // puntos del interior de las dos curvas (0,24-0,76 de cada una), con paso de ~0,1 espacios: ni los extremos, donde la
+        // ligadura debe tocar su nota, ni los tramos que ya caen sobre la cabeza de destino
+        const pasos = Math.max(8, Math.min(120, Math.ceil(ancho / (sp * 0.1) * 0.52)));
+        const interior = v => {
+          const pts = [], P = (k) => [v[2 * k], v[2 * k + 1]];
+          for (let k = 0; k <= pasos; k++) { const t = 0.24 + 0.52 * k / pasos; pts.push(bezier(t, P(0), P(1), P(2), P(3))); pts.push(bezier(t, P(3), P(4), P(5), P(0))) }
+          return pts;
+        };
+        const choques = v => { const dentro = []; for (const [x, y] of interior(v)) for (const o of obst) if (x > o.x0 && x < o.x1 && y > o.y0 && y < o.y1) dentro.push(o); return dentro };
+        const c0 = choques(n); if (!c0.length) continue;
+        const medio = (n[0] + n[6]) / 2, arriba = (n[3] + n[5]) / 2 < n[1] ? -1 : 1;                    // sentido en que se curva (y crece hacia abajo)
+        // recorte: el comienzo pasa de largo las plicas y corchetes de la mitad izquierda; el final se detiene antes de los de la derecha
+        let ini = n[0], fin = n[6];
+        for (const o of c0) { if ((o.x0 + o.x1) / 2 < medio) ini = Math.max(ini, o.x1 + sp * 0.15); else fin = Math.min(fin, o.x0 - sp * 0.15) }
+        const variante = (x0, x1, dy) => {
+          const k = (x1 - x0) / (n[6] - n[0]), v = n.slice();
+          for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = x0 + (n[i] - n[0]) * k;
+          for (const i of [3, 5, 9, 11]) v[i] = n[i] + arriba * dy;                                    // solo los puntos de control: los extremos no suben
+          return v;
+        };
+        const recorte = fin - ini >= sp * 1.2 && (ini > n[0] || fin < n[6]);
+        const cand = [];
+        if (recorte) cand.push([ini, fin, 0]);
+        for (let k = 1; k <= 4; k++) cand.push([n[0], n[6], k * sp * 0.2]);
+        if (recorte) for (let k = 1; k <= 4; k++) cand.push([ini, fin, k * sp * 0.2]);
+        const buena = cand.map(c => variante(...c)).find(v => !choques(v).length);
+        if (!buena) continue;
+        const r = x => Math.round(x * 100) / 100;
+        q.setAttribute('d', `M${r(buena[0])},${r(buena[1])} C${r(buena[2])},${r(buena[3])} ${r(buena[4])},${r(buena[5])} ${r(buena[6])},${r(buena[7])} C${r(buena[8])},${r(buena[9])} ${r(buena[10])},${r(buena[11])} ${r(buena[12])},${r(buena[13])}`);
+        g.setAttribute('data-n-lig2', '1'); cambiadas++;
+      }
+    }
+    return cambiadas;
+  }
+  regla('N-LIG-2', 'Ligaduras que atraviesan notas, plicas o barras', 'svg', 'aplicada', 'Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda hasta librarlos; si ninguna variante lo logra, no se toca (CONFIG.ligadurasDespejadas). Las ligaduras de expresión no se tocan.');
+
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
   regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'existente', 'Reconstrucciones del DCML: clave por tesitura, penalizando las líneas adicionales y los cambios breves. Ediciones profesionales (Sapp, OpenScore…): se conservan sus claves tal cual, con los cambios a mitad de compás (CONFIG.clavesDeLaEdicion).', 'web/index.html · asignarClaves, corregirClaves');
   regla('N-PLICA-1', 'Plicas: dirección y longitud', 'opciones', 'existente', 'Dirección por la nota más alejada de la línea central; plicas que llegan a ella. Verovio lo cumple (auditoría: 0 plicas de menos de 2 espacios).', 'Verovio');
@@ -220,10 +286,9 @@
   regla('N-BARRA-2', 'Barras: pendiente máxima', 'svg', 'pendiente', 'Replanteada: el criterio es la subida de la barra en espacios de pentagrama, no el ángulo. Las barras «de más de 10°» (16 % de las originales, 33 % de las reconstruidas) son casi todas la inclinación de un espacio entre dos corcheas contiguas (16,4°), la habitual en los manuales de grabado. Subiendo más de 1,1 espacios solo hay el 5 % (máximo 2) y en la revisión visual (Op. 53 ii: escalas de fusas) no se ve un defecto. Sin evidencia: no actuar hasta contrastar con la edición.');
   regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'pendiente', 'La reconstrucción deja hasta 4 voces en un pentagrama con 3 de ellas con la plica abajo y las cabezas encimadas (Allemande, c. 2). Requiere reparto de voces (fusionar las que no se solapan) y desplazamiento de cabezas.');
   regla('N-VOC-2', 'Unísonos entre voces con duraciones distintas', 'xml', 'pendiente', 'Mismo sonido en dos voces con distinta duración: una cabeza compartida con la plica de la más larga, o dos cabezas separadas.');
-  regla('N-LIG-2', 'Ligaduras que atraviesan notas, plicas o barras', 'svg', 'pendiente', 'Afectan al 2 % de las ligaduras de las originales y al 7 % de las reconstruidas; ningún valor de slurMargin, slurCurveFactor o slurSymmetry lo mejora.');
   regla('N-ALT-1', 'Alteraciones que chocan', 'svg', 'pendiente', 'En las reconstrucciones, alteraciones encimadas con otra alteración o con una cabeza (12 en 57 fragmentos). Los márgenes de Verovio no lo resuelven.');
   regla('N-OCT-1', 'Signo de octava frente a muchas líneas adicionales', 'xml', 'pendiente', 'Pasajes con 5 o más líneas adicionales sostenidos: cambiar de clave, pasar de pentagrama o 8va (Allemande, c. 5, mano izquierda con re5 en clave de fa). Hay que fijar el umbral: las octavas graves de Schumann (4 líneas) son legítimas.');
   regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'pendiente', 'Notas de una mano escritas en el pentagrama de la otra con barra compartida, en lugar de líneas adicionales o cambios de clave.');
 
-  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz };
+  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz, despejarLigaduras };
 })(typeof window !== 'undefined' ? window : globalThis);

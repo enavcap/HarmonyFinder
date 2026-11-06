@@ -3,6 +3,7 @@
 //   · N-INI-1: un fragmento que empieza a mitad de obra muestra el compás; con la regla apagada, no
 //   · N-INI-1: un fragmento que empieza en el primer compás no duplica la indicación de compás
 //   · N-ALT-2: la alteración se escribe una vez por compás y se repite solo si cambia
+//   · N-LIG-2: una ligadura de unión cruzada por una plica se retoca; si no cruza nada, no se toca
 // uso (con la web servida en http://localhost:8767/ y verovio-toolkit-wasm.js accesible):
 //   node herramientas/prueba_notacion.js        variables: VEROVIO_JS, URL_WEB, CHROME
 const { chromium } = require('playwright'); const fs = require('fs');
@@ -76,6 +77,24 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.evaluate(() => { Notacion.config.ligadurasPorVoz = false; Notacion.config.plicasPorVoz = false });
   ok(await p.evaluate(x => Notacion.plicasPorVoz(x) === x, env(nv('A', 4, 1, 1, lig) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig))), 'N-LIG-3 y N-PLICA-2 apagadas: el XML no cambia');
   await p.evaluate(() => { Notacion.config.ligadurasPorVoz = true; Notacion.config.plicasPorVoz = true });
+
+  // N-LIG-2: una ligadura de unión que cruza una plica se acorta o se profundiza; una que no cruza nada no se toca
+  const ligSvg = (tie, extra = '') => p.evaluate(([tie, extra]) => {
+    const NS = 'http://www.w3.org/2000/svg', cont = document.createElementNS(NS, 'svg'); cont.setAttribute('width', 800); cont.setAttribute('height', 500);
+    cont.innerHTML = `<g class="measure"><g class="staff"><path d="M0 100 L800 100"/><path d="M0 280 L800 280"/></g>${extra}<g class="tie"><path d="${tie}"/></g></g>`;
+    document.body.append(cont);
+    const r = Notacion.despejarLigaduras(cont), d = cont.querySelector('g.tie path').getAttribute('d'); cont.remove(); return [r, d];
+  }, [tie, extra]);
+  // una plica vertical en x=300 que corta el arco (de 100 a 500, y=200 a 235)
+  const cruza = 'M100,200 C200,300 400,300 500,200 C400,260 200,260 100,200', plicaX = '<g class="stem"><path d="M300 150 L300 300"/></g>';
+  let [cam, dd] = await ligSvg(cruza, plicaX);
+  ok(cam === 1 && dd !== cruza, `N-LIG-2: una ligadura cruzada por una plica se retoca (${cam} cambiada)`);
+  [cam, dd] = await ligSvg(cruza, '');
+  ok(cam === 0 && dd === cruza, 'N-LIG-2: una ligadura que no cruza nada no se toca');
+  await p.evaluate(() => { Notacion.config.ligadurasDespejadas = false });
+  [cam, dd] = await ligSvg(cruza, plicaX);
+  ok(cam === 0 && dd === cruza, 'N-LIG-2 apagada: la ligadura no cambia');
+  await p.evaluate(() => { Notacion.config.ligadurasDespejadas = true });
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();
