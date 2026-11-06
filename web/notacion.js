@@ -42,6 +42,8 @@
     // N-INI-1: mostrar la indicación de compás al principio de un fragmento que empieza a mitad de la obra
     // (las pruebas lo apagan para medir el efecto de la regla)
     compasAlInicio: true,
+    // N-ALT-2: quitar las alteraciones repetidas dentro de un compás
+    alteracionesUnaVez: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -75,6 +77,63 @@
   }
   regla('N-INI-1', 'Indicaciones al inicio del sistema (clave, armadura, compás)', 'xml', 'aplicada', 'Un fragmento que empieza a mitad de obra muestra el compás vigente (CONFIG.compasAlInicio). Claves y armadura ya las resuelve Verovio.');
 
+
+  // N-ALT-2 (Gould: una alteración vale para todo el compás; no se repite)
+  // Una alteración escrita ante una nota rige para las demás notas de la misma altura (mismo nombre y octava) del resto del
+  // compás en ese pentagrama, sea cual sea la voz; solo se escribe de nuevo si se cambia (becuadro tras sostenido, etc.).
+  // Las reconstrucciones desde tablas de notas (DCML) ponen la alteración ante cada nota alterada: aquí se quitan las
+  // repetidas. El estado de cada altura al empezar el compás es el de la armadura. No se tocan las alteraciones de
+  // precaución o editoriales (entre paréntesis) ni las de las notas ligadas, que se dejan como vienen.
+  const PASOS = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+  const ORDEN_SOST = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
+  const alteracionDeArmadura = (fifths, paso) => {
+    if (fifths > 0) return ORDEN_SOST.slice(0, fifths).includes(paso) ? 1 : 0;
+    if (fifths < 0) return ORDEN_SOST.slice(7 + fifths).includes(paso) ? -1 : 0;
+    return 0;
+  };
+  function alteracionesRedundantes(xml) {
+    if (!CONFIG.alteracionesUnaVez) return xml;
+    let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
+    if (doc.querySelector('parsererror')) return xml;
+    let quitadas = 0;
+    for (const parte of doc.getElementsByTagName('part')) {
+      let fifths = 0, divisions = 1;
+      for (const compas of [...parte.children].filter(c => c.tagName === 'measure')) {
+        const estado = new Map();                            // «staff|paso|octava» → alteración vigente
+        const notas = []; let t = 0, ultimaDur = 0, orden = 0;
+        for (const el of compas.children) {
+          if (el.tagName === 'attributes') {
+            const k = hijo(el, 'key'); if (k) fifths = +txt(k, 'fifths') || 0;
+            if (txt(el, 'divisions')) divisions = +txt(el, 'divisions') || divisions;
+          }
+          const d = +txt(el, 'duration') || 0;
+          if (el.tagName === 'backup') t -= d;
+          else if (el.tagName === 'forward') t += d;
+          else if (el.tagName === 'note') {
+            const acorde = !!hijo(el, 'chord'), gracia = !!hijo(el, 'grace');
+            if (acorde) t -= ultimaDur;
+            if (hijo(el, 'pitch')) notas.push({ el, t, orden: orden++ });
+            if (!gracia) { t += d; ultimaDur = d } else ultimaDur = 0;
+          }
+        }
+        notas.sort((a, b) => a.t - b.t || a.orden - b.orden);
+        for (const { el } of notas) {
+          const pitch = hijo(el, 'pitch'), paso = txt(pitch, 'step'), oct = txt(pitch, 'octave');
+          if (!(paso in PASOS)) continue;
+          const alt = Math.round(+txt(pitch, 'alter') || 0), staff = txt(el, 'staff') || '1', clave = staff + '|' + paso + oct;
+          const vigente = estado.has(clave) ? estado.get(clave) : alteracionDeArmadura(fifths, paso);
+          const acc = hijo(el, 'accidental');
+          const precaucion = acc && (acc.getAttribute('cautionary') === 'yes' || acc.getAttribute('editorial') === 'yes' || acc.getAttribute('parentheses') === 'yes' || acc.getAttribute('bracket') === 'yes');
+          const ligada = [...el.children].some(c => c.tagName === 'tie' && c.getAttribute('type') === 'stop');
+          if (acc && !precaucion && !ligada && alt === vigente) { acc.remove(); quitadas++ }
+          estado.set(clave, alt);
+        }
+      }
+    }
+    return quitadas ? new XMLSerializer().serializeToString(doc) : xml;
+  }
+  regla('N-ALT-2', 'Alteraciones: una vez por compás', 'xml', 'aplicada', 'Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama; las repetidas de las reconstrucciones del DCML se quitan (CONFIG.alteracionesUnaVez). No toca precauciones, editoriales ni notas ligadas.');
+
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
   regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'existente', 'Se elige la clave por tesitura, penalizando las líneas adicionales y los cambios breves de clave.', 'web/index.html · asignarClaves, corregirClaves');
   regla('N-PLICA-1', 'Plicas: dirección y longitud', 'opciones', 'existente', 'Dirección por la nota más alejada de la línea central; plicas que llegan a ella. Verovio lo cumple (auditoría: 0 plicas de menos de 2 espacios).', 'Verovio');
@@ -90,5 +149,5 @@
   regla('N-OCT-1', 'Signo de octava frente a muchas líneas adicionales', 'xml', 'pendiente', 'Pasajes con 5 o más líneas adicionales sostenidos: cambiar de clave, pasar de pentagrama o 8va (Allemande, c. 5, mano izquierda con re5 en clave de fa). Hay que fijar el umbral: las octavas graves de Schumann (4 líneas) son legítimas.');
   regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'pendiente', 'Notas de una mano escritas en el pentagrama de la otra con barra compartida, en lugar de líneas adicionales o cambios de clave.');
 
-  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio };
+  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Regla `N-ALT-2` (*Behind Bars*): en las partituras reconstruidas desde el DCML, una alteración se escribe una sola vez por compás y pentagrama (rige para las notas de la misma altura del resto del compás, sea cual sea la voz) y solo se repite si cambia; antes llevaban la alteración cada nota alterada (p. ej. un compás de acordes de si♭ con un bemol en cada uno). Se quitan 44 993 de 142 589 alteraciones en las 999 reconstrucciones; las ediciones (Sapp, OpenScore…) no cambian. No toca las de precaución, las editoriales ni las de notas ligadas. Se apaga con `Notacion.config.alteracionesUnaVez = false`.
+
 ## [0.8.2] - 2026-11-06
 
 ### Added

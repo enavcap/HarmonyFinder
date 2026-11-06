@@ -2,6 +2,7 @@
 //   · identificadores de regla únicos y con el formato N-XXX-n
 //   · N-INI-1: un fragmento que empieza a mitad de obra muestra el compás; con la regla apagada, no
 //   · N-INI-1: un fragmento que empieza en el primer compás no duplica la indicación de compás
+//   · N-ALT-2: la alteración se escribe una vez por compás y se repite solo si cambia
 // uso (con la web servida en http://localhost:8767/ y verovio-toolkit-wasm.js accesible):
 //   node herramientas/prueba_notacion.js        variables: VEROVIO_JS, URL_WEB, CHROME
 const { chromium } = require('playwright'); const fs = require('fs');
@@ -32,6 +33,20 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.evaluate(() => { Notacion.config.compasAlInicio = true });
   const inicio = { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 };
   r = await medidas(inicio); ok(r.compases === r.pentagramas, `al principio de la obra (Suite inglesa 1, Allemande, c. 0): un solo compás por pentagrama (${r.compases} de ${r.pentagramas})`);
+  // N-ALT-2: si♭ repetido dentro del compás, becuadro necesario, compás siguiente, acordes y voces distintas
+  const nota = (paso, oct, alt, acc, extra = '', dur = 1) => `<note><pitch><step>${paso}</step>${alt ? `<alter>${alt}</alter>` : ''}<octave>${oct}</octave></pitch><duration>${dur}</duration><voice>1</voice><type>quarter</type>${acc ? `<accidental>${acc}</accidental>` : ''}${extra}<staff>1</staff></note>`;
+  const xmlAlt = `<score-partwise><part-list><score-part id="P1"/></part-list><part id="P1">
+    <measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key></attributes>
+      ${nota('B', 4, -1, 'flat')}${nota('B', 4, -1, 'flat')}${nota('B', 4, 0, 'natural')}${nota('B', 4, -1, 'flat')}</measure>
+    <measure number="2">${nota('B', 4, -1, 'flat')}${nota('B', 4, -1, 'flat')}${nota('B', 3, -1, 'flat')}${nota('B', 4, -1, 'flat', '', 1).replace('<accidental>flat</accidental>', '<accidental parentheses="yes">flat</accidental>')}</measure>
+  </part></score-partwise>`;
+  const salida = await p.evaluate(x => { const y = Notacion.alteracionesRedundantes(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('measure')].map(m => [...m.querySelectorAll('note')].map(n => n.querySelector('accidental') ? n.querySelector('accidental').textContent + (n.querySelector('accidental').getAttribute('parentheses') ? '()' : '') : '-').join(' ')) }, xmlAlt);
+  ok(salida[0] === 'flat - natural flat', `N-ALT-2: compás 1 (si♭, si♭ repetido, si♮, si♭): «${salida[0]}»`);
+  ok(salida[1] === 'flat - flat flat()', `N-ALT-2: compás 2 (reinicia; otra octava la repite; la de precaución se conserva): «${salida[1]}»`);
+  await p.evaluate(() => { Notacion.config.alteracionesUnaVez = false });
+  const apagada = await p.evaluate(x => Notacion.alteracionesRedundantes(x) === x, xmlAlt);
+  ok(apagada, 'N-ALT-2 apagada: el XML no cambia');
+  await p.evaluate(() => { Notacion.config.alteracionesUnaVez = true });
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();

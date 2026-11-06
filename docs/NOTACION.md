@@ -85,6 +85,7 @@ poder medirla) o **pendiente**.
 | `N-VOC-2` | Unísonos con duraciones distintas | xml | pendiente | Cabeza compartida o dos cabezas. |
 | `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | pendiente | 2 % (originales) y 7 % (reconstruidas) de las ligaduras. |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
+| `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las partituras de edición (Sapp, OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |
 | `N-CRUCE-1` | Notas que cruzan de pentagrama | xml | pendiente | Ligado a `N-OCT-1`. |
 
