@@ -30,8 +30,141 @@ def archivo_kern(archivo):
     return f"sonata{n:02d}-{int(m.group(3))}.krn" if n else None
 
 
+class _Col:
+    """Columna (espina) de un Humdrum: pentagrama al que pertenece, madre en el árbol de divisiones y si es **kern."""
+    __slots__ = ("madre", "parte", "kern")
+
+    def __init__(self, madre, parte, kern):
+        self.madre, self.parte, self.kern = madre, parte, kern
+
+
+def _plan_espinas(eventos, capa0):
+    """Busca (con vuelta atrás) cómo escribir cada línea de divisiones/fusiones/cierres con una sola operación por fila.
+    music21 monta un árbol de espinas: `*^` crea dos hijas y `*v` solo fusiona bien dos hermanas de la misma división;
+    una fusión «cruzada» le hace perder toda una mano. En Humdrum las columnas son posicionales, así que da igual cuál
+    se llame «madre»: se elige la columna que se divide en cada `*^` para que luego cada `*v` junte dos hermanas del
+    mismo pentagrama. Devuelve, por evento, la lista de filas (tokens por columna), o None si no hay solución."""
+    sys.setrecursionlimit(max(sys.getrecursionlimit(), 20000))
+
+    def reducir(campos, capa):
+        """Fusiones y cierres de la línea, de derecha a izquierda. Devuelve (filas, capa) o None."""
+        filas, capa, i, grupos = [], list(capa), 0, []
+        while i < len(campos):
+            if campos[i] == "*v":
+                j = i
+                while j + 1 < len(campos) and campos[j + 1] == "*v": j += 1
+                grupos.append(("v", i, j)); i = j + 1
+            else:
+                if campos[i] == "*-": grupos.append(("-", i, i))
+                i += 1
+        for tipo, i, j in sorted(grupos, key=lambda g: -g[1]):
+            if tipo == "-":
+                fila = ["*"] * len(capa); fila[i] = "*-"; filas.append(fila); del capa[i]; continue
+            while j > i:
+                par = None
+                for q in range(j - 1, i - 1, -1):               # hermanas contiguas dentro del grupo
+                    a, b = capa[q], capa[q + 1]
+                    if (a.kern and b.kern and a.madre is not None and a.madre is b.madre) or (not a.kern and not b.kern):
+                        par = q; break
+                if par is None: return None
+                fila = ["*"] * len(capa); fila[par] = fila[par + 1] = "*v"; filas.append(fila)
+                a = capa[par]
+                capa[par:par + 2] = [a.madre if a.kern else a]
+                j -= 1
+        return filas, capa
+
+    def resolver(e, capa):
+        if e == len(eventos): return []
+        campos = eventos[e]
+        r = reducir(campos, capa)
+        if r is None: return None
+        filas, capa2 = r
+        # índice (tras las reducciones) de cada columna que se divide
+        indices, vivo, i = [], 0, 0
+        while i < len(campos):
+            c = campos[i]
+            if c == "*v":
+                j = i
+                while j + 1 < len(campos) and campos[j + 1] == "*v": j += 1
+                vivo += 1; i = j + 1
+            elif c == "*-": i += 1
+            else:
+                if c == "*^": indices.append(vivo)
+                vivo += 1; i += 1
+
+        def dividir(d, capa3, filas3):
+            if d == len(indices):
+                resto = resolver(e + 1, capa3)
+                return None if resto is None else [filas3] + resto
+            c = indices[d] + d                                  # las divisiones anteriores desplazan una columna cada una
+            if c >= len(capa3): return None
+            opc = [c] + ([x for x in range(len(capa3)) if x != c and capa3[x].kern and capa3[x].parte == capa3[c].parte] if capa3[c].kern else [])
+            for x in opc:
+                m = capa3[x]
+                nueva = capa3[:x] + [_Col(m, m.parte, m.kern), _Col(m, m.parte, m.kern)] + capa3[x + 1:]
+                fila = ["*"] * len(capa3); fila[x] = "*^"
+                r = dividir(d + 1, nueva, filas3 + [fila])
+                if r is not None: return r
+            return None
+        return dividir(0, capa2, list(filas))
+    return resolver(0, capa0)
+
+
+def solo_kern(texto):
+    """Deja solo las columnas **kern del Humdrum de Sapp y reescribe las divisiones/fusiones de columnas para music21
+    (ver _plan_espinas). Si no se encuentra una forma coherente, deja las operaciones como vienen."""
+    lineas = texto.split("\n")
+    tipos0 = next((l.split("\t") for l in lineas if l.startswith("**")), None)
+    if tipos0 is None: return texto
+    capa0 = [_Col(None, i, t == "**kern") for i, t in enumerate(tipos0)]
+    ops = ("*^", "*v", "*-")
+    idx = [n for n, l in enumerate(lineas) if l.startswith("*") and not l.startswith("**")
+           and any(c in ops for c in l.split("\t")) and not all(c == "*-" for c in l.split("\t"))]
+    ok = all(all(c in ops or c == "*" for c in lineas[n].split("\t")) for n in idx)
+    plan = None
+    if ok:
+        try: plan = _plan_espinas([lineas[n].split("\t") for n in idx], capa0)
+        except Exception: plan = None
+    filas_de = dict(zip(idx, plan)) if plan is not None else {}
+    kern = [t.kern for t in capa0]                              # ¿es kern cada columna ahora?
+    salida = []
+
+    def aplicar(fila):
+        i, nuevo = 0, []
+        while i < len(fila):
+            c = fila[i]
+            if c == "*^": nuevo += [kern[i], kern[i]]
+            elif c == "*v":
+                j = i
+                while j + 1 < len(fila) and fila[j + 1] == "*v": j += 1
+                nuevo.append(kern[i]); i = j
+            elif c != "*-": nuevo.append(kern[i])
+            i += 1
+        return nuevo
+
+    for n, l in enumerate(lineas):
+        if l.startswith("!!") or not l.strip():
+            salida.append(l); continue
+        filas = filas_de.get(n)
+        if filas is None:
+            campos = l.split("\t")
+            if len(campos) == len(kern):
+                fila = "\t".join(c for c, k in zip(campos, kern) if k)
+                if fila: salida.append(fila)
+            else:
+                salida.append(l)
+            if n in idx or (l.startswith("*") and not l.startswith("**") and any(c in ops for c in campos)):
+                kern[:] = aplicar(campos) if len(campos) == len(kern) else kern
+            continue
+        for fila in filas:
+            salida.append("\t".join(c for c, k in zip(fila, kern) if k))
+            kern[:] = aplicar(fila)
+    return "\n".join(salida)
+
+
 def convertir(ruta_krn):
-    s = converter.parse(ruta_krn, format="humdrum")
+    texto = solo_kern(open(ruta_krn, encoding="utf-8", errors="replace").read())
+    s = converter.parse(texto, format="humdrum")
     partes = list(s.parts)
     if len(partes) != 2:
         raise ValueError(f"se esperaban 2 pentagramas y hay {len(partes)}")
@@ -78,18 +211,30 @@ PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
 
 def _medidas(xml):
-    """[(etiqueta, frozenset de clases de altura)] de la primera parte (por regex, sin tocar el texto)."""
+    """[(etiqueta, frozenset de clases de altura, frozenset de (clase, pulso dentro del compás))] de la primera parte (por
+    regex, sin tocar el texto). El tercer elemento distingue compases con las mismas alturas pero distinto ritmo."""
     parte = xml[: xml.find("</part>")] if "</part>" in xml else xml
     out = []
+    div = 1.0
     for m in re.finditer(r"<measure\b[^>]*\bnumber=\"([^\"]*)\"[^>]*>(.*?)</measure>", parte, re.S):
-        pcs = set()
-        for n in re.findall(r"<note\b.*?</note>", m.group(2), re.S):
-            if "<rest" in n or "<grace" in n:
-                continue
-            p = re.search(r"<step>([A-G])</step>(?:\s*<alter>(-?\d+(?:\.\d+)?)</alter>)?", n)
-            if p:
-                pcs.add((PC[p.group(1)] + int(float(p.group(2) or 0))) % 12)
-        out.append((m.group(1), frozenset(pcs)))
+        d = re.search(r"<divisions>(\d+)</divisions>", m.group(2))
+        if d: div = float(d.group(1))
+        pcs, ev, t = set(), set(), 0.0
+        for tag in re.finditer(r"<note\b.*?</note>|<backup>.*?</backup>|<forward>.*?</forward>", m.group(2), re.S):
+            x = tag.group(0)
+            dur = re.search(r"<duration>(\d+(?:\.\d+)?)</duration>", x)
+            dur = float(dur.group(1)) / div if dur else 0.0
+            if x.startswith("<backup"): t -= dur; continue
+            if x.startswith("<forward"): t += dur; continue
+            chord, grace = "<chord" in x, "<grace" in x
+            if "<rest" not in x and not grace:
+                p = re.search(r"<step>([A-G])</step>(?:\s*<alter>(-?\d+(?:\.\d+)?)</alter>)?", x)
+                if p:
+                    pc = (PC[p.group(1)] + int(float(p.group(2) or 0))) % 12
+                    pcs.add(pc)
+                    ev.add((pc, round((t - (dur if chord else 0.0)) * 8)))
+            if not chord and not grace: t += dur
+        out.append((m.group(1), frozenset(pcs), frozenset(ev)))
     return out
 
 
@@ -106,17 +251,18 @@ def etiquetas_del_viejo(xml_viejo, xml_nuevo):
     sc = [[0.0] * (m + 1) for _ in range(n + 1)]
     for i in range(1, n + 1): sc[i][0] = i * gap
     for j in range(1, m + 1): sc[0][j] = j * gap
+    def puntos(a, b):
+        return 4.0 * _jac(a[2], b[2]) - 1.5          # >0 si comparten más de ~38 % de sus (altura, pulso)
     for i in range(1, n + 1):
         for j in range(1, m + 1):
-            s = 2.0 if _jac(A[i - 1][1], B[j - 1][1]) >= 0.85 else -2.0
-            sc[i][j] = max(sc[i - 1][j - 1] + s, sc[i - 1][j] + gap, sc[i][j - 1] + gap)
+            sc[i][j] = max(sc[i - 1][j - 1] + puntos(A[i - 1], B[j - 1]), sc[i - 1][j] + gap, sc[i][j - 1] + gap)
     i, j, pares = n, m, {}
     while i > 0 and j > 0:
-        s = 2.0 if _jac(A[i - 1][1], B[j - 1][1]) >= 0.85 else -2.0
-        if sc[i][j] == sc[i - 1][j - 1] + s:
+        s = puntos(A[i - 1], B[j - 1])
+        if abs(sc[i][j] - (sc[i - 1][j - 1] + s)) < 1e-9:
             if s > 0: pares[j - 1] = i - 1
             i, j = i - 1, j - 1
-        elif sc[i][j] == sc[i - 1][j] + gap: i -= 1
+        elif abs(sc[i][j] - (sc[i - 1][j] + gap)) < 1e-9: i -= 1
         else: j -= 1
     firmes = len(pares)
     # huecos entre dos compases bien alineados: se emparejan por posición (compases que difieren por ornamentos, notas
