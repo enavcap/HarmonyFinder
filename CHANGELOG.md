@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.7] - 2026-11-06
+
 ### Fixed
 - Regla `N-LIG-2`: las ligaduras de unión que atravesaban plicas, corchetes, barras o cabezas de nota (sobre todo entre notas cortas con corchete de la voz grave, p. ej. la mano izquierda del Op. 14 n.º 2, i, cc. 1-3) se acortan por los extremos y/o se hacen más profundas hasta librarlos; si ninguna variante los libra, no se tocan. Choques de ligaduras de unión en la auditoría: de 2 a 0 en originales, de 13 a 2 en reconstrucciones y de 17 a 6 en las 174 muestras de las sonatas de Beethoven; ninguna otra métrica cambia. Se apaga con `Notacion.config.ligadurasDespejadas = false`.
 
@@ -272,7 +274,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...HEAD
+[0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...v0.8.4
