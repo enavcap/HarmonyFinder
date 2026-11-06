@@ -162,8 +162,128 @@ def solo_kern(texto):
     return "\n".join(salida)
 
 
+_OCTAVAS = {"8va": ("down", 8, "above"), "15ma": ("down", 15, "above"), "8ba": ("up", 8, "below"), "15mb": ("up", 15, "below")}
+
+
+def _duracion_kern(tok):
+    """Duración en negras del primer sonido de una señal **kern (None si no tiene: nota de adorno o señal nula)."""
+    t = tok.split(" ")[0]
+    if t in (".", "") or re.search(r"[qQ]", t):
+        return None
+    m = re.search(r"(\d+)(?:%(\d+))?(\.*)", t)
+    if not m:
+        return None
+    a, b, pts = int(m.group(1)), m.group(2), len(m.group(3))
+    base = (4.0 * int(b) / a) if b else (8.0 if a == 0 else 4.0 / a)
+    return base * (2 - 0.5 ** pts)
+
+
+def octavas_kern(texto):
+    """Líneas de octava (`*8va` … `*X8va`, también 15ma, 8ba y 15mb) del Humdrum original: [(parte, inicio?, tipo, tamaño,
+    lugar, compás, negras)], donde parte es el número de la espina raíz (0 = la primera columna), compás el índice 0-based del
+    compás y negras la posición dentro de él. music21 las ignora, así que se reescriben después como <octave-shift>."""
+    cols = None                               # [[parte, fin]] por columna
+    T, ini_compas, compas, datos_desde_barra = 0.0, 0.0, -1, True
+    ev = []
+    for l in texto.split("\n"):
+        if l.startswith("!") or not l.strip():
+            continue
+        c = l.split("\t")
+        if l.startswith("**"):
+            cols = [[i, 0.0, t == "**kern"] for i, t in enumerate(c)]; continue
+        if cols is None or len(c) != len(cols):
+            continue
+        if l.startswith("="):
+            if compas == -1 or datos_desde_barra:
+                compas += 1
+            datos_desde_barra = False; ini_compas = T; continue
+        if l.startswith("*"):
+            nuevas, i = [], 0
+            while i < len(c):
+                x = c[i]
+                m = re.match(r"\*(X?)(8va|15ma|8ba|15mb)$", x)
+                if m and cols[i][2]:
+                    tipo, tam, lugar = _OCTAVAS[m.group(2)]
+                    ev.append((cols[i][0], not m.group(1), tipo, tam, lugar, max(compas, 0), T - ini_compas))
+                if x == "*^": nuevas += [list(cols[i]), list(cols[i])]
+                elif x == "*v":
+                    j = i
+                    while j + 1 < len(c) and c[j + 1] == "*v": j += 1
+                    nuevas.append([cols[i][0], max(k[1] for k in cols[i:j + 1]), cols[i][2]]); i = j
+                elif x == "*-": pass
+                else: nuevas.append(cols[i])
+                i += 1
+            cols = nuevas; continue
+        # línea de datos
+        if compas == -1: compas = 0
+        datos_desde_barra = True
+        for k, x in zip(cols, c):
+            d = _duracion_kern(x) if k[2] else None
+            if d is not None: k[1] = T + d
+        futuros = [k[1] for k in cols if k[1] > T + 1e-9]
+        if futuros: T = min(futuros)
+    únicos, vistos = [], set()                  # las dos voces de un pentagrama repiten la misma señal
+    for e in ev:
+        e = e[:6] + (round(e[6], 4),)
+        if e not in vistos:
+            vistos.add(e); únicos.append(e)
+    return únicos
+
+
+def insertar_octavas(xml, eventos):
+    """Escribe en el MusicXML las líneas de octava como <direction><octave-shift>. music21 exporta los dos pentagramas como
+    una sola <part> con <staff>1</staff> (superior) y <staff>2</staff>; la primera columna del Humdrum (parte 0) es el
+    pentagrama inferior."""
+    if not eventos:
+        return xml
+    pm = re.search(r"<part id=[^>]*>.*?</part>", xml, re.S)
+    if not pm or xml.count("</part>") != 1:
+        return xml
+    cuerpo = pm.group(0)
+    ms = list(re.finditer(r"<measure\b[^>]*>.*?</measure>", cuerpo, re.S))
+    divs, d = [], 1.0
+    for m in ms:
+        x = re.search(r"<divisions>(\d+)</divisions>", m.group(0))
+        if x: d = float(x.group(1))
+        divs.append(d)
+    por_compas = {}
+    for (cp, inicio, tipo, tam, lugar, comp, q) in eventos:
+        if comp < len(ms):
+            por_compas.setdefault(comp, []).append((2 if cp == 0 else 1, q, inicio, tipo, tam, lugar))
+    nuevos = {}
+    for comp, evs in por_compas.items():
+        medida = ms[comp].group(0)
+        for st, q, inicio, tipo, tam, lugar in sorted(evs, key=lambda e: -e[1]):
+            dir_ = ('<direction placement="%s"><direction-type><octave-shift type="%s" size="%d" number="1"/></direction-type>'
+                    '<staff>%d</staff></direction>') % (lugar, tipo if inicio else "stop", tam, st)
+            objetivo, cursor, ultimo, pos = q * divs[comp], 0.0, None, None
+            for t in re.finditer(r"<note\b.*?</note>|<backup>.*?</backup>|<forward>.*?</forward>", medida, re.S):
+                x = t.group(0)
+                acorde, gracia = "<chord" in x, "<grace" in x
+                es_nota = x.startswith("<note")
+                est = re.search(r"<staff>(\d+)</staff>", x)
+                est = int(est.group(1)) if est else 1
+                if cursor >= objetivo - 1e-6 and ((es_nota and not acorde and est == st) or (not es_nota and ultimo == st)):
+                    pos = t.start(); break
+                du = re.search(r"<duration>(\d+(?:\.\d+)?)</duration>", x)
+                du = float(du.group(1)) if du else 0.0
+                if x.startswith("<backup"): cursor -= du
+                elif x.startswith("<forward"): cursor += du
+                elif not acorde and not gracia:
+                    cursor += du; ultimo = est
+            if pos is None: pos = medida.rfind("</measure>")
+            medida = medida[:pos] + dir_ + medida[pos:]
+        nuevos[comp] = medida
+    pieza, ult = [], 0
+    for comp in sorted(nuevos):
+        m = ms[comp]; pieza += [cuerpo[ult:m.start()], nuevos[comp]]; ult = m.end()
+    pieza.append(cuerpo[ult:])
+    return xml[:pm.start()] + "".join(pieza) + xml[pm.end():]
+
+
 def convertir(ruta_krn):
-    texto = solo_kern(open(ruta_krn, encoding="utf-8", errors="replace").read())
+    bruto = open(ruta_krn, encoding="utf-8", errors="replace").read()
+    texto = solo_kern(bruto)
     s = converter.parse(texto, format="humdrum")
     partes = list(s.parts)
     if len(partes) != 2:
@@ -178,6 +298,7 @@ def convertir(ruta_krn):
         p.__class__ = stream.PartStaff
         out.insert(0, p)
     out.insert(0, layout.StaffGroup([sup, inf], symbol="brace", barTogether=True))
+    out.octavas_kern = octavas_kern(texto)         # music21 las ignora: se escriben después en el MusicXML
     return out
 
 
@@ -194,7 +315,7 @@ def a_mxl_base64(partitura, nombre):
     tmp = nombre + ".tmp.musicxml"
     partitura.write("musicxml", fp=tmp)
     xml = open(tmp, "rb").read(); os.remove(tmp)
-    return _a_b64(xml.decode("utf-8", "ignore"))
+    return _a_b64(insertar_octavas(xml.decode("utf-8", "ignore"), getattr(partitura, "octavas_kern", [])))
 
 
 def _a_b64(xml):
@@ -289,7 +410,37 @@ def renumerar(xml, etiquetas):
     return cabeza + xml[fin:]
 
 
+def añadir_octavas(kd, obras_json, paquete_json, salida):
+    """Añade las líneas de octava (8va…) a los movimientos ya convertidos del paquete, sin volver a convertirlos."""
+    obras = json.load(open(obras_json, encoding="utf-8"))
+    paquete = json.load(open(paquete_json))
+    movs = {}
+    for o in obras:
+        if o.get("pq") == "beethoven" and str(o["src"].get("partitura") or "").startswith("convertida"):
+            movs.setdefault(str(o["m"]), o)
+    n = 0
+    for m, o in sorted(movs.items(), key=lambda kv: int(kv[0])):
+        f = archivo_kern(o["src"].get("archivo")); ruta = os.path.join(kd, f) if f else None
+        if not ruta or not os.path.exists(ruta) or m not in paquete:
+            print(f"{m}\tSIN kern"); continue
+        xml = _leer_xml(paquete[m])
+        if "<octave-shift" in xml:
+            continue
+        ev = octavas_kern(solo_kern(open(ruta, encoding="utf-8", errors="replace").read()))
+        if not ev:
+            continue
+        nuevo = insertar_octavas(xml, ev)
+        if nuevo != xml:
+            paquete[m] = _a_b64(nuevo); n += 1
+            print(f"{m}\t{o['t']}\t{len(ev)} señales de octava")
+    json.dump(paquete, open(salida, "w"))
+    print(f"{n} movimientos con líneas de octava")
+
+
 def main():
+    if "--octavas" in sys.argv:
+        a = [x for x in sys.argv[1:] if x != "--octavas"]
+        return añadir_octavas(*a[:4])
     if len(sys.argv) < 5:
         sys.exit(__doc__)
     kd, obras_json, paquete_json, salida = sys.argv[1:5]
