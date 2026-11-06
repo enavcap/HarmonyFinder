@@ -44,6 +44,10 @@
     compasAlInicio: true,
     // N-ALT-2: quitar las alteraciones repetidas dentro de un compás
     alteracionesUnaVez: true,
+    // N-PLICA-2: dirección de plicas por voz (aguda arriba, grave abajo) en pentagramas con varias voces simultáneas
+    plicasPorVoz: true,
+    // N-LIG-3: ligaduras de unión por arriba (voz aguda) o por abajo (voz grave) en pentagramas con varias voces simultáneas
+    ligadurasPorVoz: true,
     // N-CLAVE-1: en las partituras que ya tienen edición profesional (no reconstruidas) se respetan sus claves, con los
     // cambios a mitad de compás; a false se vuelve a corregir la clave por tesitura (corregirClaves, index.html)
     clavesDeLaEdicion: true,
@@ -137,6 +141,75 @@
   }
   regla('N-ALT-2', 'Alteraciones: una vez por compás', 'xml', 'aplicada', 'Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama; las repetidas de las reconstrucciones del DCML se quitan (CONFIG.alteracionesUnaVez). No toca precauciones, editoriales ni notas ligadas.');
 
+  // N-PLICA-2 (Gould: con varias voces en un pentagrama, la plica de cada voz mira siempre al mismo lado)
+  // Con dos o más voces que suenan a la vez en un mismo pentagrama, la voz más aguda lleva la plica hacia arriba y la más
+  // grave hacia abajo, en todo el compás, sea cual sea la altura de cada nota; las voces intermedias se dejan como las
+  // resuelva el grabador. Verovio reparte las plicas según el orden en que la voz aparece en el archivo, y en las
+  // ediciones donde la voz grave se escribe antes (o la voz aguda lleva otro número) las plicas de una voz atraviesan
+  // las cabezas de la otra. Solo actúa si las dos voces coinciden en el tiempo: si alternan sin sonar a la vez no hay
+  // choque posible y se dejan como vienen. Se aplica a todas las partituras (originales, convertidas y reconstruidas).
+  const valorPaso = pitch => { const p = PASOS[txt(pitch, 'step')]; return p === undefined ? null : (+txt(pitch, 'octave') || 0) * 7 + p };
+  const ANTES_DE_PLICA = ['notehead', 'notehead-text', 'staff', 'beam', 'notations', 'lyric', 'play', 'listen'];
+  function plicasPorVoz(xml) {
+    if (!CONFIG.plicasPorVoz && !CONFIG.ligadurasPorVoz) return xml;
+    let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
+    if (doc.querySelector('parsererror')) return xml;
+    let cambios = 0;
+    for (const parte of doc.getElementsByTagName('part')) {
+      for (const compas of [...parte.children].filter(c => c.tagName === 'measure')) {
+        const notas = []; let t = 0, ultimaDur = 0;
+        for (const el of compas.children) {
+          const d = +txt(el, 'duration') || 0;
+          if (el.tagName === 'backup') t -= d;
+          else if (el.tagName === 'forward') t += d;
+          else if (el.tagName === 'note') {
+            const acorde = !!hijo(el, 'chord'), gracia = !!hijo(el, 'grace');
+            if (acorde) t -= ultimaDur;
+            const pitch = hijo(el, 'pitch');
+            if (!hijo(el, 'rest')) notas.push({ el, staff: txt(el, 'staff') || '1', voz: txt(el, 'voice') || '1', t, fin: t + d, val: pitch ? valorPaso(pitch) : null, gracia });
+            if (!gracia) { t += d; ultimaDur = d } else ultimaDur = 0;
+          }
+        }
+        const porStaff = new Map();
+        for (const n of notas) { if (!porStaff.has(n.staff)) porStaff.set(n.staff, new Map()); const m = porStaff.get(n.staff); if (!m.has(n.voz)) m.set(n.voz, []); m.get(n.voz).push(n) }
+        for (const voces of porStaff.values()) {
+          if (voces.size < 2) continue;
+          const resumen = [...voces].map(([voz, l]) => { const v = l.map(n => n.val).filter(x => x !== null); return { voz, l, media: v.length ? v.reduce((s, x) => s + x, 0) / v.length : null } }).filter(r => r.media !== null);
+          if (resumen.length < 2) continue;
+          resumen.sort((a, b) => b.media - a.media);                           // la más aguda primero
+          const aguda = resumen[0], grave = resumen[resumen.length - 1];
+          if (aguda.media === grave.media) continue;
+          const coinciden = aguda.l.some(a => !a.gracia && grave.l.some(b => !b.gracia && a.t < b.fin && b.t < a.fin));
+          if (!coinciden) continue;
+          if (CONFIG.plicasPorVoz) for (const [r, sentido] of [[aguda, 'up'], [grave, 'down']]) for (const n of r.l) {
+            let s = hijo(n.el, 'stem');
+            if (s) { if (s.textContent.trim() === sentido) continue; s.textContent = sentido }
+            else { s = doc.createElement('stem'); s.textContent = sentido; const ref = [...n.el.children].find(c => ANTES_DE_PLICA.includes(c.tagName)); ref ? n.el.insertBefore(s, ref) : n.el.append(s) }
+            cambios++;
+          }
+          // N-LIG-3: las ligaduras de unión de la voz aguda van por arriba y las de la grave por abajo. En un acorde solo la nota
+          // exterior (la más aguda en la voz aguda, la más grave en la grave) lleva orientación; las interiores las resuelve el grabador
+          if (CONFIG.ligadurasPorVoz) for (const [r, arriba] of [[aguda, true], [grave, false]]) {
+            const porT = new Map();
+            for (const n of r.l) if (n.val !== null && !n.gracia) { if (!porT.has(n.t)) porT.set(n.t, []); porT.get(n.t).push(n) }
+            for (const g of porT.values()) {
+              const ext = g.reduce((a, b) => (arriba ? b.val > a.val : b.val < a.val) ? b : a);
+              for (const ti of ext.el.querySelectorAll('notations > tied')) {
+                if (ti.getAttribute('type') !== 'start') continue;
+                const [pl, or] = arriba ? ['above', 'over'] : ['below', 'under'];
+                if (ti.getAttribute('placement') === pl && ti.getAttribute('orientation') === or) continue;
+                ti.setAttribute('placement', pl); ti.setAttribute('orientation', or); cambios++;
+              }
+            }
+          }
+        }
+      }
+    }
+    return cambios ? new XMLSerializer().serializeToString(doc) : xml;
+  }
+  regla('N-LIG-3', 'Ligaduras de unión: por arriba en la voz aguda, por abajo en la grave', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, las ligaduras de unión de la voz aguda se dibujan por arriba y las de la grave por abajo, para que no pasen por las notas de la otra voz (CONFIG.ligadurasPorVoz). En acordes, solo la nota exterior. Se aplica a todas las fuentes.');
+  regla('N-PLICA-2', 'Plicas: una dirección por voz', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, la más aguda lleva la plica hacia arriba y la más grave hacia abajo en todo el compás (CONFIG.plicasPorVoz). Se aplica a todas las fuentes.');
+
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
   regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'existente', 'Reconstrucciones del DCML: clave por tesitura, penalizando las líneas adicionales y los cambios breves. Ediciones profesionales (Sapp, OpenScore…): se conservan sus claves tal cual, con los cambios a mitad de compás (CONFIG.clavesDeLaEdicion).', 'web/index.html · asignarClaves, corregirClaves');
   regla('N-PLICA-1', 'Plicas: dirección y longitud', 'opciones', 'existente', 'Dirección por la nota más alejada de la línea central; plicas que llegan a ella. Verovio lo cumple (auditoría: 0 plicas de menos de 2 espacios).', 'Verovio');
@@ -152,5 +225,5 @@
   regla('N-OCT-1', 'Signo de octava frente a muchas líneas adicionales', 'xml', 'pendiente', 'Pasajes con 5 o más líneas adicionales sostenidos: cambiar de clave, pasar de pentagrama o 8va (Allemande, c. 5, mano izquierda con re5 en clave de fa). Hay que fijar el umbral: las octavas graves de Schumann (4 líneas) son legítimas.');
   regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'pendiente', 'Notas de una mano escritas en el pentagrama de la otra con barra compartida, en lugar de líneas adicionales o cambios de clave.');
 
-  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes };
+  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz };
 })(typeof window !== 'undefined' ? window : globalThis);
