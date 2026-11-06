@@ -3287,7 +3287,7 @@ async function aplicarURL(vaciar=false){
 }
 window.addEventListener('popstate',()=>{if(location.search!==urlActual) aplicarURL(true)});
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,xmlDe,estructura,alinear,situar,parteDe,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,xmlDe,estructura,alinear,situar,parteDe,ocurrencias,desajustes,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
   fijarTexto:t=>{q.value=t},get actual(){return actual},
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
