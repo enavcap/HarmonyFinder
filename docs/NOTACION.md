@@ -87,6 +87,13 @@ el Op. 10 n.º 3, i); la lista sale de comparar dos ejecuciones de `herramientas
 2 o más voces; solo 24 tienen voces que nunca suenan a la vez (fusionables) y solo 2 tienen 3 o más: las voces del archivo de Sapp
 son las de la edición y no sobran.
 
+**Voces que entran o salen a mitad de compás.** En el Humdrum de Sapp una voz nueva se abre (`*^`) o se cierra (`*v`) donde
+empieza o acaba, a menudo a mitad de compás (unas 2 500 veces en los 103 archivos). music21 no lo convierte bien: la voz nueva
+empieza en el pulso 1 y, tras una fusión, el resto del compás va a una segunda capa con el mismo número de voz, que Verovio dibuja
+a continuación (notas desplazadas y huecos; Op. 2 n.º 1, ii, cc. 2-3). Se corrige en la conversión, no en la web:
+`voces_por_compas` (`herramientas/krn_beethoven_a_mxl.py`) lleva esas operaciones a los extremos del compás y rellena la voz con
+silencios invisibles, que en el MusicXML son `<forward>`.
+
 > La métrica `lineasAdic4` **no es un error por sí misma**: las octavas graves de Schumann (*Dichterliebe* 7) llevan 4 líneas
 > adicionales en la edición. Sirve para localizar candidatos, no para dar el visto bueno ni el rechazo.
 
