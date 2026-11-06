@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-06
+
 ### Added
 - Reglas de notación del proyecto (`web/notacion.js`, `docs/NOTACION.md`), basadas por temas en *Behind Bars* (Elaine Gould): catálogo de reglas con identificador estable (`N-…`), separado en tres capas (opciones de Verovio, correcciones del MusicXML y retoques del SVG). Las opciones de grabado de Verovio, antes en `index.html`, pasan a `Notacion.opciones`.
 - `herramientas/auditoria_gould.js`: auditoría de notación sobre una muestra reproducible o sobre los casos fijos de `herramientas/notacion_casos.json` (barras empinadas, líneas adicionales, ligaduras y alteraciones que chocan, plicas que cruzan cabezas ajenas, compás y clave al inicio). `herramientas/prueba_notacion.js` comprueba las reglas y que el catálogo coincide con la documentación.
@@ -238,7 +240,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.1...v0.7.2
