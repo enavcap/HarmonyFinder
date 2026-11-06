@@ -1703,7 +1703,7 @@ async function xmlDe(o){
   }
   x=quitarExpresion(x);
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=ordenarVoces(x,o.src.inst); else x=corregirClaves(x);
+  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst)); else x=corregirClaves(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
