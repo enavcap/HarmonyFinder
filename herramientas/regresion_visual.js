@@ -10,7 +10,7 @@
 //   node herramientas/regresion_visual.js                comparar con las referencias (falla si alguna difiere más del umbral)
 //   node herramientas/regresion_visual.js --referencia   regenerar las referencias (solo tras revisar el informe)
 // variables: URL_WEB, VEROVIO_JS, CHROME, REF_DIR (otra carpeta de referencias), SALIDA (carpeta del informe; por defecto regresion_visual_informe/), UMBRAL
-// (fracción de píxeles distintos tolerada, 0.002 por defecto), CASOS (lista de id separados por comas), CFG (Notacion.config)
+// (fracción de píxeles distintos tolerada, 0.002 por defecto), ESCALA (deviceScaleFactor, 1), CASOS (lista de id separados por comas), CFG (Notacion.config)
 const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path');
 const DIR = path.join(__dirname, 'regresion_visual'), REF = process.env.REF_DIR || path.join(DIR, 'ref');
 const REFERENCIA = process.argv.includes('--referencia');
@@ -20,7 +20,7 @@ const casos = JSON.parse(fs.readFileSync(path.join(DIR, 'casos.json'), 'utf8')).
 
 (async () => {
   const b = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME, args: ['--no-sandbox'] } : {});
-  const p = await b.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 1 });
+  const p = await b.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: +(process.env.ESCALA || 1) });
   const errores = []; p.on('pageerror', e => errores.push(e.message));
   await p.addInitScript(() => { try { localStorage.setItem('tema', 'light') } catch (e) { } });
   await p.route(/googleapis|gstatic/, r => r.abort());
@@ -42,7 +42,11 @@ const casos = JSON.parse(fs.readFileSync(path.join(DIR, 'casos.json'), 'utf8')).
       const s = document.querySelector('#partitura svg');
       return { compases: s.querySelectorAll('g.measure').length, notas: s.querySelectorAll('g.note').length, silApartados: s.querySelectorAll('g.rest[data-n-sil2]').length, silOcultos: s.querySelectorAll('g.rest[display=none]').length, ligRetocadas: s.querySelectorAll('g.tie[data-n-lig2]').length, plicas: s.querySelectorAll('g.stem').length, barras: s.querySelectorAll('g.beam').length };
     });
+    // la partitura entera, aunque sea más ancha que su caja (en la web se desliza en horizontal)
+    const ancho = await p.evaluate(() => { const c = document.querySelector('#partitura'), s = c.querySelector('svg'); c.style.overflow = 'visible'; c.style.width = 'max-content'; c.classList.remove('desliza'); return Math.ceil(s.getBoundingClientRect().width) });
+    if (ancho > 1250) await p.setViewportSize({ width: ancho + 80, height: 900 });
     const png = await svg.screenshot();
+    await p.setViewportSize({ width: 1300, height: 900 });
     if (REFERENCIA) { fs.writeFileSync(path.join(REF, c.id + '.png'), png); filas.push({ c, info, ref: true }); console.log('referencia', c.id, JSON.stringify(info)); continue }
     fs.writeFileSync(path.join(SALIDA, c.id + '.nueva.png'), png);
     const rutaRef = path.join(REF, c.id + '.png');

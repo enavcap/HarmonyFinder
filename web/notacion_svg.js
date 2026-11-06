@@ -80,7 +80,8 @@
   // N-SIL-1/N-SIL-2. Silencios que pisan notas: en un pentagrama con varias voces, Verovio no siempre mira lo que hacen las
   // otras voces en ese instante, y las reconstrucciones fijan el silencio de la voz aguda en una altura fija.
   //  · Si un silencio pisa una cabeza, plica, barra, corchete o alteración de otra voz, se APARTA verticalmente, alejándose de
-  //    la otra voz (hacia arriba en la voz aguda, hacia abajo en las demás) en pasos de media línea hasta 3 espacios
+  //    la otra voz (hacia arriba en la voz aguda, hacia abajo en las demás) en pasos de media línea hasta 3 espacios, dejando
+//    al menos 0,35 espacios libres por arriba y por abajo (separación silencio-acorde del código de MuseScore, v0.8.6)
   //    (MuseScore, «Working with multiple voices»: con varias voces los silencios de la voz 1 suben y los de la voz 2 bajan,
   //    «usually displaced further out to avoid colliding»; LilyPond, NR 1.5.2 «Collision resolution»: «Rests opposite a stem
   //    in a different voice are shifted vertically»). Solo si no hay sitio se oculta (decisión propia: en un ejemplo
@@ -108,8 +109,9 @@
         trazos:[...c.querySelectorAll('g.stem,g.beam,g.flag,g.accid')].map(e=>cajaFina(e,sp)).filter(Boolean)}));
       voces.forEach((v,iv)=>{
         for(const r of v.silencios){
-          const choques=dy=>{
-            const c={x:r.b.x,y:r.b.y+dy,w:r.b.w,h:r.b.h}, fuera=[];
+          // holgura: distancia vertical mínima exigida (N-SIL-2 pide 0,35 espacios entre el silencio apartado y las notas)
+          const choques=(dy,holgura=0)=>{
+            const c={x:r.b.x,y:r.b.y+dy-holgura,w:r.b.w,h:r.b.h+2*holgura}, fuera=[];
             voces.forEach((w,jw)=>{ if(jw===iv) return;
               for(const n of w.notas) if(pisa(c,n)) fuera.push(n);
               for(const n of w.trazos) if(pisa(c,n)) fuera.push(n);
@@ -122,14 +124,14 @@
             while(r.e.firstChild) g.appendChild(r.e.firstChild); r.e.appendChild(g); r.dy=dy; r.e.setAttribute('data-n-sil2',String(Math.round(dy/paso))); movidos++};
           if(!c0.some(b=>b.sil)){
             // N-SIL-2: solo pisa notas, plicas o alteraciones de otra voz: se aparta hacia fuera; si no cabe, se oculta
-            if(Notacion.config.silenciosApartados){ const signo=iv===0?-1:1; let k=1; while(k<=6&&choques(signo*k*paso).length) k++; if(k<=6){ mover(signo*k*paso); continue } }
+            if(Notacion.config.silenciosApartados){ const signo=iv===0?-1:1; let k=1; while(k<=6&&choques(signo*k*paso,sp*0.35).length) k++; if(k<=6){ mover(signo*k*paso); continue } }
             r.e.setAttribute('display','none'); r.oculto=true; movidos++; continue }
           const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
           const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
           let mejor=null;
           for(let k=1;k<=10;k++) for(const signo of [pref,-pref]){
             const coste=k+(signo===pref?0:1.5);
-            if((!mejor||coste<mejor.coste)&&!choques(signo*k*paso).length) mejor={coste,dy:signo*k*paso};
+            if((!mejor||coste<mejor.coste)&&!choques(signo*k*paso,sp*0.35).length) mejor={coste,dy:signo*k*paso};
           }
           if(!mejor) continue;
           mover(mejor.dy);

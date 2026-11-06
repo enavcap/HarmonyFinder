@@ -59,6 +59,9 @@
     ligadurasDespejadas: true,
     // N-BARRA-3: excepciones de agrupación por compás (corcheas por medio compás en 4/4, compás entero en 3/4 y 3/8)
     barrasPorCompas: true,
+    // N-PLICA-3: criterio para las voces intermedias con 3+ voces: 'rango' (convención de LilyPond y MuseScore: la mitad
+    // superior arriba) o 'cercania' (la voz va del lado de la voz extrema que tiene más cerca; criterio anterior)
+    vocesIntermedias: 'rango',
     // N-SIL-2: un silencio que pisa una nota de otra voz se aparta antes de ocultarse
     silenciosApartados: true,
     // Integridad musical (I-…): 'revertir' (por defecto: si una transformación altera una propiedad que no declaró, se
@@ -635,7 +638,7 @@
       for (const n of grave.l) cambios += ponerPlica(doc, n.el, 'down');
       activas.slice(1, -1).forEach((r, i) => {                            // N-PLICA-3: rango i+1 de n (0 = la más aguda)
         if (r.l.some(n => hijo(n.el, 'stem'))) return;
-        const sentido = i + 1 < activas.length / 2 ? 'up' : 'down';
+        const sentido = CONFIG.vocesIntermedias === 'cercania' ? (r.media - grave.media > aguda.media - r.media ? 'up' : 'down') : (i + 1 < activas.length / 2 ? 'up' : 'down');
         for (const n of r.l) cambios += ponerPlica(doc, n.el, sentido);
       });
     }

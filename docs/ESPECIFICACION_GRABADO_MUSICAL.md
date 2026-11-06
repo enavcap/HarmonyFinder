@@ -347,10 +347,11 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 
 #### `N-SIL-2` — Silencios que pisan notas de otra voz
 - **Descripción.** Un silencio que pisa una cabeza, plica, barra, corchete o alteración de otra voz se aparta en vertical,
-  hacia fuera (arriba en la voz aguda, abajo en las demás), en pasos de media línea hasta 3 espacios; solo si no cabe se
-  oculta.
+  hacia fuera (arriba en la voz aguda, abajo en las demás), en pasos de media línea hasta 3 espacios y dejando al menos
+  0,35 espacios libres; solo si no cabe se oculta.
 - **Referencia.** MS-voces («usually displaced further out to avoid colliding»); LP-voces («Rests opposite a stem in a
-  different voice are shifted vertically»). El tope de 3 espacios y el ocultar como último recurso son **Propia**.
+  different voice are shifted vertically»); separación mínima de 0,35 espacios a un acorde: MS-código (`restlayout`,
+  leído en la v0.8.6). El tope de 3 espacios y el ocultar como último recurso son **Propia**.
 - **Casos especiales.** Silencio que pisa el silencio de otra voz: se desplaza en el sentido que más lo aleja (como antes).
 - **Excepciones.** No toca silencios de una sola voz.
 - **Implementación.** `despejarSilencios` en `notacion_svg.js` (capa SVG: Verovio no siempre mira las otras capas y la

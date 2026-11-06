@@ -140,7 +140,7 @@ const AT = (div = 1, tiempo = '4/4', clave = '<clef><sign>G</sign><line>2</line>
     const n = Notacion.despejarSilencios(c), r = c.querySelector('g.rest'); const res = { n, oculto: r.getAttribute('display') === 'none', pasos: r.getAttribute('data-n-sil2') }; c.remove(); Notacion.config.silenciosApartados = true; return res;
   }, [svgSil(cabezaY), cfg || {}]);
   let rs = await sil(450);
-  ok(rs.n === 1 && !rs.oculto && +rs.pasos < 0, `N-SIL-2: el silencio de la voz aguda que pisa una cabeza de la grave sube (${rs.pasos} medias líneas) en vez de ocultarse`);
+  ok(rs.n === 1 && !rs.oculto && rs.pasos === '-2', `N-SIL-2: el silencio de la voz aguda que pisa una cabeza de la grave sube (${rs.pasos} medias líneas, no 1: la primera posición libre lo dejaría tocando la cabeza; holgura de 0,35 espacios) en vez de ocultarse`);
   rs = await sil(450, { silenciosApartados: false });
   ok(rs.oculto, 'N-SIL-2 apagada: se oculta (comportamiento anterior)');
   rs = await sil(900);
