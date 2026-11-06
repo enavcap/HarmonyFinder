@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-11-06
+
 ### Fixed
 - Claves de las partituras con edición profesional (Sapp, OpenScore…): se respetan tal cual, también los cambios de clave a mitad de compás. Antes `corregirClaves` leía una sola clave por compás, daba por «lejanos» los bajos escritos en clave de fa y descartaba las claves del editor para recolocarlas por compás; p. ej. en la *Waldstein* (Op. 53, III) la mano izquierda perdía el cambio fa→sol dentro de los cc. 1, 4, 5… y el do grave salía en clave de sol con 8 líneas adicionales (`CONFIG.clavesDeLaEdicion`, regla `N-CLAVE-1`). Se comprobó sobre la partitura de Op. 53/iii: 91 de 91 claves conservadas, en su sitio.
 
@@ -248,7 +250,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.0...v0.8.1
