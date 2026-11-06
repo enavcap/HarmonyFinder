@@ -31,7 +31,8 @@ reconstruida):
 |---|---|
 | `sinClave`, `sinCompas` | pentagramas del primer compás sin clave; fragmento sin indicación de compás |
 | `lineasAdic4`, `lineasAdic6` | cabezas con ≥ 4 / ≥ 6 líneas adicionales (cada nota se asigna al pentagrama donde se dibuja, también con cruce de pentagrama) |
-| `barraEmpinada` | barras con pendiente > 10° (`PEND_MAX`) |
+| `barraEmpinada` | barras con pendiente > 10° (`PEND_MAX`). **Solo orientativa**: marca como «empinada» la inclinación normal de un espacio entre dos corcheas (16,4°); ver «Revisión de `N-BARRA-2`» |
+| `barraSubida` | barras que suben más de 1,1 espacios de pentagrama (`SUBIDA_MAX`) de punta a punta; es la medida que usan los manuales de grabado |
 | `plicaCorta`, `plicaNoLlega` | plicas de nota suelta de < 2 espacios; notas fuera del pentagrama cuya plica apunta a él sin llegar a la línea central |
 | `lazoChoque` | ligaduras (de unión o de expresión) que atraviesan una cabeza, plica o barra ajena (muestreo del trazo) |
 | `plicaCruza` | plicas que atraviesan la cabeza de una nota de otra voz |
@@ -89,6 +90,30 @@ son las de la edición y no sobran.
 > La métrica `lineasAdic4` **no es un error por sí misma**: las octavas graves de Schumann (*Dichterliebe* 7) llevan 4 líneas
 > adicionales en la edición. Sirve para localizar candidatos, no para dar el visto bueno ni el rechazo.
 
+### Revisión de `N-BARRA-2` (v0.8.6) y lo que queda realmente
+
+La línea base de arriba (v0.8.1) contaba como defecto cualquier barra de más de 10°. Al mirar los polígonos del SVG el 16,4° casi
+exacto de la mayoría resultó ser **un espacio de pentagrama de subida entre dos corcheas contiguas** (1905,2070 → 2517,2250 en
+unidades de Verovio: 180 de subida en 612): la inclinación cuantizada habitual en el grabado. El ángulo depende de lo juntas que
+estén las notas, no de lo empinada que sea la barra; por eso se añade `barraSubida` (subida en espacios, `SUBIDA_MAX=1,1`).
+
+Misma muestra (120 fragmentos, semilla 777, v0.8.6):
+
+| | Originales (760 barras) | Reconstruidas (844 barras) |
+|---|---|---|
+| Barras de más de 10° (`barraEmpinada`) | 119 (16 %) | 276 (33 %) |
+| Barras que suben más de 1,1 espacios (`barraSubida`) | 37 (4,9 %), 12 fragmentos | 44 (5,2 %), 14 fragmentos |
+
+Máximo medido: 2 espacios. Revisadas a ojo (Op. 53 ii cc. 21-24, Corelli Op. 4 n.º 2) son escalas de fusas y pares de corcheas con
+aspecto normal. Por qué `beamMaxSlope` no limita ese ángulo sigue sin investigarse. **Conclusión:** sin evidencia de defecto no se
+toca el grabado de las barras.
+
+Lo que sí se ve en capturas y no es una métrica de barras: acordes de fusas a dos voces con ligaduras de unión amontonadas (Op. 14
+n.º 2, i, cc. 1-3), alteraciones o líneas adicionales sueltas entre pentagramas en figuras con cruce (Clara Schumann, Op. 23 n.º 6,
+c. 34; `N-CRUCE-1`) y la maraña de 3+ voces de las reconstrucciones. Esta última es **rara**: solo 288 de 164 613 pentagramas-compás
+del corpus (0,17 %) tienen 3 o más voces con notas (13 con 4 o más), concentrados en Schumann (R.), Bach y Lang, así que `N-VOC-1`
+mejoraría pocos fragmentos aunque se hiciera bien.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
@@ -104,7 +129,7 @@ poder medirla) o **pendiente**.
 | `N-BARRA-1` | Barras: agrupación por pulso | xml | existente | `barrasAutomaticas` (`web/index.html`), solo reconstrucciones. |
 | `N-SIL-1` | Silencios con varias voces | svg | existente | `ordenarVoces`, `despejarSilencios` (`web/index.html`). |
 | `N-LIG-1` | Ligaduras: distancia de seguridad | opciones | existente | `slurMargin`, `tieMinLength`… en `OPCIONES`. |
-| `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | Ver «Lo que no se arregla con opciones». |
+| `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | **Replanteada**: el criterio es la subida en espacios, no el ángulo. Con `barraSubida` solo el 5 % de las barras sube más de 1,1 espacios y no se ve defecto en las capturas; sin evidencia, no se actúa (ver «Revisión de `N-BARRA-2`»). |
 | `N-VOC-1` | Tres o más voces en un pentagrama | xml | pendiente | Causa de la maraña de la mano derecha en la *Allemande* (c. 2). |
 | `N-VOC-2` | Unísonos con duraciones distintas | xml | pendiente | Cabeza compartida o dos cabezas. |
 | `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | pendiente | 2 % (originales) y 7 % (reconstruidas) de las ligaduras. |
@@ -150,6 +175,6 @@ después de cada regla (`CASOS=1`).
 ## Decisiones abiertas
 
 - **Compás al inicio de un fragmento** (`N-INI-1`): activado. Se apaga con `Notacion.config.compasAlInicio = false`.
-- **Pendiente máxima de las barras** (`N-BARRA-2`): hay que decidir el umbral y si se recalcula en el SVG.
+- **Pendiente máxima de las barras** (`N-BARRA-2`): replanteada (ver «Revisión»); no actuar sin un caso concreto que contrastar con la edición.
 - **Muchas líneas adicionales** (`N-OCT-1`): cambio de clave, 8va o pasar de pentagrama; y a partir de cuántas líneas.
-- **Reparto de voces de las reconstrucciones** (`N-VOC-1`): es el cambio con mayor efecto visible y también el más grande.
+- **Reparto de voces de las reconstrucciones** (`N-VOC-1`): el de mayor efecto visible por fragmento y el más grande, pero afecta al 0,17 % de los pentagramas-compás.

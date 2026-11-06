@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- `herramientas/auditoria_gould.js`: nueva métrica `barraSubida` (barras que suben más de `SUBIDA_MAX`=1,1 espacios de pentagrama). La métrica por ángulo (`barraEmpinada`) contaba como defecto la inclinación normal de un espacio entre dos corcheas (16,4°): con la subida en espacios queda un 5 % de las barras (antes 16-33 %), sin defecto visible. `N-BARRA-2` queda replanteada en `docs/NOTACION.md`, que además recoge la incidencia real de las voces múltiples en las reconstrucciones (0,17 % de los pentagramas-compás con 3+ voces). No cambia el grabado de las partituras.
+
 ## [0.8.6] - 2026-11-06
 
 ### Changed
