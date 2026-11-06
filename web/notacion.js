@@ -44,6 +44,9 @@
     compasAlInicio: true,
     // N-ALT-2: quitar las alteraciones repetidas dentro de un compás
     alteracionesUnaVez: true,
+    // N-CLAVE-1: en las partituras que ya tienen edición profesional (no reconstruidas) se respetan sus claves, con los
+    // cambios a mitad de compás; a false se vuelve a corregir la clave por tesitura (corregirClaves, index.html)
+    clavesDeLaEdicion: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -135,7 +138,7 @@
   regla('N-ALT-2', 'Alteraciones: una vez por compás', 'xml', 'aplicada', 'Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama; las repetidas de las reconstrucciones del DCML se quitan (CONFIG.alteracionesUnaVez). No toca precauciones, editoriales ni notas ligadas.');
 
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
-  regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'existente', 'Se elige la clave por tesitura, penalizando las líneas adicionales y los cambios breves de clave.', 'web/index.html · asignarClaves, corregirClaves');
+  regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'existente', 'Reconstrucciones del DCML: clave por tesitura, penalizando las líneas adicionales y los cambios breves. Ediciones profesionales (Sapp, OpenScore…): se conservan sus claves tal cual, con los cambios a mitad de compás (CONFIG.clavesDeLaEdicion).', 'web/index.html · asignarClaves, corregirClaves');
   regla('N-PLICA-1', 'Plicas: dirección y longitud', 'opciones', 'existente', 'Dirección por la nota más alejada de la línea central; plicas que llegan a ella. Verovio lo cumple (auditoría: 0 plicas de menos de 2 espacios).', 'Verovio');
   regla('N-BARRA-1', 'Barras: agrupación por pulso', 'xml', 'existente', 'Las figuras sin barra de las reconstrucciones se agrupan por pulso (3 corcheas en compases compuestos) y se cortan en silencios y notas largas.', 'web/index.html · barrasAutomaticas');
   regla('N-SIL-1', 'Silencios en pentagramas con varias voces', 'svg', 'existente', 'Los silencios de la voz aguda se colocan arriba, los de las demás se ocultan; después se apartan los que pisan notas, plicas o barras de otra voz.', 'web/index.html · ordenarVoces, despejarSilencios');

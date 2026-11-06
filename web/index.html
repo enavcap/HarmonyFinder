@@ -1698,7 +1698,7 @@ async function xmlDe(o){
   }
   x=quitarExpresion(x);
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst)); else x=corregirClaves(x);
+  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst)); else if(!Notacion.config.clavesDeLaEdicion) x=corregirClaves(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -1887,14 +1887,42 @@ function corregirClaves(xml){
     const compases=[...parte.children].filter(c=>c.tagName==='measure');
     const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
     for(let st=1;st<=n;st++,g++){
-      let clave=n===2&&st===2?'F4':'G2', malos=0;
+      let clave=n===2&&st===2?'F4':'G2', malos=0, desp=0;
       for(const m of compases){
-        for(const c of m.getElementsByTagName('clef')) if(+(c.getAttribute('number')||1)===st){
-          const k=txt(c,'sign')+txt(c,'line')+(+txt(c,'clef-octave-change')===-1?'-1':''); if(CLAVES[k]) clave=k}
+        // claves de este pentagrama en el compás, con el instante en que entran (los cambios de clave a mitad de
+        // compás de la edición, p. ej. Beethoven Op. 53/iii: fa para el do grave y sol para la melodía en el mismo
+        // compás, no deben leerse como una sola clave para todo el compás)
+        const dur=e=>+(txt(e,'duration')||0);
+        const cambios=[], notas=[], octavas=[]; let pos=0, ant=0;
+        for(const e of m.children){
+          if(e.tagName==='backup'){pos-=dur(e);continue}
+          if(e.tagName==='forward'){pos+=dur(e);continue}
+          if(e.tagName==='direction'){
+            // líneas de octava (8va/8ba): las notas se escriben desplazadas, así que cuenta su altura escrita
+            if(+(txt(e,'staff')||1)===st) for(const o of e.getElementsByTagName('octave-shift')){
+              const ti=o.getAttribute('type'), tam=+(o.getAttribute('size')||8);
+              octavas.push({t:pos,d:ti==='stop'?0:(ti==='down'?-1:1)*7*Math.round((tam-1)/7)})}
+            continue}
+          if(e.tagName==='attributes'){
+            for(const c of e.children) if(c.tagName==='clef'&&+(c.getAttribute('number')||1)===st){
+              const k=txt(c,'sign')+txt(c,'line')+(+txt(c,'clef-octave-change')===-1?'-1':''); if(CLAVES[k]) cambios.push({t:pos,k})}
+            continue}
+          if(e.tagName!=='note') continue;
+          const acorde=!!hijo(e,'chord'), adorno=!!hijo(e,'grace'), ini=acorde?pos-ant:pos;
+          if(!acorde&&!adorno){ant=dur(e);pos+=ant}
+          if(n>1&&+(txt(e,'staff')||1)!==st) continue;
+          const pi=hijo(e,'pitch'); if(pi) notas.push({t:ini,alt:PASO[txt(pi,'step')]+7*+txt(pi,'octave')});
+        }
         let lejos=0;
-        for(const no of m.children){if(no.tagName!=='note'||(n>1&&+(txt(no,'staff')||1)!==st))continue;
-          const pi=hijo(no,'pitch'); if(!pi)continue;
-          const d=Math.abs(PASO[txt(pi,'step')]+7*+txt(pi,'octave')-CLAVES[clave].c); if(d>=6&&Math.floor((d-4)/2)>=4) lejos++}
+        for(const nt of notas){
+          let k=clave; for(const cb of cambios) if(cb.t<=nt.t) k=cb.k;       // clave vigente cuando suena la nota
+          let dz=desp; for(const o of octavas) if(o.t<=nt.t) dz=o.d;
+          const lin=q=>{const d=Math.abs(nt.alt+dz-CLAVES[q].c);return d>=6?Math.floor((d-4)/2):0};
+          // solo cuenta si otra clave habitual (sol o fa) ahorraría 3 o más líneas: un pasaje agudo que la edición
+          // escribe con líneas adicionales en sol no tiene arreglo con otra clave y no se toca
+          const ahora=lin(k); if(ahora>=4&&ahora-Math.min(lin('G2'),lin('F4'))>=3) lejos++}
+        if(cambios.length) clave=cambios[cambios.length-1].k;
+        if(octavas.length) desp=octavas[octavas.length-1].d;
         if(lejos>=2) malos++;
       }
       if(malos>=2) solo.add(g);

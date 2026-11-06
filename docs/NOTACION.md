@@ -75,7 +75,7 @@ poder medirla) o **pendiente**.
 | Id | Tema (Gould) | Capa | Estado | Resumen y dónde está |
 |---|---|---|---|---|
 | `N-INI-1` | Indicaciones al inicio del sistema | xml | **aplicada** | Un fragmento que empieza a mitad de obra muestra el compás vigente (`CONFIG.compasAlInicio`). Claves y armadura ya las resuelve Verovio (0 pentagramas sin clave en la muestra). |
-| `N-CLAVE-1` | Elección y cambio de clave | xml | existente | `asignarClaves`, `corregirClaves` (`web/index.html`): clave por tesitura penalizando líneas adicionales y cambios breves. |
+| `N-CLAVE-1` | Elección y cambio de clave | xml | existente | Reconstrucciones (DCML): `asignarClaves` (`web/index.html`), clave por tesitura penalizando líneas adicionales y cambios breves. Ediciones profesionales (Sapp, OpenScore…): se mantienen sus claves, también los cambios a mitad de compás (`CONFIG.clavesDeLaEdicion`; con `false` actúa `corregirClaves`). |
 | `N-PLICA-1` | Plicas: dirección y longitud | opciones | existente | Verovio. Medido: 0 plicas de < 2 espacios. |
 | `N-BARRA-1` | Barras: agrupación por pulso | xml | existente | `barrasAutomaticas` (`web/index.html`), solo reconstrucciones. |
 | `N-SIL-1` | Silencios con varias voces | svg | existente | `ordenarVoces`, `despejarSilencios` (`web/index.html`). |

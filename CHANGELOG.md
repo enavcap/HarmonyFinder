@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Claves de las partituras con edición profesional (Sapp, OpenScore…): se respetan tal cual, también los cambios de clave a mitad de compás. Antes `corregirClaves` leía una sola clave por compás, daba por «lejanos» los bajos escritos en clave de fa y descartaba las claves del editor para recolocarlas por compás; p. ej. en la *Waldstein* (Op. 53, III) la mano izquierda perdía el cambio fa→sol dentro de los cc. 1, 4, 5… y el do grave salía en clave de sol con 8 líneas adicionales (`CONFIG.clavesDeLaEdicion`, regla `N-CLAVE-1`). Se comprobó sobre la partitura de Op. 53/iii: 91 de 91 claves conservadas, en su sitio.
+
 ## [0.8.3] - 2026-11-06
 
 ### Changed
