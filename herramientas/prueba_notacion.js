@@ -1,5 +1,5 @@
 // Prueba de las reglas de notación (web/notacion.js): catálogo coherente y reglas XML que se pueden comprobar sin ojo.
-//   · identificadores de regla únicos y con el formato N-XXX-n
+//   · identificadores de regla únicos y con el formato N-XXX-n; catálogo y docs/ESPECIFICACION_GRABADO_MUSICAL.md coinciden
 //   · N-INI-1: un fragmento que empieza a mitad de obra muestra el compás; con la regla apagada, no
 //   · N-INI-1: un fragmento que empieza en el primer compás no duplica la indicación de compás
 //   · N-ALT-2: la alteración se escribe una vez por compás y se repite solo si cambia
@@ -17,11 +17,14 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.goto(URL); await p.waitForFunction(() => window.__prueba, null, { timeout: 60000 });
   const ids = await p.evaluate(() => Notacion.reglas.map(r => r.id));
   ok(ids.length > 0 && new Set(ids).size === ids.length && ids.every(i => /^N-[A-Z]+-\d+$/.test(i)), `catálogo: ${ids.length} reglas con identificador único (${ids.join(', ')})`);
-  const doc = fs.existsSync(__dirname + '/../docs/NOTACION.md') ? fs.readFileSync(__dirname + '/../docs/NOTACION.md', 'utf8') : '';
-  const sinDoc = ids.filter(i => !doc.includes('`' + i + '`'));
-  ok(sinDoc.length === 0, `docs/NOTACION.md documenta todas las reglas del catálogo${sinDoc.length ? ' (faltan: ' + sinDoc.join(', ') + ')' : ''}`);
+  // catálogo ↔ especificación (docs/ESPECIFICACION_GRABADO_MUSICAL.md): cada regla del código tiene ficha, y cada ficha, regla
+  const esp = fs.readFileSync(__dirname + '/../docs/ESPECIFICACION_GRABADO_MUSICAL.md', 'utf8');
+  const enEsp = new Set(esp.split('\n').filter(l => l.startsWith('#### ')).flatMap(l => l.match(/N-[A-Z]+-\d+/g) || []));
+  const sinDoc = ids.filter(i => !enEsp.has(i)), sinCod = [...enEsp].filter(i => !ids.includes(i));
+  ok(sinDoc.length === 0, `la especificación tiene una ficha para cada regla del catálogo${sinDoc.length ? ' (faltan: ' + sinDoc.join(', ') + ')' : ''}`);
+  ok(sinCod.length === 0, `cada ficha de la especificación está en el catálogo del código${sinCod.length ? ' (faltan: ' + sinCod.join(', ') + ')' : ''}`);
   const medidas = async h => {
-    await p.evaluate(h => { __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, h);
+    await p.evaluate(h => { document.querySelector("#partitura").innerHTML = ""; __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, h);
     await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && c.querySelector('svg g.cifrados') }, null, { timeout: 60000 });
     await p.waitForTimeout(200);
     return p.evaluate(() => ({ compases: document.querySelectorAll('#partitura svg g.meterSig').length, pentagramas: document.querySelector('#partitura svg g.measure').querySelectorAll(':scope > g.staff').length }));
@@ -59,7 +62,7 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   // la plica que ya traía el archivo se corrige y la que ya es correcta se deja
   ok(await plicas(env(nv('D', 3, 2, 1, '<stem>up</stem>') + '<backup><duration>2</duration></backup>' + nv('A', 4, 1, 1, '<stem>up</stem>'))) === '2:down 1:up', 'N-PLICA-2: corrige la plica errónea y respeta la correcta');
   // tres voces: solo las de los extremos
-  ok(await plicas(env(nv('A', 4, 1) + '<backup><duration>2</duration></backup>' + nv('E', 4, 2) + '<backup><duration>2</duration></backup>' + nv('C', 3, 3))) === '1:up 2:- 3:down', 'N-PLICA-2: con tres voces, aguda arriba, grave abajo y la intermedia como la resuelva el grabador');
+  ok(await plicas(env(nv('A', 4, 1) + '<backup><duration>2</duration></backup>' + nv('E', 4, 2) + '<backup><duration>2</duration></backup>' + nv('C', 3, 3))) === '1:up 2:up 3:down', 'N-PLICA-2/3: con tres voces, aguda arriba, grave abajo y la central arriba (LilyPond: voz 3 arriba)');
   // pentagramas distintos no se mezclan; la voz de otro pentagrama no cuenta
   ok(await plicas(env(nv('A', 4, 1, 1) + '<backup><duration>2</duration></backup>' + nv('C', 3, 1, 2))) === '1:- 1:-', 'N-PLICA-2: una sola voz por pentagrama: sin cambios');
   // la plica se inserta en el sitio que manda MusicXML (antes de staff/beam), para que el archivo siga siendo válido
