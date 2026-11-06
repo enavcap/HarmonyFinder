@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-11-06
+
+### Fixed
+- Al abrir un movimiento entero desde el listado por compositor, el compás inicial y final salían de `web/data/compases.json`, que no cuenta los compases de un pasaje inicial (o final) al unísono u octava: en obras que empiezan así (p. ej. Beethoven, Op. 10 No. 3, i, o la anacrusa de Op. 2 No. 2, i) la vista se abría varios compases después del principio real y el botón «atrás» quedaba bloqueado sin haber llegado a él. Al cargar los acordes completos del análisis se corrigen ahora esos límites.
+
 ## [0.8.7] - 2026-11-06
 
 ### Fixed
@@ -275,6 +280,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
 [Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...HEAD
+[0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5

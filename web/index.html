@@ -2330,16 +2330,28 @@ function tramo(E,a,b,occA){
 }
 async function mostrar(h){
   seleccion=h; const o=porId.get(h.obra); $('#vista').hidden=false;
-  const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`;
+  const cab=()=>{const donde=h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`;
+    $('#cab').innerHTML=`<h3>${esc(o.ob)}</h3><span class="sub">${esc(o.c)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''} · ${donde} · ${esc(tonoEs(h.tono))}</span>`};
   $('#nav').hidden=false;
   if(h.obraEntera){$('#atras').disabled=h.ini<=h.primero;$('#adelante').disabled=h.fin>=h.ultimo}
   else{$('#atras').disabled=$('#adelante').disabled=false}
-  $('#cab').innerHTML=`<h3>${esc(o.ob)}</h3><span class="sub">${esc(o.c)}${movDe(o)!=='—'?' · '+esc(movDe(o)):''} · ${donde} · ${esc(tonoEs(h.tono))}</span>`;
+  cab();
   $('#herr').hidden=false;
   $('#copiarSVG').disabled=$('#copiarPNG').disabled=true;
   const cont=$('#partitura');
   const ac=await acordesDe(h.obra); if(seleccion!==h) return;
   const primero=ac.length?Math.min(...ac.map(x=>x.compas)):0;
+  if(h.obraEntera){
+    // compases.json (de donde salían h.ini/h.primero/h.ultimo al listar la obra) no cuenta los compases de
+    // un pasaje al unísono u octava: si la obra empieza (o acaba) así, esos límites quedaban por detrás (o
+    // por delante) del compás real y el botón «atrás» se bloqueaba sin haber llegado al principio
+    const ultimo=ac.length?Math.max(...ac.map(x=>x.compas)):h.ultimo;
+    if(h.ini<=h.primero) h.ini=Math.min(h.ini,primero);
+    h.primero=primero; h.ultimo=ultimo;
+    if(h.fin>h.ultimo) h.fin=h.ultimo;
+    $('#atras').disabled=h.ini<=h.primero; $('#adelante').disabled=h.fin>=h.ultimo;
+    cab();
+  }
   const [a,b]=rango(h,primero), dentro=ac.filter(x=>x.compas>=a&&x.compas<=b);
   if(!h.frag){   // acorde suelto: los límites de la obra salen de su análisis
     const ult=ac.length?Math.max(...ac.map(x=>x.compas)):h.fin; limitesNav={primero,ultimo:ult};
