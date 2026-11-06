@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-06
+
 ### Changed
 - Regla `N-ALT-2` (*Behind Bars*): en las partituras reconstruidas desde el DCML, una alteración se escribe una sola vez por compás y pentagrama (rige para las notas de la misma altura del resto del compás, sea cual sea la voz) y solo se repite si cambia; antes llevaban la alteración cada nota alterada (p. ej. un compás de acordes de si♭ con un bemol en cada uno). Se quitan 44 993 de 142 589 alteraciones en las 999 reconstrucciones; las ediciones (Sapp, OpenScore…) no cambian. No toca las de precaución, las editoriales ni las de notas ligadas. Se apaga con `Notacion.config.alteracionesUnaVez = false`.
 
@@ -243,7 +245,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.7.2...v0.8.0
