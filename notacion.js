@@ -34,7 +34,7 @@
     // N-LIG-1: distancia de seguridad de las ligaduras a plicas, barras y notas de otras voces
     slurMargin: 2, slurCurveFactor: 1.3, slurSymmetry: 0.4, slurEndpointFlexibility: 0.3, tieMinLength: 3,
     // N-ESP-1: aire alrededor de alteraciones y silencios
-    leftMarginAccid: 2.2, rightMarginAccid: 0.8, leftMarginRest: 2, rightMarginRest: 1,
+    leftMarginAccid: 2, rightMarginAccid: 0.8, leftMarginRest: 2, rightMarginRest: 1,
   };
 
   // ---------------------------------------------------------------------------------------------------------
