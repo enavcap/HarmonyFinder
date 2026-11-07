@@ -271,7 +271,16 @@
         const medio = (n[0] + n[6]) / 2, arriba = (n[3] + n[5]) / 2 < n[1] ? -1 : 1;                    // sentido en que se curva (y crece hacia abajo)
         // recorte: el comienzo pasa de largo las plicas y corchetes de la mitad izquierda; el final se detiene antes de los de la derecha
         let ini = n[0], fin = n[6];
-        for (const o of c0) { if ((o.x0 + o.x1) / 2 < medio) ini = Math.max(ini, o.x1 + sp * 0.15); else fin = Math.min(fin, o.x0 - sp * 0.15) }
+        // solo los obstáculos junto a los extremos (a menos de 1,5 espacios): una ligadura larga puede pasar junto a las notas de en medio,
+        // y recortarla por ellas la haría empezar lejos de su nota (Allemande, c. 1: la del la3 con puntillo saltaba las semicorcheas)
+        // Esto vale para las ligaduras que salen de una cabeza compartida (N-VOC-3); en las demás, recortar por lo de en medio sí libra choques.
+        const nota = id => id && svg.ownerDocument.getElementById(id.replace(/^#/, ''));
+        const compartida = [g.getAttribute('data-startid'), g.getAttribute('data-endid')].some(id => { const e = nota(id); return e && e.getAttribute('data-n-voc3') });
+        for (const o of c0) {
+          const izq = (o.x0 + o.x1) / 2 < medio;
+          if (izq && (!compartida || o.x0 < n[0] + sp * 1.5)) ini = Math.max(ini, o.x1 + sp * 0.15);
+          else if (!izq && (!compartida || o.x1 > n[6] - sp * 1.5)) fin = Math.min(fin, o.x0 - sp * 0.15);
+        }
         const variante = (x0, x1, dy) => {
           const k = (x1 - x0) / (n[6] - n[0]), v = n.slice();
           for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = x0 + (n[i] - n[0]) * k;
@@ -279,11 +288,16 @@
           return v;
         };
         const recorte = fin - ini >= sp * 1.2 && (ini > n[0] || fin < n[6]);
+        // arco por el lado contrario: los puntos de control se reflejan sobre la línea de los extremos
+        const volteada = v => { const w = v.slice(), base = (v[1] + v[7]) / 2; for (const i of [3, 5, 9, 11]) w[i] = 2 * base - v[i]; return w };
         const cand = [];
         if (recorte) cand.push([ini, fin, 0]);
         for (let k = 1; k <= 4; k++) cand.push([n[0], n[6], k * sp * 0.2]);
         if (recorte) for (let k = 1; k <= 4; k++) cand.push([ini, fin, k * sp * 0.2]);
-        const buena = cand.map(c => variante(...c)).find(v => !choques(v).length);
+        // ligaduras largas que pasan junto a notas de otra voz (cabezas compartidas, N-VOC-3): arcos más profundos, hasta 2 espacios
+        if (ancho > sp * 3) for (let k = 5; k <= 10; k++) cand.push([n[0], n[6], k * sp * 0.2]);
+        const vs = cand.map(c => variante(...c));
+        const buena = vs.find(v => !choques(v).length) || (ancho > sp * 3 ? [variante(n[0], n[6], 0), ...vs].map(volteada).find(v => !choques(v).length) : null);
         if (!buena) continue;
         const r = x => Math.round(x * 100) / 100;
         q.setAttribute('d', `M${r(buena[0])},${r(buena[1])} C${r(buena[2])},${r(buena[3])} ${r(buena[4])},${r(buena[5])} ${r(buena[6])},${r(buena[7])} C${r(buena[8])},${r(buena[9])} ${r(buena[10])},${r(buena[11])} ${r(buena[12])},${r(buena[13])}`);
@@ -611,6 +625,7 @@
       voces.sort((a, b) => b.media - a.media);
       if (voces.length === 2) { cambios += homorritmia(C, voces, s); continue }
       if (!CONFIG.vocesCondensadas) continue;
+      const hechos = [];
       const suenan = t => voces.filter(V => V.notas.some(g => g.t <= t && t < g.t + g.d)).length;
       for (let k = 1; k < voces.length - 1; k++) {
         const V = voces[k];
@@ -627,10 +642,21 @@
             if (!mejor || dist < mejor.dist) mejor = { m, dist };
           }
           if (!mejor) continue;
-          mejor.m.els = [...mejor.m.els, ...n.els]; mejor.m.cond = true;
+          mejor.m.els = [...mejor.m.els, ...n.els]; mejor.m.cond = true; hechos.push(mejor.m);
           C.grupos.splice(C.grupos.indexOf(n), 1); V.notas.splice(V.notas.indexOf(n), 1);
           cambios++;
         }
+      }
+      // dos acordes condensados seguidos en el mismo pulso, de voces distintas (Allemande, c. 2: las dos corcheas de la 2.ª parte):
+      // el segundo pasa a la voz del primero si está libre, para que vayan bajo una barra, como en la edición
+      hechos.sort((a, b) => a.t - b.t);
+      for (let i = 0; i + 1 < hechos.length; i++) {
+        const A = hechos[i], B = hechos[i + 1];
+        if (A.voz === B.voz || A.t + A.d !== B.t || Math.floor(A.t / C.div) !== Math.floor(B.t / C.div) || A.d > C.div / 2 || B.d > C.div / 2) continue;
+        const pisa = g => g !== B && g.staff === s && g.voz === A.voz && g.t < B.t + B.d && B.t < g.t + g.d;
+        if (C.grupos.some(g => pisa(g) && !g.silencio)) continue;
+        C.grupos = C.grupos.filter(g => !pisa(g));                        // los silencios de relleno de esa voz donde entra el acorde
+        B.voz = A.voz; cambios++;
       }
       if (cambios) for (const g of C.grupos) if (g.staff === s) limpiar(g);
     }

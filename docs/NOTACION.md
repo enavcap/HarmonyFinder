@@ -284,6 +284,25 @@ estándar: cambian 3 reconstrucciones y ninguna original; choques de ligadura 4 
 a clave de fa la mano derecha; Bach, Suite inglesa n.º 2, Allemande, c. 1, la línea aguda de la izquierda sube a la derecha. Queda
 una diferencia que viene de los datos: el DCML escribe el sol5 del c. 2 como negra con puntillo y la edición como negra.
 
+#### Plicas y ligaduras de los cc. 1-2 (v0.8.9)
+
+Cotejo plica a plica con la edición. Las direcciones ya coincidían; fallaban dos cosas:
+
+- **Ligaduras que salían lejos de su nota.** `N-LIG-2` recortaba la ligadura por el extremo hasta librar cualquier obstáculo de
+  su mitad. Con las cabezas compartidas (`N-VOC-3`), la del la3 con puntillo (c. 1) y la del mi5 con puntillo (c. 2) pasaban a
+  empezar después de las semicorcheas del arpegio y se amontonaban junto al acorde. Ahora, en las ligaduras que salen de una
+  cabeza compartida, solo se recorta por obstáculos a menos de 1,5 espacios de los extremos. En las demás se mantiene el
+  comportamiento anterior: restringirlo en todas subía los choques de los casos fijos de 6 a 12. Además, en ligaduras de más de 3
+  espacios se prueban arcos de hasta 2 espacios de profundidad y el arco por el lado contrario. Medición (antes → después):
+  casos fijos y muestra estándar sin cambios; 60 fragmentos con 3+ voces, choques de ligaduras de unión 6 → 3.
+- **Las dos corcheas en acorde del c. 2 sin barra común.** Salían de voces distintas. Si dos acordes condensados (`N-VOC-4`) son
+  contiguos dentro de un pulso, el segundo pasa a la voz del primero si esta tiene libre ese tramo (sus silencios de relleno no
+  cuentan).
+
+Diferencias que quedan: el sol5 del c. 2 es negra con puntillo en el DCML y negra en la edición; la edición une con una barra que
+cruza de pentagrama el fa#4 de la izquierda y el sol#4 de la derecha; la ligadura del mi5 blanca hacia el c. 3 pasa entre las
+plicas de las semicorcheas, también en la edición.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para

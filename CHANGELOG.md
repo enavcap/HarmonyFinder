@@ -20,6 +20,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
   - Regla `N-CRUCE-2`: en una voz interior, las notas con 3 o más líneas adicionales que caben en el otro pentagrama pasan a él (con lo que les sigue en el pulso), si no se cruzan con lo que suena allí. En el c. 2, la línea sol#4-la4-si4-mi4-fa#4 de la izquierda pasa a la derecha, como en la edición. Los cruces de manos de la fuente no se tocan. Se apaga con `Notacion.config.notasAlOtroPentagrama = false`.
 - `barrasAutomaticas` y N-VOC-1: una voz que pertenece a un *brisé* no se intercala con otra (la plica del arpegio quedaba hacia arriba), y las barras se rehacen cuando una nota cambia de pentagrama.
 
+- Regla `N-LIG-2`: una ligadura que sale de una cabeza compartida ya no se recorta hasta pasar las notas de en medio, que la hacían empezar lejos de su nota (*Allemande*, c. 1: la del la3 con puntillo; c. 2: la del mi5 con puntillo). Las ligaduras largas prueban además arcos más profundos (hasta 2 espacios) y el lado contrario. En 60 fragmentos con 3+ voces, los choques de ligaduras de unión bajan de 6 a 3; los casos fijos y la muestra estándar no cambian.
+- `N-VOC-4`: dos acordes condensados seguidos dentro de un pulso van en la misma voz si está libre, para compartir la barra (*Allemande*, c. 2: las dos corcheas de la 2.ª parte).
+
 ### Changed
 - `herramientas/auditoria_gould.js`: nueva métrica `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una).
 
