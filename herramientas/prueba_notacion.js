@@ -37,6 +37,13 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.evaluate(() => { Notacion.config.compasAlInicio = true });
   const inicio = { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 };
   r = await medidas(inicio); ok(r.compases === r.pentagramas, `al principio de la obra (Suite inglesa 1, Allemande, c. 0): un solo compás por pentagrama (${r.compases} de ${r.pentagramas})`);
+  // opciones de Verovio dentro de sus rangos (un valor fuera de rango se rechaza en silencio: leftMarginAccid 2,2 hasta la 0.8.9)
+  const fueraDeRango = await p.evaluate(() => {
+    const tk = new verovio.toolkit(), av = tk.getAvailableOptions(), todos = {};
+    for (const g of Object.values(av.groups || av)) Object.assign(todos, g.options || {});
+    return Object.entries(Notacion.opciones).filter(([k, v]) => !todos[k] || (typeof v === 'number' && ((todos[k].min !== undefined && v < todos[k].min) || (todos[k].max !== undefined && v > todos[k].max)))).map(([k, v]) => k + '=' + v);
+  });
+  ok(fueraDeRango.length === 0, `todas las opciones de Notacion.opciones existen en Verovio y están dentro de su rango${fueraDeRango.length ? ' (fuera: ' + fueraDeRango.join(', ') + ')' : ''}`);
   // N-ALT-2: si♭ repetido dentro del compás, becuadro necesario, compás siguiente, acordes y voces distintas
   const nota = (paso, oct, alt, acc, extra = '', dur = 1) => `<note><pitch><step>${paso}</step>${alt ? `<alter>${alt}</alter>` : ''}<octave>${oct}</octave></pitch><duration>${dur}</duration><voice>1</voice><type>quarter</type>${acc ? `<accidental>${acc}</accidental>` : ''}${extra}<staff>1</staff></note>`;
   const xmlAlt = `<score-partwise><part-list><score-part id="P1"/></part-list><part id="P1">
