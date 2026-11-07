@@ -395,12 +395,17 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Implementación.** `OPCIONES` (`slurMargin`, `tieMinLength`…). **Estado.** aplicada.
 
 #### `N-LIG-3` — Ligaduras de prolongación por voz
-- **Descripción.** Con varias voces simultáneas, la ligadura de la voz aguda va por arriba y la de la grave por abajo; en un
-  acorde, solo la nota exterior lleva la orientación.
+- **Descripción.** Con varias voces simultáneas, cada ligadura de prolongación va del lado de la plica de su nota, hacia fuera de
+  la otra voz: la voz aguda por arriba, la grave por abajo, y las intermedias según su plica (`N-PLICA-3`). Vale para todas las
+  notas del acorde, también las interiores, y para las notas dibujadas en el otro pentagrama (`N-CRUCE-2`, que apuntan hacia el
+  suyo). Sin plica escrita, la aguda arriba y la grave abajo. Las ligaduras que se dibujan desde MEI (`N-LIG-6`) llevan la misma
+  dirección (`curvedir`).
+- **Casos especiales.** Hasta la 0.8.12 solo se orientaba la nota exterior de las voces aguda y grave; el resto lo decidía Verovio
+  y el 13 % de las ligaduras de los pentagramas con 3+ voces se curvaba hacia la otra voz (auditoría `ligaduraContraria`).
 - **Referencia.** LP-dirección (las ligaduras alternan con la dirección de la plica); MS-código (`slurtielayout`: con varias
   voces, del lado de la plica). MS-ligaduras solo documenta que la posición es editable.
 - **Implementación.** `ligaduras-por-voz` (`placement`/`orientation` de `<tied>`). Aguda y grave se eligen entre las voces que suenan a la vez que alguna otra (como `N-PLICA-2`).
-- **Prueba.** `prueba_motor.js` (F), `prueba_notacion.js`. **Estado.** aplicada.
+- **Prueba.** `prueba_motor.js` (F), `prueba_notacion.js`; auditoría `ligaduraContraria`. **Estado.** aplicada.
 
 #### `N-LIG-2` — Ligaduras que atraviesan notas, plicas o barras
 - **Descripción.** Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos

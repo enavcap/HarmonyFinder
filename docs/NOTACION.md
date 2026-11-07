@@ -378,6 +378,22 @@ antes partida y ligada, queda como una figura).
 Las originales no cambian. Más capas es lo esperado: cada voz conserva su figura en su capa, como en la edición. Integridad en
 modo estricto: 2 060 de 2 060 partituras.
 
+### Dirección de las ligaduras de prolongación (v0.8.12)
+
+Métrica nueva `ligaduraContraria`: con dos o más voces en el pentagrama, ligaduras de unión curvadas hacia el lado contrario a la
+plica de su nota (es decir, hacia la otra voz). `N-LIG-3` solo orientaba la nota exterior de las voces aguda y grave; ahora orienta
+todas las notas de cada voz por su plica, y `N-LIG-6` pasa esa dirección a las ligaduras de MEI (`curvedir`).
+
+| | Antes | Ahora |
+|---|---|---|
+| 60 fragmentos con 3+ voces (227 ligaduras) | 29 | 3 |
+| Muestra estándar, reconstruidas (91) | 6 | 1 |
+| Muestra estándar, originales (28) | 2 | 0 |
+| Ligaduras de unión que chocan (3+ voces / estándar rec.) | 1 / 3 | 2 / 2 |
+
+El choque nuevo es el do#5 en corchea de la *Allemande* (c. 2), cuya ligadura hacia arriba roza su corchete; en la edición
+impresa ocurre lo mismo.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
