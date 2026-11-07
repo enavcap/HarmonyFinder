@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.12] - 2026-11-07
+
 ### Fixed
 - Dirección de las ligaduras de prolongación con varias voces (`N-LIG-3`): cada ligadura va del lado de la plica de su nota, hacia fuera de la otra voz, en todas las notas del acorde (antes solo la exterior) y en las voces intermedias; las ligaduras entre capas que se dibujan desde MEI (`N-LIG-6`) llevan la misma dirección. Ligaduras curvadas hacia la otra voz: de 29 a 3 de 227 en 60 fragmentos con 3+ voces, de 6 a 1 de 91 en las reconstrucciones de la muestra estándar y de 2 a 0 de 28 en las ediciones originales. Nueva métrica `ligaduraContraria` en `herramientas/auditoria_gould.js`.
 - Notas repetidas y ligadas sin necesidad en las reconstrucciones del DCML: `N-VOC-1` ya no parte una nota en trozos ligados para meterla en los acordes de otra voz; una voz que suena a la vez que otra se queda en su capa con su figura, como en la edición impresa (Sarabande de la Suite inglesa n.º 1, c. 5: el la4 negra aparte, antes la4 corchea con puntillo + fusa + fusa ligadas; c. 6: el mi5 negra aparte, antes dos corcheas ligadas). Se vuelve al comportamiento anterior con `Notacion.config.trozosLigados = true`.
@@ -337,7 +339,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...HEAD
+[0.8.12]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...v0.8.12
 [0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
 [0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
 [0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
