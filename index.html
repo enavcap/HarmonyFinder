@@ -241,6 +241,7 @@ tr.mas td{color:var(--accent);font-size:13px;cursor:pointer;padding-top:4px;padd
 #ficha .cuerpo{padding:0 16px 14px;display:grid;gap:10px}
 #ficha dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:0}
 #ficha dt{color:var(--muted)} #ficha dd{margin:0;overflow-wrap:anywhere}
+#ficha .desc-obra{line-height:1.55}
 #ficha details.tecnico summary{padding:2px 0;font-size:12.5px}
 #ficha details.tecnico dl{margin-top:6px}
 #ficha a{color:var(--accent)}
@@ -2619,6 +2620,105 @@ function cadenaDe(h,ac,i){
   if(todos(i-k)) return [i-k,i];
   return [i,i];
 }
+const cacheFichaWikipedia=new Map();
+const palabrasClaveWiki=new Set(['and','the','for','from','with','major','minor','flat','sharp','suite','sonata','symphony','concerto','prelude','fugue','quartet','quintet','trio','book','part','number','no','in','of','by','piano','keyboard','organ','violin','cello','orchestra','en','de','la','el','los','las','para','con','mayor','menor','sinfonia','concierto','preludio','fuga','cuarteto','quinteto','libro','parte','numero','piano','organo','violin','orquesta']);
+function palabrasWikipedia(texto){
+  return norm(String(texto||'')).replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).filter(Boolean);
+}
+function paginaDeObraWikipedia(o,paginas){
+  const clave=palabrasWikipedia(o.ob||'').filter(t=>t.length>3&&!palabrasClaveWiki.has(t));
+  const numerosTitulo=palabrasWikipedia(o.ob||'').filter(t=>/^\d+$/.test(t));
+  const palabrasCatalogo=palabrasWikipedia(o.cat||'');
+  const catalogo=palabrasCatalogo.join(' ');
+  const numeros=[...new Set([...numerosTitulo,...palabrasCatalogo.filter(t=>/^\d+$/.test(t))])];
+  const autor=palabrasWikipedia(o.c||'').filter(t=>t.length>3);
+  return paginas.find(p=>{
+    const texto=palabrasWikipedia(`${p.title||''} ${p.extract||''}`);
+    const conjunto=new Set(texto);
+    const autorCoincide=autor.some(t=>conjunto.has(t));
+    const tituloCoincide=clave.some(t=>conjunto.has(t));
+    const catalogoCoincide=catalogo.length>3&&texto.join(' ').includes(catalogo);
+    const numerosCoinciden=numeros.every(t=>conjunto.has(t));
+    return autorCoincide&&(catalogoCoincide||((tituloCoincide||numerosTitulo.length>0)&&numerosCoinciden));
+  });
+}
+function anioComposicionWikipedia(claims){
+  const valores=(claims&&claims.P571)||[];
+  const preferidos=valores.filter(x=>x.rank==='preferred').concat(valores.filter(x=>x.rank!=='preferred'&&x.rank!=='deprecated'));
+  for(const claim of preferidos){
+    const dato=claim.mainsnak&&claim.mainsnak.datavalue&&claim.mainsnak.datavalue.value;
+    const m=dato&&typeof dato.time==='string'&&dato.time.match(/^[+]([0-9]{4,})-/);
+    if(m&&dato.precision>=9){const anio=+m[1];if(anio>0)return anio}
+  }
+  return null;
+}
+function anioCompuestoEnResumen(texto){
+  const textoPlano=String(texto||'');
+  const patrones=EN
+    ?[/\bcomposed\b[^.]{0,100}?\bbetween\s+(\d{4})\s+and\s+(\d{4})/i,/\bcomposed\b[^.]{0,100}?\b(?:in|around|circa)\s+(\d{4})(?:\s*[–—-]\s*(\d{2,4}))?/i]
+    :[/\bcompuest[oa]s?\b[^.]{0,100}?\bentre\s+(\d{4})\s+y\s+(\d{4})/i,/\bcompuest[oa]s?\b[^.]{0,100}?\b(?:en|hacia)\s+(\d{4})(?:\s*[–—-]\s*(\d{2,4}))?/i];
+  for(const patron of patrones){const m=textoPlano.match(patron);if(m)return m[2]?`${m[1]}–${m[2]}`:m[1]}
+  return null;
+}
+async function consultarWikipediaObra(o){
+  const host=EN?'en.wikipedia.org':'es.wikipedia.org';
+  const api=new URL(`https://${host}/w/api.php`);
+  const q=api.searchParams;
+  q.set('action','query');q.set('generator','search');q.set('gsrsearch',`${o.ob} ${o.c}`);
+  q.set('gsrnamespace','0');q.set('gsrlimit','10');q.set('prop','extracts|pageprops|info');q.set('inprop','url');
+  q.set('exintro','1');q.set('explaintext','1');q.set('exchars','650');q.set('format','json');q.set('origin','*');
+  const respuesta=await fetch(api);
+  if(!respuesta.ok) throw new Error(`Wikipedia (${respuesta.status})`);
+  const datos=await respuesta.json();
+  const paginas=Object.values(datos.query&&datos.query.pages||{}).sort((a,b)=>(a.index||0)-(b.index||0));
+  const pagina=paginaDeObraWikipedia(o,paginas);
+  if(!pagina) return {pagina:null,anio:null,urlWikidata:null,errorAnio:null};
+  let anio=anioCompuestoEnResumen(pagina.extract),urlWikidata=null,errorAnio=null;
+  const qid=pagina.pageprops&&pagina.pageprops.wikibase_item;
+  if(!anio&&qid&&/^Q\d+$/.test(qid)){
+    urlWikidata=`https://www.wikidata.org/wiki/${qid}`;
+    try{
+      const wikidata=new URL('https://www.wikidata.org/w/api.php');
+      wikidata.searchParams.set('action','wbgetentities');wikidata.searchParams.set('ids',qid);
+      wikidata.searchParams.set('props','claims');wikidata.searchParams.set('format','json');wikidata.searchParams.set('origin','*');
+      const r=await fetch(wikidata);
+      if(!r.ok) throw new Error(`Wikidata (${r.status})`);
+      const entidad=await r.json();
+      anio=anioComposicionWikipedia(entidad.entities&&entidad.entities[qid]&&entidad.entities[qid].claims);
+    }catch(error){errorAnio=error.message||String(error)}
+  }
+  return {pagina,anio,urlWikidata,errorAnio};
+}
+async function pintarDatosWikipedia(o,h){
+  const clave=`${LANG}:${o.w||o.id}`;
+  if(!cacheFichaWikipedia.has(clave)) cacheFichaWikipedia.set(clave,consultarWikipediaObra(o));
+  let datos;
+  try{datos=await cacheFichaWikipedia.get(clave)}
+  catch(error){
+    cacheFichaWikipedia.delete(clave);
+    if(seleccion!==h)return;
+    const mensaje=error.message||String(error);
+    $('#descripcionWikipedia').textContent=trd('No se pudo consultar Wikipedia: ','Could not query Wikipedia: ')+mensaje;
+    if(!o.anio)$('#anioComposicion').textContent=trd('No se pudo consultar Wikipedia','Could not query Wikipedia');
+    return;
+  }
+  if(seleccion!==h)return;
+  if(!o.anio)$('#anioComposicion').textContent=datos.anio||datos.errorAnio
+    ?datos.anio||trd('No se pudo consultar Wikidata','Could not query Wikidata')
+    :trd('No consta en Wikipedia','Not listed on Wikipedia');
+  if(!datos.pagina){
+    $('#descripcionWikipedia').textContent=trd('No se encontró en Wikipedia un artículo que identifique esta obra.','No matching Wikipedia article was found for this work.');
+    return;
+  }
+  const resumen=String(datos.pagina.extract||'').trim(), frase=resumen.match(/^(.+?[.!?][”"’]?)(?=\s+[A-ZÁÉÍÓÚÜÑ¿¡“"'(])/u);
+  const breve=frase?frase[1]:resumen, max=500, corte=breve.lastIndexOf(' ',max);
+  $('#descripcionWikipedia').textContent=breve.length>max?breve.slice(0,corte>0?corte:max)+'…':breve||trd('El artículo no incluye una descripción breve.','The article has no short description.');
+  const enlace=$('#fuenteDescripcion'), url=new URL(datos.pagina.fullurl);
+  if(url.protocol==='https:'&&url.hostname===(EN?'en.wikipedia.org':'es.wikipedia.org')){
+    enlace.href=url.href;enlace.textContent=`Wikipedia: ${datos.pagina.title}`;enlace.hidden=false;
+  }
+  if(datos.urlWikidata&&!o.anio){const fuente=$('#fuenteAnio');fuente.href=datos.urlWikidata;fuente.textContent='Wikidata';fuente.hidden=false}
+}
 function pintarFicha(h,ac){
   const o=porId.get(h.obra), d=descripcionBusqueda(), s=o.src;
   // contexto: acordes antes y después
@@ -2643,8 +2743,10 @@ function pintarFicha(h,ac){
   const fg=FORMAS[o.m], formaGV=fg?esc(formaGTxt(fg[0]))+notaF(FUENTE_FG[fg[1]]||fg[1]):'';
   const catEnTitulo=o.cat&&norm(o.ob).replace(/[^a-z0-9]/g,'').includes(norm(o.cat).replace(/[^a-z0-9]/g,''));
   $('#fichaCuerpo').innerHTML=`
-    <dl>${fila(trd('Procedimiento','Device'),esc(d.nombre))}${fila(trd('Identificación','Detection'),esc(d.tipo))}${fila(trd('Criterio','Criterion'),esc(d.criterio))}
+    <dl>${fila(trd('Procedimiento','Device'),esc(d.nombre))}${fila(trd('Identificación','Detection'),esc(d.tipo))}
       ${fila(trd('Obra','Work'),esc(o.ob)+(o.cat&&!catEnTitulo?` (${esc(o.cat)})`:''))}${fila(trd('Compositor','Composer'),esc(o.c)+(o.per?` · ${esc(perTxt(o.per))}`:''))}${fila(trd('Movimiento','Movement'),movDe(o)!=='—'?esc(movDe(o)):'')}
+      ${fila(trd('Año de composición','Composition year'),`<span id="anioComposicion">${o.anio?esc(o.anio):trd('Consultando Wikipedia…','Checking Wikipedia…')}</span> <a id="fuenteAnio" hidden target="_blank" rel="noopener"></a>`)}
+      ${fila(trd('Descripción','Description'),`<span class="desc-obra" id="descripcionWikipedia">${trd('Consultando Wikipedia…','Checking Wikipedia…')}</span> <a id="fuenteDescripcion" hidden target="_blank" rel="noopener"></a>`)}
       ${fila(trd('Posición','Position'),h.frag?fmtCompases(h.ini,h.fin):`${trd('c.','b.')} ${h.compas}, ${trd('parte','beat')} ${fmtParte(h.parte)}`)}${fila(trd('Tonalidad','Key'),esc(tonoEs(h.tono)))}${fila(trd('Forma','Form'),formaGV)}${fila(trd('Sección','Section'),formaV)}</dl>
     <div><span class="k" style="color:var(--muted)">${trd('Contexto','Context')}</span> <button class="btn" type="button" id="ctxMenos" aria-label="${trd('Menos contexto','Less context')}">−</button> <button class="btn" type="button" id="ctxMas" aria-label="${trd('Más contexto','More context')}">+</button>
       <div class="ctx">${ctx||'—'}</div></div>
@@ -2655,6 +2757,7 @@ function pintarFicha(h,ac){
     <div id="zonaGuardar"></div>`;
   $('#ctxMenos').onclick=()=>{ctxN=Math.max(0,ctxN-2);pintarFicha(h,ac)};
   $('#ctxMas').onclick=()=>{ctxN=Math.min(20,ctxN+2);pintarFicha(h,ac)};
+  pintarDatosWikipedia(o,h);
   pintarGuardar(h);
 }
 
