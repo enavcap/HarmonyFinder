@@ -11,6 +11,7 @@
 //   · alteracionChoque           alteraciones que pisan otra alteración o una cabeza de nota
 //   · notaNota                   cabezas de notas de voces distintas que se pisan sin ser unísono
 //   · capas3                    pentagramas-compás con 3 o más capas (voces) con notas (N-VOC-1)
+//   · ligaduraContraria / ligadurasVoces  ligaduras de unión curvadas hacia el lado contrario a la plica de su nota, con 2+ voces (N-LIG-3) / total
 //   · unisonoSeparado           la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una (N-VOC-3)
 //   · plicaVoz / pentVoces       pentagramas con 2+ voces cuyas plicas no siguen la convención (aguda arriba, grave abajo) / total de esos pentagramas
 //   · unionChoque / expresionChoque  como lazoChoque, separando las ligaduras de unión (prolongación) de las de expresión
@@ -33,7 +34,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   const inter = (a, b) => { const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? { w, h } : null };
   const encoge = (c, k) => ({ x0: c.x0 + k, x1: c.x1 - k, y0: c.y0 + k, y1: c.y1 - k });
   const out = { lineasAdic4: 0, lineasAdic6: 0, barraEmpinada: 0, barras: 0, plicaCorta: 0, plicaNoLlega: 0, plicas: 0, lazoChoque: 0, lazos: 0, plicaCruza: 0, alteracionChoque: 0, notaNota: 0, notas: 0, medidas: 0, sinClave: 0, sinCompas: 0, maxPendiente: 0, peores: [], barraSubida: 0, maxSubida: 0, peoresSubida: [],
-    plicaVoz: 0, pentVoces: 0, capas3: 0, unisonoSeparado: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
+    plicaVoz: 0, pentVoces: 0, capas3: 0, unisonoSeparado: 0, ligaduraContraria: 0, ligadurasVoces: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
   const medidas = [...svg.querySelectorAll('g.measure')]; out.medidas = medidas.length;
   // clave en cada pentagrama y compás al principio del fragmento
   if (medidas[0]) {
@@ -163,6 +164,19 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
       }
       if (choca) { out.lazoChoque++; union ? out.unionChoque++ : out.expresionChoque++ }
     }
+    // N-LIG-3: con dos o más voces en el pentagrama, la ligadura de unión se curva del lado de la plica de su nota (MuseScore,
+    // LilyPond); curvada hacia el otro lado se mete en la otra voz. Necesita data-startid (opción svgAdditionalAttribute)
+    for (const ti of m.querySelectorAll('g.tie[data-startid]')) {
+      const nota = svg.querySelector('#' + CSS.escape(ti.getAttribute('data-startid').replace(/^#/, ''))); if (!nota) continue;
+      const st = nota.closest('g.staff'); if (!st) continue;
+      if ([...st.querySelectorAll(':scope > g.layer')].filter(ly => ly.querySelector('g.note')).length < 2) continue;
+      const cab = nota.querySelector('g.notehead'), pl = (nota.closest('g.chord') || nota).querySelector(':scope > g.stem > path, :scope > g.stem');
+      const q = ti.querySelector('path'); if (!cab || !pl || !q) continue;
+      const n = ((q.getAttribute('d') || '').match(/-?\d+(?:\.\d+)?/g) || []).map(Number); if (n.length < 8) continue;
+      const cb = caja(cab), pb = caja(pl); if (!(pb.h > 0.5)) continue;
+      const plicaArriba = (pb.y0 + pb.y1) / 2 < (cb.y0 + cb.y1) / 2, ligArriba = (n[3] + n[5]) / 2 < n[1];
+      out.ligadurasVoces++; if (plicaArriba !== ligArriba) out.ligaduraContraria++;
+    }
   }
   return out;
 }
@@ -214,7 +228,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   }
   fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1));
   const ok = res.filter(r => !r.fallo && !r.sinPartitura);
-  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'capas3', 'unisonoSeparado', 'barraSilencio'];
+  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'capas3', 'unisonoSeparado', 'ligaduraContraria', 'ligadurasVoces', 'barraSilencio'];
   const resumen = f => { const g = ok.filter(f), o = { fragmentos: g.length, notas: g.reduce((s, r) => s + r.notas, 0), barras: g.reduce((s, r) => s + r.barras, 0), lazos: g.reduce((s, r) => s + r.lazos, 0), uniones: g.reduce((s, r) => s + r.uniones, 0) };
     for (const c of CLAVES) { o[c] = g.reduce((s, r) => s + r[c], 0); o['frag_' + c] = g.filter(r => r[c] > 0).length } return o };
   console.log('errores de página', errores.length, '· fallos', res.filter(r => r.fallo).length, '· sin partitura', res.filter(r => r.sinPartitura).length);

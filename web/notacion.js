@@ -86,6 +86,9 @@
     homorritmia: true,
     // N-LIG-6: las ligaduras de unión entre dos capas se dibujan como ligaduras de MEI
     ligadurasEntreCapas: true,
+    // N-VOC-1: partir notas en trozos ligados para fundir una voz en los acordes de otra (desactivado: produce notas repetidas y
+    // ligadas que la edición escribe como una sola figura)
+    trozosLigados: false,
     // N-CLAVE-1: en el teclado, la mano izquierda se resiste más a dejar la clave de fa
     izquierdaEnFa: true,
   };
@@ -354,6 +357,14 @@
           if (V === exterior) continue;
           const vals = V.notas.flatMap(alturas);
           if (extension(V, propias.filter(x => x !== V)) > DECIMA && solapan(V.notas, notasAjenas) && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
+          // (b) su mano tiene tres o más voces sonando a la vez y la otra como mucho una en ese tramo: la voz más cercana a la otra
+          // mano pasa allí si cabe (como mucho 2 líneas adicionales) y no se cruza con ella (Sarabande, c. 5: el mi4 blanca con
+          // puntillo de la derecha va en la izquierda, sobre el sol3, como en la edición)
+          const cercana = s === '1' ? V === propias[propias.length - 1] : V === propias[0];
+          const juntas = V.notas.some(g => propias.filter(x => x !== V && x.notas.some(h => h.t < g.t + g.d && g.t < h.t + h.d)).length >= 2);
+          const enTramo = ajenas.filter(x => x.notas.some(h => V.notas.some(g => h.t < g.t + g.d && g.t < h.t + h.d)));
+          const sinCruce = enTramo.every(x => s === '1' ? Math.min(...vals) > Math.max(...x.notas.flatMap(alturas)) : Math.max(...vals) < Math.min(...x.notas.flatMap(alturas)));
+          if (cercana && juntas && enTramo.length === 1 && sinCruce && Math.max(...vals.map(y => lineasAd(y, o))) <= 2) { movida = V; break }
         }
         if (!movida) break;
         const libre = String(Math.max(0, ...C.grupos.map(g => +g.voz || 0)) + 1);
@@ -490,7 +501,10 @@
             // las voces de un arpegio sostenido (style brisé: alguna ataca una nota a la vez que otra voz) se dejan en sus capas,
             // como la edición, y comparten la cabeza (N-VOC-5); no se convierten en acordes ligados
             if (brise.has(V) || brise.has(W)) continue;
-            const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : acordar(doc, V, W, C.grupos, C.div);
+            // partir una nota en trozos ligados para meterla en el acorde de otra voz (acordar) llena el compás de notas repetidas y
+            // ligadas que la edición escribe como una sola figura en su capa (Sarabande de la Suite inglesa n.º 1, c. 5: el la4 negra
+            // aparte, no la4 corchea con puntillo + fusa + fusa ligadas); solo con CONFIG.trozosLigados
+            const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : CONFIG.trozosLigados ? acordar(doc, V, W, C.grupos, C.div) : null;
             if (!r) continue;
             const coste = r.lig * 10 + (k === 0 || k === voces.length - 1 ? 5 : 0) + Math.abs(V.media - W.media) / 10;
             if (!mejor || coste < mejor.coste) mejor = { ...r, coste };
@@ -659,6 +673,8 @@
         const cand = llegan.get(a.staff + '|' + a.s + '|' + (a.t + a.d)); if (!cand || !cand.length) continue;
         if (cand.some(b => b.voz === a.voz)) continue;                     // la recibe una nota de su voz: Verovio la dibuja
         const b = cand[0];
+        const dirTied = [...(hijo(a.el, 'notations') || { children: [] }).children].find(ti => ti.tagName === 'tied' && ti.getAttribute('type') === 'start');
+        if (dirTied && dirTied.getAttribute('placement')) a.el.setAttribute('data-hf-tie-dir', dirTied.getAttribute('placement'));   // N-LIG-3 → curvedir de MEI
         for (const [n, tipo] of [[a.el, 'start'], [b.el, 'stop']]) { const nt = hijo(n, 'notations'); if (nt) { for (const ti of [...nt.children]) if (ti.tagName === 'tied' && ti.getAttribute('type') === tipo) ti.remove(); if (!nt.children.length) nt.remove() } }
         for (const n of [a.el, b.el]) if (!n.getAttribute('id')) n.setAttribute('id', 'hf-lig' + (k++));
         a.el.setAttribute('data-hf-tie', [a.el.getAttribute('data-hf-tie'), b.el.getAttribute('id')].filter(Boolean).join(' '));
@@ -671,17 +687,17 @@
   function ligadurasPendientes(xml) {
     const out = [];
     for (const m of (xml || '').matchAll(/<note\b[^>]*>/g)) {
-      const id = (m[0].match(/\sid="([^"]+)"/) || [])[1], fin = (m[0].match(/\sdata-hf-tie="([^"]+)"/) || [])[1];
-      if (id && fin) for (const b of fin.split(/\s+/)) out.push([id, b]);
+      const id = (m[0].match(/\sid="([^"]+)"/) || [])[1], fin = (m[0].match(/\sdata-hf-tie="([^"]+)"/) || [])[1], dir = (m[0].match(/\sdata-hf-tie-dir="(above|below)"/) || [])[1];
+      if (id && fin) for (const b of fin.split(/\s+/)) out.push(dir ? [id, b, dir] : [id, b]);
     }
     return out;
   }
   // añade al MEI (de tk.getMEI()) las ligaduras pendientes, en el compás donde empieza cada una
   function ligadurasMEI(mei, pares) {
-    for (const [a, b] of pares) {
+    for (const [a, b, dir] of pares) {
       const i = mei.indexOf(`xml:id="${a}"`), j = mei.indexOf(`xml:id="${b}"`); if (i < 0 || j < 0) continue;
       const fin = mei.indexOf('</measure>', i); if (fin < 0) continue;
-      mei = mei.slice(0, fin) + `<tie startid="#${a}" endid="#${b}"/>` + mei.slice(fin);
+      mei = mei.slice(0, fin) + `<tie startid="#${a}" endid="#${b}"${dir ? ` curvedir="${dir}"` : ''}/>` + mei.slice(fin);
     }
     return mei;
   }
@@ -1287,20 +1303,27 @@
   function ligadurasPorVozDoc(doc) {
     if (!CONFIG.ligadurasPorVoz) return 0;
     let cambios = 0;
-    for (const m of doc.getElementsByTagName('measure')) for (const activas of analizarVoces(m)) {
-      for (const [r, arriba] of [[activas[0], true], [activas[activas.length - 1], false]]) {
-        const porT = new Map();
-        for (const n of r.l) if (n.val !== null && !n.gracia) { if (!porT.has(n.t)) porT.set(n.t, []); porT.get(n.t).push(n) }
-        for (const g of porT.values()) {
-          const ext = g.reduce((a, b) => (arriba ? b.val > a.val : b.val < a.val) ? b : a);
-          for (const ti of ext.el.querySelectorAll('notations > tied')) {
-            if (ti.getAttribute('type') !== 'start') continue;
-            const [pl, or] = arriba ? ['above', 'over'] : ['below', 'under'];
-            if (ti.getAttribute('placement') === pl && ti.getAttribute('orientation') === or) continue;
-            ti.setAttribute('placement', pl); ti.setAttribute('orientation', or); cambios++;
-          }
-        }
+    const poner = (el, arriba) => {
+      for (const ti of el.querySelectorAll('notations > tied')) {
+        if (ti.getAttribute('type') !== 'start') continue;
+        const [pl, or] = arriba ? ['above', 'over'] : ['below', 'under'];
+        if (ti.getAttribute('placement') === pl && ti.getAttribute('orientation') === or) continue;
+        ti.setAttribute('placement', pl); ti.setAttribute('orientation', or); cambios++;
       }
+    };
+    for (const m of doc.getElementsByTagName('measure')) for (const activas of analizarVoces(m)) {
+      // Todas las notas de cada voz, también las interiores de un acorde y las de las voces intermedias: la ligadura va del lado
+      // de su plica (ya decidida por N-PLICA-2/3 y N-CRUCE-2), que es hacia fuera de la otra voz (MuseScore, slurtielayout: con
+      // varias voces la ligadura sigue a la plica de su acorde; LilyPond, NR 5.4.1). Antes solo se orientaba la nota exterior de
+      // las voces aguda y grave, y el 13 % de las ligaduras de los pentagramas con 3+ voces se curvaba hacia la otra voz.
+      activas.forEach((r, k) => {
+        for (const n of r.l) {
+          if (n.val === null || n.gracia) continue;
+          const pl = hijo(n.el, 'stem'), dir = pl && pl.textContent.trim();
+          const arriba = dir === 'up' ? true : dir === 'down' ? false : k === 0 ? true : k === activas.length - 1 ? false : null;
+          if (arriba !== null) poner(n.el, arriba);
+        }
+      });
     }
     return cambios;
   }
@@ -1401,7 +1424,7 @@
   regla('N-ALT-2', 'Alteraciones: una vez por compás', 'xml', 'aplicada', 'Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama; las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum se quitan (CONFIG.alteracionesUnaVez). No toca precauciones, editoriales ni notas ligadas.');
   regla('N-PLICA-2', 'Plicas: una dirección por voz', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, la más aguda lleva la plica hacia arriba y la más grave hacia abajo en todo el compás (CONFIG.plicasPorVoz). Única fuente de verdad de las plicas con varias voces, para todas las fuentes.');
   regla('N-PLICA-3', 'Plicas de las voces intermedias', 'xml', 'aplicada', 'Con 3+ voces simultáneas, las intermedias por rango de altura: mitad superior arriba, inferior abajo, la central (número impar) arriba (LilyPond: voz 3 arriba, voz 4 abajo; MuseScore: voces 1 y 3 arriba, 2 y 4 abajo); si el archivo ya trae plicas en esa voz, se respetan.');
-  regla('N-LIG-3', 'Ligaduras de unión: por arriba en la voz aguda, por abajo en la grave', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, las ligaduras de unión de la voz aguda se dibujan por arriba y las de la grave por abajo (CONFIG.ligadurasPorVoz). En acordes, solo la nota exterior.');
+  regla('N-LIG-3', 'Ligaduras de unión: del lado de la plica con varias voces', 'xml', 'aplicada', 'Con dos o más voces simultáneas en un pentagrama, cada ligadura de unión va del lado de la plica de su nota (la voz aguda por arriba, la grave por abajo, las intermedias según su plica), en todas las notas del acorde; también las ligaduras dibujadas desde MEI (CONFIG.ligadurasPorVoz).');
   regla('N-LIG-2', 'Ligaduras que atraviesan notas, plicas o barras', 'svg', 'aplicada', 'Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda hasta librarlos; si ninguna variante lo logra, no se toca (CONFIG.ligadurasDespejadas).', 'web/notacion_svg.js');
   regla('N-CLAVE-1', 'Elección y cambio de clave', 'xml', 'aplicada', 'Reconstrucciones: clave por tesitura e instrumento, penalizando líneas adicionales y cambios breves. Ediciones: se conservan sus claves (CONFIG.clavesDeLaEdicion).');
   regla('N-PLICA-1', 'Plicas: dirección y longitud con una voz', 'opciones', 'verovio', 'Dirección por la nota más alejada de la línea central; plicas de una octava que llegan a la línea central fuera del pentagrama. Verovio lo cumple (auditoría: 0 plicas de menos de 2 espacios).', 'Verovio');

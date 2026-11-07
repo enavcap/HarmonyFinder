@@ -69,7 +69,7 @@ const AT = (div = 1, tiempo = '4/4', clave = '<clef><sign>G</sign><line>2</line>
   console.log('— F. Ligaduras de unión por voz (N-LIG-3)');
   r = await T('ligaduras-por-voz', partitura([compas(1, nota('D', 4, { dur: 4, tipo: 'whole', voz: 2, ligIni: 1 }) + nota('F', 4, { dur: 4, tipo: 'whole', voz: 2, acorde: 1, ligIni: 1 }) + atras(4) + nota('A', 4, { dur: 4, tipo: 'whole', voz: 1, ligIni: 1 }), AT()),
     compas(2, nota('D', 4, { dur: 4, tipo: 'whole', voz: 2, ligFin: 1 }) + nota('F', 4, { dur: 4, tipo: 'whole', voz: 2, acorde: 1, ligFin: 1 }) + atras(4) + nota('A', 4, { dur: 4, tipo: 'whole', voz: 1, ligFin: 1 }))]));
-  ok(await notas(r.xml, "(n.querySelector('tied[type=start]')?.getAttribute('orientation'))||'-'") === 'under - over - - -', 'voz grave por abajo y aguda por arriba; en el acorde, solo la nota exterior');
+  ok(await notas(r.xml, "(n.querySelector('tied[type=start]')?.getAttribute('orientation'))||'-'") === 'under under over - - -', 'voz grave por abajo y aguda por arriba; en el acorde, todas sus notas (sin plica escrita: por su posición entre las voces)');
   ok(r.dif.length === 0, 'N-LIG-3 no altera ninguna propiedad musical');
 
   console.log('— C. Barras (N-BARRA-1, N-BARRA-3)');

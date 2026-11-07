@@ -8,7 +8,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
-## [0.8.12] - 2026-11-08
+## [0.8.13] - 2026-11-08
 
 ### Added
 - Partitura: en los movimientos con secciones anotadas (Taking Form) una barra de color sobre cada compás indica su sección (exposición, desarrollo, reexposición, coda…) con su nombre, y una leyenda de las secciones visibles. Se activa o desactiva con la casilla «secciones» (se recuerda la preferencia).
@@ -23,6 +23,13 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - `N-VOC-2`: tras un cruce de pentagrama (`N-CRUCE-2`), comparar los unísonos entre manos por el pentagrama de origen, no por el pentagrama donde se dibujan. La prueba de BWV 806, *Allemande*, c. 3, confirma que el par coincidente se identifica y que se conservan ambas notas cuando una llega ligada.
 - `N-VOC-2`: conservar un unísono entre manos si la nota que se quitaría inicia o termina un grupo de barras propio. En la *Gigue* de la Suite francesa n.º 1, BWV 812, c. 3, mantener el re4 del bajo restituye su grupo con la3, como en la edición de Bach-Gesellschaft.
 - `N-CRUCE-1`: no trasladar una voz a un pentagrama que solo tiene silencios en el tramo simultáneo. En la *Gigue* de la Suite francesa n.º 1, BWV 812, la línea interior del c. 2 permanece en el pentagrama superior, como en la edición de Bach-Gesellschaft.
+
+## [0.8.12] - 2026-11-07
+
+### Fixed
+- Dirección de las ligaduras de prolongación con varias voces (`N-LIG-3`): cada ligadura va del lado de la plica de su nota, hacia fuera de la otra voz, en todas las notas del acorde (antes solo la exterior) y en las voces intermedias; las ligaduras entre capas que se dibujan desde MEI (`N-LIG-6`) llevan la misma dirección. Ligaduras curvadas hacia la otra voz: de 29 a 3 de 227 en 60 fragmentos con 3+ voces, de 6 a 1 de 91 en las reconstrucciones de la muestra estándar y de 2 a 0 de 28 en las ediciones originales. Nueva métrica `ligaduraContraria` en `herramientas/auditoria_gould.js`.
+- Notas repetidas y ligadas sin necesidad en las reconstrucciones del DCML: `N-VOC-1` ya no parte una nota en trozos ligados para meterla en los acordes de otra voz; una voz que suena a la vez que otra se queda en su capa con su figura, como en la edición impresa (Sarabande de la Suite inglesa n.º 1, c. 5: el la4 negra aparte, antes la4 corchea con puntillo + fusa + fusa ligadas; c. 6: el mi5 negra aparte, antes dos corcheas ligadas). Se vuelve al comportamiento anterior con `Notacion.config.trozosLigados = true`.
+- `N-CRUCE-1`: con tres o más voces a la vez en una mano y como mucho una en la otra, la voz más cercana a la otra mano pasa a ella si cabe y no se cruza (Sarabande, c. 5: el mi4 blanca con puntillo va en la mano izquierda, sobre el sol3, como en la edición).
 
 ## [0.8.11] - 2026-11-07
 
@@ -348,7 +355,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.13...HEAD
+[0.8.13]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...v0.8.13
 [0.8.12]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...v0.8.12
 [0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
 [0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
