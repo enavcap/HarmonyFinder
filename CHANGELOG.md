@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.11] - 2026-11-07
+
 Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que se publicaron como 0.8.8 y 0.8.9 desde otra rama (la rama de voces partía de la 0.8.7, igual que la del motor). Esas dos publicaciones sobrescribieron la 0.8.10 en GitHub Pages; esta versión reúne las dos líneas. Para no repetir identificadores del motor, las reglas `N-VOC-3`, `N-VOC-4` y `N-LIG-4` de aquella rama pasan a ser `N-VOC-5`, `N-VOC-6` y `N-LIG-6`.
 
 ### Fixed
@@ -330,7 +332,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...HEAD
+[0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
 [0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
 [0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8

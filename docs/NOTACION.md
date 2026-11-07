@@ -339,6 +339,26 @@ estándar, reconstruidas, 2 → 3; originales sin cambios. `plicaVoz` sube (1 �
 cada nota al pentagrama donde se dibuja: una voz con notas en los dos pentagramas parece tener plicas en dos sentidos (Grieg,
 Op. 12 n.º 1, c. 21: el arpegio de la izquierda sube a la derecha con barra cruzada). No es un defecto a la vista.
 
+### Port al motor de la 0.8.10 (v0.8.11)
+
+Medición frente a la 0.8.10 publicada (`ccr-dbc73e84-vgiszw`), con el código de la 0.8.11:
+
+| | 60 fragmentos con 3+ voces | Muestra estándar, reconstruidas (53) | Muestra estándar, originales (66) |
+|---|---|---|---|
+| Pentagramas-compás con 3+ capas | 45 → 26 | 5 → 3 | 4 → 4 |
+| Unísonos con dos cabezas separadas | 9 → 4 | 3 → 0 | 2 → 0 |
+| Ligaduras de unión que chocan | 7 → 1 | 2 → 3 | 0 → 0 |
+| Plicas que cruzan una cabeza de otra voz | 3 → 1 | 0 → 0 | 0 → 0 |
+| Notas con ≥ 4 líneas adicionales | 18 → 17 | 4 → 4 | 42 → 42 |
+| Alteraciones que chocan | 2 → 2 | 1 → 2 | 1 → 1 |
+| Plicas contra la convención (`plicaVoz`) | 5 → 10 | 0 → 3 | 4 → 4 |
+
+`plicaVoz` sube por las barras que cruzan de pentagrama (`N-CRUCE-2`): la auditoría asigna cada nota al pentagrama donde se
+dibuja y una voz repartida entre los dos parece tener plicas en dos sentidos. Integridad en modo estricto: 2 060 de 2 060
+partituras (999 reconstrucciones) con la propiedad `sonido` intacta. Regresión visual: cambian la *Allemande* (el objetivo),
+Couperin (*L'Art de toucher*, 8.º, cc. 10-13: parte de la voz interior grave pasa a la izquierda) y Medtner (0,6 %); referencias
+regeneradas tras revisarlas. Bartók (*Bagatelas*, n.º 1) vuelve a la referencia tras limitar el sesgo de la clave de fa.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
