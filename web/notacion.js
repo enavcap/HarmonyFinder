@@ -63,6 +63,10 @@
     unisonosUnaVez: true,
     // N-VOC-3: dos voces que atacan la misma nota a la vez comparten la cabeza (plicas opuestas), como en la edición
     cabezaCompartida: true,
+    // N-VOC-4: con 3+ voces, las notas de dos voces vecinas que coinciden en ritmo van en un acorde de una plica
+    vocesCondensadas: true,
+    // N-VOC-4: dos voces con el mismo ritmo en todo el compás se escriben como acordes de una voz
+    homorritmia: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -397,11 +401,12 @@
   const lineasAd = (val, staff) => { const d = Math.abs(val - CENTRO[staff]); return d >= 6 ? Math.floor((d - 4) / 2) : 0 };
 
   // N-CRUCE-1. En un gran pentagrama (2 pentagramas en la parte), una voz que no es la exterior de su mano (la más aguda de la
-  // derecha, la más grave de la izquierda) pasa al otro pentagrama en ese compás si:
-  //   (a) su mano no puede tocarla: a la vez que alguna de sus notas, otra voz del mismo pentagrama está a más de una décima
-  //       (9 pasos diatónicos; Allemande, c. 1: la5 y la3 en la derecha), y en la otra mano esa extensión cabe; o
-  //   (b) en su pentagrama lleva de media 3 o más líneas adicionales y en el otro como mucho 1 (Allemande, c. 5: sol#2 en sol).
-  // Una voz de tenor que la mano izquierda alcanza (la3-do#4 bajo un si2) se queda abajo, como en la edición.
+  // derecha, la más grave de la izquierda) pasa al otro pentagrama en ese compás si su mano no puede tocarla: a la vez que alguna
+  // de sus notas, otra voz del mismo pentagrama está a más de una décima (9 pasos diatónicos; Allemande, c. 1: la5 y la3 en la
+  // derecha; c. 5: sol#2 bajo sol#4), en la otra mano esa extensión cabe y allí no pasa de 3 líneas adicionales.
+  // Una voz de tenor que la mano izquierda alcanza (la3-do#4 bajo un si2) se queda abajo, como en la edición. No se usan las
+  // líneas adicionales para decidir: los cruces de manos de la fuente (Medtner, Op. 26 n.º 4, cc. 38-39: la izquierda por encima
+  // de la derecha; Liszt, Sposalizio, c. 58) se escriben así a propósito y se conservan.
   const DECIMA = 9;
   function extension(V, otras) {
     let max = 0;
@@ -422,10 +427,7 @@
         for (const V of propias) {
           if (V === exterior) continue;
           const vals = V.notas.flatMap(alturas);
-          const propio = vals.reduce((x, y) => x + lineasAd(y, s), 0) / vals.length, ajeno = vals.reduce((x, y) => x + lineasAd(y, o), 0) / vals.length;
-          const a = extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3;
-          const b = propio >= 3 && ajeno <= 1;
-          if (a || b) { movida = V; break }
+          if (extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
         }
         if (!movida) break;
         const libre = String(Math.max(0, ...C.grupos.map(g => +g.voz || 0)) + 1);
@@ -534,6 +536,64 @@
     return cambios;
   }
 
+  // N-VOC-4 (Gould: las voces que coinciden en ritmo comparten plica, como un acorde). En la edición de la Allemande (c. 3, 4.ª
+  // parte: do#5 y la4; c. 4: fa#4 y re#4) dos de tres voces que atacan a la vez con la misma figura van en un acorde de una plica, y
+  // la tercera sigue aparte. Con dos voces que coinciden solo en parte no se juntan (cc. 6-7: se lee el contrapunto); si coinciden
+  // en todo el compás, van en acordes (homorritmia). Aquí, con tres o más voces, en un pentagrama donde suenan a la vez
+  // tres o más voces, la nota de una voz interior que coincide en instante y duración con la de una voz vecina pasa al acorde de
+  // esta, si no es unísono (N-VOC-3), ninguna de las dos lleva ligadura de unión y entre las dos caben en una mano (una décima).
+  // Dos voces con el mismo ritmo en todo el compás (mismos ataques, duraciones, silencios y ligaduras), sin cruzarse, sin unísonos y
+  // en una décima: se escriben como acordes de una voz (terceras y sextas paralelas escritas como dos voces).
+  function homorritmia(C, [W, V], s) {
+    if (!CONFIG.homorritmia) return 0;
+    const huella = X => X.todos.map(g => g.t + '/' + g.d + (g.silencio ? 'r' : '') + (g.silencio ? '' : '|' + g.els.map(e => { const l = ligadurasDe(e); return (l.stop ? 's' : '') + (l.start ? 'i' : '') }).sort()[0])).sort().join(' ');
+    if (huella(V) !== huella(W)) return 0;
+    for (const n of V.notas) {
+      const m = W.notas.find(g => g.t === n.t); if (!m) return 0;
+      const an = alturas(n), am = alturas(m);
+      if (Math.min(...am) <= Math.max(...an) || Math.max(...am, ...an) - Math.min(...am, ...an) > DECIMA) return 0;   // sin cruzarse ni unísonos, en una décima
+    }
+    for (const n of V.notas) { const m = W.notas.find(g => g.t === n.t); m.els = [...m.els, ...n.els] }
+    C.grupos = C.grupos.filter(g => !V.todos.includes(g));
+    for (const g of C.grupos) if (g.staff === s) limpiar(g);
+    return 1;
+  }
+  function condensar(C) {
+    let cambios = 0;
+    for (const s of [...new Set(C.grupos.map(g => g.staff))]) {
+      const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length < 2) continue;
+      voces.sort((a, b) => b.media - a.media);
+      if (voces.length === 2) { cambios += homorritmia(C, voces, s); continue }
+      if (!CONFIG.vocesCondensadas) continue;
+      const suenan = t => voces.filter(V => V.notas.some(g => g.t <= t && t < g.t + g.d)).length;
+      const sinLig = g => g.els.every(e => { const l = ligadurasDe(e); return !l.start && !l.stop });
+      for (let k = 1; k < voces.length - 1; k++) {
+        const V = voces[k];
+        for (const n of [...V.notas]) {
+          if (!sinLig(n) || suenan(n.t) < 3) continue;
+          const an = alturas(n), sn = n.els.map(sonido);
+          let mejor = null;
+          for (const W of [voces[k - 1], voces[k + 1]]) {
+            const m = W.notas.find(g => g.t === n.t && g.d === n.d && sinLig(g)); if (!m || m.cond) continue;
+            const am = alturas(m); if (m.els.some(e => sn.includes(sonido(e)))) continue;          // unísono: N-VOC-3
+            const todas = [...an, ...am]; if (Math.max(...todas) - Math.min(...todas) > DECIMA) continue;
+            const arriba = W === voces[k - 1]; if (arriba ? Math.min(...am) <= Math.max(...an) : Math.max(...am) >= Math.min(...an)) continue;   // sin cruzarse
+            const dist = Math.min(...am.flatMap(a => an.map(b => Math.abs(a - b))));
+            if (!mejor || dist < mejor.dist) mejor = { m, dist };
+          }
+          if (!mejor) continue;
+          mejor.m.els = [...mejor.m.els, ...n.els]; mejor.m.cond = true;
+          C.grupos.splice(C.grupos.indexOf(n), 1); V.notas.splice(V.notas.indexOf(n), 1);
+          cambios++;
+        }
+      }
+      if (cambios) for (const g of C.grupos) if (g.staff === s) limpiar(g);
+    }
+    for (const g of C.grupos) delete g.cond;
+    return cambios;
+  }
+  regla('N-VOC-4', 'Voces que coinciden en ritmo: un acorde con una plica', 'xml', 'aplicada', 'Reconstrucciones: con tres o más voces sonando en un pentagrama, la nota de una voz interior que coincide en instante y duración con la de una vecina pasa a su acorde (sin unísonos ni ligaduras, sin cruzarse y en una décima; CONFIG.vocesCondensadas). Dos voces con el mismo ritmo en todo el compás van en acordes de una voz; si coinciden solo en parte, se dejan separadas (CONFIG.homorritmia).');
+
   // N-VOC-2. La misma nota (altura y grafía) atacada a la vez en las dos manos: se queda la más larga, o, si duran lo mismo,
   // la del pentagrama más cercano a su registro. Dentro de un mismo pentagrama no se toca: un unísono entre dos voces se
   // escribe con una cabeza y dos plicas, y eso ya lo resuelve el grabador.
@@ -632,7 +692,7 @@
 
   // Punto de entrada para las reconstrucciones: reparto entre manos, dos capas por pentagrama y unísonos entre manos
   function vocesReconstruidas(xml) {
-    if (!CONFIG.vocesPorRegistro && !CONFIG.dosCapas && !CONFIG.unisonosUnaVez) return xml;
+    if (!CONFIG.vocesPorRegistro && !CONFIG.dosCapas && !CONFIG.unisonosUnaVez && !CONFIG.vocesCondensadas && !CONFIG.homorritmia) return xml;
     let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
     if (doc.querySelector('parsererror')) return xml;
     let total = 0;
@@ -643,13 +703,14 @@
         let n = 0;
         if (CONFIG.vocesPorRegistro && staves === 2) n += repartir(C);
         if (CONFIG.dosCapas) n += reducir(doc, C);
+        if (CONFIG.vocesCondensadas || CONFIG.homorritmia) n += condensar(C);
         if (CONFIG.unisonosUnaVez && staves === 2) n += unisonosManos(C);
         if (n) { escribirCompas(doc, C); total += n }
       }
     }
     return total ? new XMLSerializer().serializeToString(doc) : xml;
   }
-  regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior que su mano no puede tocar (más de una décima con otra voz a la vez, y en la otra mano cabe) o que necesita 3+ líneas adicionales que en el otro pentagrama no necesita pasa al pentagrama de la otra mano en ese compás (CONFIG.vocesPorRegistro).');
+  regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano en ese compás si allí cabe; los cruces de manos de la fuente se conservan (CONFIG.vocesPorRegistro).');
   regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez o se escribe como acordes de la vecina con ligaduras de unión; las voces de un style brisé (que atacan una nota a la vez que otra) se dejan en sus capas (N-VOC-3); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso (CONFIG.dosCapas).');
   regla('N-VOC-2', 'Unísonos entre voces', 'xml', 'aplicada', 'Reconstrucciones: la misma nota atacada a la vez en las dos manos se escribe una vez (la más larga, o la del pentagrama de su registro). Dentro de un pentagrama, una cabeza con dos plicas, como la dibuja Verovio (CONFIG.unisonosUnaVez).');
 

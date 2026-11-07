@@ -127,7 +127,7 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   ok(rv.suena['A3@2'] === 16 && !rv.suena['A3@1'], `N-CRUCE-1: una voz que su mano no alcanza pasa al pentagrama de la otra (${JSON.stringify(rv.suena)})`);
   // un tenor que la mano izquierda alcanza (la3 sobre si2) se queda abajo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 16, 2) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['B', 2], 16, 6, 2)));
-  ok(rv.igual, 'N-CRUCE-1: voces que cada mano alcanza: sin cambios');
+  ok(rv.suena['E4@1'] === 16 && rv.suena['A4@1'] === 16 && rv.suena['A3@2'] === 16 && rv.suena['B2@2'] === 16, `N-CRUCE-1: voces que cada mano alcanza: ninguna cambia de mano (${JSON.stringify(rv.suena)})`);
   // N-VOC-2: mi4 atacado a la vez en las dos manos: se queda el más largo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 4, 2) + nr(null, 12, 2) + atras + nr(['E', 4], 8, 5, 2) + nr(null, 8, 5, 2) + atras + nr(['A', 3], 16, 6, 2)));
   ok(rv.suena['E4@2'] === 8 && !rv.suena['E4@1'], `N-VOC-2: un unísono entre manos se escribe una vez (${JSON.stringify(rv.suena)})`);
@@ -144,9 +144,20 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && c.querySelector('svg g.cifrados') }, null, { timeout: 60000 });
   const compartidas = await p.evaluate(() => document.querySelectorAll('#partitura svg [data-n-voc3]').length);
   ok(compartidas >= 2, `N-VOC-3: Allemande, cc. 0-3: ${compartidas} unísonos con puntillo distinto llevados a una cabeza (mi5 del c. 2, la3 del c. 1; los de figura igual ya los junta Verovio)`);
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false }));
-  ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2 y N-CRUCE-1 apagadas: el XML no cambia');
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true }));
+  // N-VOC-4: tres voces; la intermedia es una línea de semicorcheas en la 1.ª blanca (N-VOC-1 no la funde) y una blanca (la4) que
+  // coincide en ritmo con la aguda (do#5) en la 2.ª: esa nota va al acorde de la aguda. Con dos voces, solo si el ritmo coincide en todo el compás
+  const v4 = (v2) => gran(nr(['D', 5], 4, 1) + nr(['D', 5], 4, 1) + nr(['C', 5], 8, 1) + atras + v2 + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2));
+  const acordes = x => p.evaluate(x => { const d = new DOMParser().parseFromString(Notacion.vocesReconstruidas(x), 'application/xml'); return [...d.querySelectorAll('note')].filter(n => n.querySelector('chord') && n.querySelector('staff').textContent === '1').map(n => n.querySelector('step').textContent + n.querySelector('octave').textContent + '/v' + n.querySelector('voice').textContent).join(' ') }, x);
+  const lineaInt = ['A', 'G', 'F', 'G', 'A', 'B', 'A', 'G'].map(x => nr([x, 4], 1, 2)).join('') + nr(['A', 4], 8, 2);
+  const rc4 = await acordes(v4(lineaInt));
+  ok(rc4 === 'A4/v1', `N-VOC-4: con tres voces, la nota interior que coincide en ritmo con la vecina va a su acorde; la línea de semicorcheas sigue aparte (${rc4})`);
+  const dos = gran(nr(['D', 5], 8, 1) + nr(['C', 5], 8, 1) + atras + nr(['F', 4], 8, 2) + nr(['A', 4], 8, 2) + atras + nr(['A', 2], 16, 5, 2));
+  ok(await acordes(dos) === 'F4/v1 A4/v1', `N-VOC-4: dos voces con el mismo ritmo en todo el compás van en acordes de una voz (${await acordes(dos)})`);
+  const contra = gran(nr(['D', 5], 8, 1) + nr(['C', 5], 4, 1) + nr(['B', 4], 4, 1) + atras + nr(['F', 4], 8, 2) + nr(['A', 4], 8, 2) + atras + nr(['A', 2], 16, 5, 2));
+  ok(await acordes(contra) === '', 'N-VOC-4: dos voces que coinciden solo en parte se dejan separadas (contrapunto)');
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false, vocesCondensadas: false, homorritmia: false }));
+  ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2, N-VOC-4 y N-CRUCE-1 apagadas: el XML no cambia');
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true, vocesCondensadas: true, homorritmia: true }));
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();

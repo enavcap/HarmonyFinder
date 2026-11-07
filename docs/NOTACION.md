@@ -175,7 +175,7 @@ Scarlatti 56, C. P. E. Bach 54, Couperin 51…):
 
 Conclusiones aplicables a otras partituras:
 
-1. **Cada voz va con la mano que puede tocarla.** El criterio que distingue los casos de la edición no es la altura media (el
+1. **Cada voz va con la mano que puede tocarla** (y un cruce de manos de la fuente se respeta). El criterio que distingue los casos de la edición no es la altura media (el
    tenor la3-do#4 bajo un si2 se queda en la izquierda, c. 4) sino la extensión: una mano no toca a la vez notas a más de una
    décima. → `N-CRUCE-1`.
 2. **En un arpegio sostenido, cada nota se escribe una vez, con su duración real**, y comparte la cabeza con la semicorchea del
@@ -198,9 +198,9 @@ Medición (reglas apagadas → encendidas, `CFG='{"vocesPorRegistro":false,"dosC
 | Notas con ≥ 4 líneas adicionales | 19 → 24 | 9 → 9 |
 | Ligaduras de unión dibujadas | 281 → 367 | 157 → 170 |
 
-Las originales de la muestra estándar no cambian en ninguna métrica. Las 5 líneas adicionales de más salen de dos fragmentos
-(Liszt, *Sposalizio*, c. 60; Medtner, Op. 26 n.º 4, c. 39) que, comparados en captura, se dibujan prácticamente igual. El lío de
-claves de Medtner en el c. 40 ya estaba antes. Las 13 capas que quedan son líneas reales o fusiones rechazadas por exceso de
+Las originales de la muestra estándar no cambian en ninguna métrica. Las 5 líneas adicionales de más salían de Liszt
+(*Sposalizio*, c. 60) y Medtner (Op. 26 n.º 4, c. 39): eran un defecto de `N-CRUCE-1`, corregido en v0.8.9 (ver «Condensar
+voces»); la comparación en captura que lo descartó estaba mal hecha. Las 13 capas que quedan son líneas reales o fusiones rechazadas por exceso de
 ligaduras.
 
 #### `N-VOC-3`: el *brisé* como en la edición (v0.8.9)
@@ -230,6 +230,39 @@ p. ej. *Dichterliebe* 10, c. 18) y de 3 a 0 en las reconstrucciones. Las demás 
 choques de ligadura de más salen de la Giga de la Suite francesa n.º 5 (c. 24), donde las capturas con y sin la regla son
 iguales a simple vista.
 
+#### `N-VOC-4`: condensar voces que coinciden en ritmo (v0.8.9)
+
+Criterio sacado de la misma edición de la Allemande:
+
+- **c. 3**, mano derecha, 4.ª parte: do#5 y la4, de dos voces distintas, atacan a la vez con la misma figura y van en **un acorde
+  con una plica**; la tercera voz (mi4) sigue aparte. **c. 4**: fa#4 y re#4, otra vez dos voces, en un acorde bajo el si4.
+- **cc. 6-7**: dos voces que solo coinciden a ratos (una línea de semicorcheas contra notas largas) **no** se juntan: se lee el
+  contrapunto.
+
+De ahí la regla. Con tres o más voces sonando, se condensa nota a nota. Con dos voces, solo si el ritmo coincide en todo el compás
+(terceras o sextas paralelas escritas como dos voces). Esto pasa en 2 129 de los 22 846 pentagramas-compás de dos voces de las
+reconstrucciones (Scarlatti, Bach, Grieg, C. P. E. y W. F. Bach…). No se condensa lo que se cruzaría, un unísono (`N-VOC-3`) ni dos
+notas a más de una décima. Comprobado en captura en la Sarabande de la Suite inglesa n.º 4 (cc. 1-4, las dos manos) y en Grieg,
+Op. 62 n.º 6 (cc. 11-12, mano izquierda): las dos capas con plicas opuestas pasan a acordes de una plica y una barra. En
+Frescobaldi (*Alto recercar*) no cambia nada.
+
+| Reglas de voces apagadas → encendidas | 60 fragmentos con 3+ voces | Muestra estándar, reconstruidas |
+|---|---|---|
+| Plicas dibujadas | 1 249 → 1 198 | 1 383 → 1 369 |
+| Unísonos con dos cabezas separadas | 9 → 4 | 3 → 0 |
+| Plicas contra la convención por voz | 5 → 1 | 0 → 0 |
+| Ligaduras de unión que chocan | 9 → 7 | 0 → 0 |
+| Notas con ≥ 4 líneas adicionales | 19 → 19 | 9 → 4 |
+
+**Corrección de `N-CRUCE-1`.** Hasta v0.8.8 la regla tenía una segunda vía: mover una voz que llevara de media 3 o más líneas
+adicionales en su pentagrama, contándolas con la clave por defecto (fa para la mano izquierda). En los cruces de manos de la
+fuente eso deshacía lo escrito a propósito. En Medtner, Op. 26 n.º 4, cc. 38-39, la izquierda toca por encima de la derecha y
+subía a su pentagrama; en Liszt, *Sposalizio*, c. 58, la izquierda pasaba a fa con acordes de 3-4 líneas adicionales. De ahí
+salían las 5 notas de más con 4+ líneas adicionales que se atribuyeron en v0.8.8 a fragmentos «que se dibujan prácticamente
+igual». Esa comprobación visual estaba mal hecha: el script de capturas no aplicaba la configuración de «reglas apagadas» y
+dibujaba dos veces la versión nueva. Queda solo el criterio de la extensión de la mano, que cubre también el sol#2 de la
+Allemande, c. 5, porque suena a la vez que el sol#4 de la derecha.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
@@ -249,11 +282,12 @@ poder medirla) o **pendiente**.
 | `N-VOC-1` | Tres o más voces en un pentagrama | xml | **aplicada** | Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez, o se escribe como acordes de la vecina con ligaduras de unión; no se funden las voces de un *brisé* (las que atacan una nota a la vez que otra, ver `N-VOC-3`) y se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso, y entonces la voz queda en su capa (`CONFIG.dosCapas`, `vocesReconstruidas` en `notacion.js`). Ver «Voces de las reconstrucciones». |
 | `N-VOC-2` | Unísonos entre voces | xml | **aplicada** | Reconstrucciones: la misma nota atacada a la vez en las dos manos se escribe una vez (la más larga o, si duran igual, la del pentagrama de su registro). Dentro de un pentagrama se deja una cabeza con dos plicas, como la dibuja Verovio (`CONFIG.unisonosUnaVez`). |
 | `N-VOC-3` | Unísonos entre capas: una cabeza y dos plicas | xml + svg | **aplicada** | Dos voces que atacan la misma nota a la vez (*style brisé*) llevan plicas opuestas (`plicasUnisono`, reconstrucciones) y comparten la cabeza, cada una con su figura y puntillo (`cabezasCompartidas`, todas las fuentes); no se mueven notas bajo una barra ni cabezas distintas (blanca y negra) (`CONFIG.cabezaCompartida`). |
+| `N-VOC-4` | Voces que coinciden en ritmo: un acorde con una plica | xml | **aplicada** | Reconstrucciones: con 3+ voces sonando, la nota de una voz interior que coincide en instante y duración con la de una vecina pasa a su acorde (sin unísonos ni ligaduras, sin cruzarse, en una décima; `CONFIG.vocesCondensadas`). Dos voces con el mismo ritmo en todo el compás (ataques, duraciones, silencios y ligaduras) van en acordes de una voz; si coinciden solo en parte, se dejan separadas (`CONFIG.homorritmia`). |
 | `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | **aplicada** | Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca (`CONFIG.ligadurasDespejadas`, `despejarLigaduras` en `notacion.js`). No toca las ligaduras de expresión. |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |
-| `N-CRUCE-1` | Notas que cruzan de pentagrama | xml | **aplicada** | Reconstrucciones: una voz no exterior pasa al pentagrama de la otra mano en ese compás si su mano no puede tocarla (más de una décima con otra voz a la vez, y en la otra mano cabe) o si lleva de media 3+ líneas adicionales que en el otro pentagrama no lleva (`CONFIG.vocesPorRegistro`). |
+| `N-CRUCE-1` | Notas que cruzan de pentagrama | xml | **aplicada** | Reconstrucciones: una voz no exterior pasa al pentagrama de la otra mano en ese compás si su mano no puede tocarla (más de una décima con otra voz a la vez) y en la otra mano cabe; los cruces de manos de la fuente se conservan (`CONFIG.vocesPorRegistro`). Desde v0.8.9 no decide por líneas adicionales (ver «Condensar voces»). |
 
 ## Lo que no se arregla con opciones de Verovio
 
