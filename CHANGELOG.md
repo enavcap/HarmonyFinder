@@ -8,18 +8,63 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
-## [0.8.8] - 2026-11-07
+## [0.8.11] - 2026-11-07
+
+Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que se publicaron como 0.8.8 y 0.8.9 desde otra rama (la rama de voces partía de la 0.8.7, igual que la del motor). Esas dos publicaciones sobrescribieron la 0.8.10 en GitHub Pages; esta versión reúne las dos líneas. Para no repetir identificadores del motor, las reglas `N-VOC-3`, `N-VOC-4` y `N-LIG-4` de aquella rama pasan a ser `N-VOC-5`, `N-VOC-6` y `N-LIG-6`.
 
 ### Fixed
-- Partituras reconstruidas desde el DCML con varias voces por pentagrama, según cómo las escribe una edición profesional (cotejado compás a compás con una edición impresa de la *Allemande* de la Suite inglesa n.º 1 de Bach):
-  - Regla `N-CRUCE-1`: una voz que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano. En la *Allemande*, c. 1, el arpegio la3-do#4-mi4 pasa a la mano izquierda, y en el c. 5 el sol#2 ya no queda en clave de sol con seis líneas adicionales. Se apaga con `Notacion.config.vocesPorRegistro = false`.
-  - Regla `N-VOC-1`: como mucho dos capas por pentagrama cuando la tercera es un arpegio sostenido (*style brisé*), que se escribe como acordes con ligaduras de unión (c. 2: de 4 voces encimadas a 2). Una línea melódica real se deja en su capa, como en la edición. En 60 fragmentos con 3+ voces, los pentagramas con 3+ capas bajan de 45 a 13. Se apaga con `Notacion.config.dosCapas = false`.
-  - Regla `N-VOC-2`: una nota atacada a la vez en las dos manos se escribe una sola vez. Se apaga con `Notacion.config.unisonosUnaVez = false`.
-  - La mano izquierda del teclado ya no pasa a clave de sol por un pasaje de tenor (la *Allemande* empezaba en sol), y la clave se elige después de repartir las voces.
-  - En los acordes que se agrupan con barra automática, la barra va solo en la primera nota; antes Verovio avisaba y la descartaba.
+- Partituras reconstruidas desde el DCML con varias voces por pentagrama, escritas como en una edición impresa (cotejada compás a compás la *Allemande* de la Suite inglesa n.º 1, BWV 806):
+  - `N-CRUCE-1`: una voz que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano. *Allemande*, c. 1: el arpegio la3-do#4-mi4 pasa a la mano izquierda; c. 5: el sol#2 ya no queda en clave de sol con seis líneas adicionales. Los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4; Liszt, *Sposalizio*).
+  - `N-CRUCE-2`: en una voz interior, las notas con 3 o más líneas adicionales que caben en el otro pentagrama se dibujan en él, en su voz, con la plica hacia su pentagrama y una barra que cruza (c. 2: sol#4-la4-si4-mi4-fa#4 en la derecha, unido al fa#4 de la izquierda).
+  - `N-VOC-1`: como mucho dos capas por pentagrama. Una voz se intercala en la vecina o se escribe como acordes ligados; las líneas melódicas reales se quedan en su capa, como en la edición (cc. 6-7).
+  - `N-VOC-5`: en los arpegios sostenidos (*style brisé*), cada nota sostenida se escribe una vez, con su duración real, y comparte la cabeza con la semicorchea del arpegio (una cabeza y dos plicas). Verovio solo la compartía si figura y puntillo coincidían (c. 2: mi5 con puntillo y do#5 en corchea sobre mi5-do#5-la4).
+  - `N-VOC-6`: las voces que coinciden en ritmo van en un acorde de una plica, también las notas que llegan ligadas (c. 1: la3, do#4 y mi4 en un acorde de negras; c. 3: do#5 y la4). Dos voces con el mismo ritmo en todo el compás van en acordes (2 129 pentagramas-compás de las reconstrucciones); las que coinciden solo en parte se dejan separadas.
+  - `N-VOC-2`: una nota atacada a la vez en las dos manos se escribe una sola vez.
+  - Al mover notas de pentagrama o juntar voces, cada nota conserva su alteración: en los compases reescritos se escribe explícita y N-ALT-2 quita después las que sobran (lo detectó la comprobación de lectura I-5 en 14 obras, p. ej. un do4 natural que llegaba a un pentagrama con un do#4 antes en el compás).
+  - `N-LIG-6`: las ligaduras de unión que quedan entre dos capas se dibujan desde MEI (Verovio solo une las de MusicXML dentro de una voz; quedaban abiertas o enganchadas a otra nota).
+- `N-CLAVE-1`: la mano izquierda del teclado no pasa a clave de sol por un pasaje de tenor que cabe en fa con 2 líneas adicionales o menos (la *Allemande* empezaba en sol); una izquierda aguda de verdad sigue pasando a sol (Bartók, Bagatela n.º 1). La clave se elige después de repartir las voces. Se apaga con `Notacion.config.izquierdaEnFa = false`.
+- `N-LIG-2`: una ligadura que sale de una cabeza compartida ya no se recorta hasta pasar las notas de en medio, que la hacían empezar lejos de su nota. Las ligaduras largas prueban arcos de hasta 2 espacios y el lado contrario.
+- `N-BARRA-3`: una corchea que comparte cabeza con otra voz no se une por barra con el pulso vecino (c. 2: el do#5 lleva su corchete, como en la edición).
+
+### Added
+- `herramientas/auditoria_gould.js`: métricas `capas3` (pentagramas-compás con 3 o más capas) y `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas). Fichas de las reglas nuevas en `docs/ESPECIFICACION_GRABADO_MUSICAL.md` y la edición de referencia (Ed-806) en sus fuentes; pruebas en `herramientas/prueba_notacion.js` y cuatro casos fijos en `herramientas/notacion_casos.json`.
+
+## [0.8.10] - 2026-11-07
+
+### Fixed
+- Opción de grabado `leftMarginAccid` (aire a la izquierda de las alteraciones): valía 2,2, por encima del máximo que admite Verovio (2), que la rechazaba con un aviso en la consola y usaba su valor por defecto (1). Ahora vale 2: algo más de espacio delante de las alteraciones, que redistribuye ligeramente el espaciado de los compases; las métricas de la auditoría no cambian (alteraciones que chocan: 1 y 1 en la muestra estándar). `herramientas/prueba_notacion.js` comprueba que todas las opciones de Verovio existen y están dentro de su rango.
+
+## [0.8.9] - 2026-11-07
+
+### Added
+- Especificación de grabado musical (`docs/ESPECIFICACION_GRABADO_MUSICAL.md`): fichas de todas las reglas del motor de notación (plicas, cabezas, barras, alteraciones, silencios, ligaduras, espaciado, elementos expresivos), cada una con su fundamento en el manual de MuseScore, la *Notation Reference* de LilyPond o las guías de grabado de DAISY (o marcada como decisión propia), su implementación y su prueba. Auditoría del sistema anterior en `docs/AUDITORIA_MOTOR_NOTACION.md`.
+- Integridad musical en la preparación de las partituras (`web/musica.js`): cada transformación del MusicXML declara qué propiedades puede cambiar y se comprueba antes y después de cada paso que las demás (notas, alturas, duraciones, posiciones, voces, acordes, ligaduras, compás, armadura, instrumentos…) no cambian, y que ninguna nota pasa a leerse mal. Si algo cambia sin declararlo, el paso se deshace y se registra un error `HF-INTEGRIDAD`.
+- Pruebas en tres niveles: `herramientas/prueba_motor.js` (una prueba por regla e integridad), `herramientas/prueba_integridad.js` (todo el corpus en modo estricto) y `herramientas/regresion_visual.js` (23 fragmentos representativos comparados con imágenes de referencia).
 
 ### Changed
-- `herramientas/auditoria_gould.js`: nueva métrica `capas3` (pentagramas-compás con 3 o más capas con notas). `herramientas/notacion_casos.json`: cuatro casos nuevos de voces múltiples; `herramientas/prueba_notacion.js`: pruebas de las tres reglas.
+- Motor de notación reorganizado: un único registro de transformaciones (`web/notacion.js`) y los retoques del SVG en `web/notacion_svg.js`; la lógica que vivía en `web/index.html` (claves, voces, silencios, barras, expresión, anacrusa) se ha trasladado sin cambiar su comportamiento salvo lo que se indica abajo. El MusicXML se lee y se escribe una sola vez por obra, sin expresiones regulares.
+- Plicas con varias voces: una sola regla para todas las fuentes (`N-PLICA-2`); las reconstrucciones del DCML ya no fijan además las plicas por su cuenta, y en compases donde las voces se alternan sin sonar a la vez la plica sigue la posición de las notas. Con tres o más voces, las intermedias siguen la convención de LilyPond y MuseScore (la segunda más aguda arriba, la segunda más grave abajo; `N-PLICA-3`).
+- Barras automáticas de las reconstrucciones (`N-BARRA-3`): en 4/4 las corcheas se agrupan por medio compás, en 3/4 por compás entero y en 3/8 las tres corcheas van juntas (antes quedaban sueltas, con corchete).
+- Silencios que pisan una nota de otra voz (`N-SIL-2`): se apartan en vertical, dejando 0,35 espacios libres, antes de ocultarse (antes se ocultaban siempre).
+
+### Fixed
+- `N-ALT-2` quitaba alteraciones necesarias en dos casos: tras una nota ligada desde el compás anterior (p. ej. Beethoven, Op. 53, iii, c. 239) y tras una nota alterada a la que la fuente no ponía alteración (Op. 31 n.º 2, iii, c. 170). Ahora el estado de las alteraciones sigue lo escrito, la alteración de una nota ligada desde el compás anterior no rige para el resto del compás y se conserva el becuadro de precaución que sigue a una nota ligada.
+- Barras automáticas de las reconstrucciones: la barra se escribe solo en la primera nota de cada acorde; si también la llevaban las demás, Verovio dejaba de dibujar notas del acorde.
+- Con un solo instrumento, un nombre de instrumento vacío (`<part-name/>`) también se oculta.
+- `herramientas/prueba_notacion.js`: condición de carrera al esperar la partitura de cada caso.
+
+### Removed
+- Limpieza previa de las «dinámicas» vacías de la conversión desde Humdrum: era redundante (la eliminación de dinámicas ya las quitaba todas).
+
+## [0.8.8] - 2026-11-06
+
+### Fixed
+- Sonatas de Beethoven (edición de Sapp convertida desde Humdrum): las voces que aparecen o desaparecen a mitad de compás (`*^`/`*v` en el Humdrum) ya no se descolocan. music21 empezaba la voz nueva en el pulso 1 en vez de donde entra (p. ej. Op. 2 n.º 1, ii, c. 3: sol y fa en el primer pulso, debajo del fa-do) y, tras una fusión, mandaba el resto del compás a una segunda capa con el mismo número de voz, que Verovio dibujaba a continuación (c. 2: el la-sol de la mano izquierda desplazado a la derecha, con silencios de relleno y un hueco grande). `krn_beethoven_a_mxl.py` lleva ahora esas divisiones y fusiones al principio y al final del compás y rellena la voz con espacio invisible (`voces_por_compas`). Los compases con capas de voz rotas en los 58 movimientos pasan de 134 a 38 (31 de ellos en el Op. 10 n.º 3, i, que no se reconvierte porque la codificación actual de Sapp tiene otro número de compases); 52 compases recuperan la colocación correcta de sus notas.
+- Los silencios que la edición de Sapp marca como invisibles (`ryy`) ya no se dibujan: music21 no leía la marca y aparecían como silencios de relleno (916 compases).
+- Op. 81a, ii (todo el movimiento) y Op. 14 n.º 1, ii (desde el c. 154): se recuperan notas de la mano izquierda que faltaban en la conversión anterior.
+
+### Changed
+- `krn_beethoven_a_mxl.py --reconvertir`: vuelve a convertir los movimientos ya convertidos del paquete y conserva su numeración de compases; informa de cuántos compases cambian. Con `SIN_VOCES_POR_COMPAS=1` se convierte sin la corrección anterior, para comparar.
 
 ## [0.8.7] - 2026-11-06
 
@@ -287,7 +332,10 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...HEAD
+[0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
+[0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
+[0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6

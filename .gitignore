@@ -5,3 +5,5 @@ recortes/
 __pycache__/
 *.pyc
 .pytest_cache/
+regresion_visual_informe/
+build/

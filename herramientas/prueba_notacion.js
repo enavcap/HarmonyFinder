@@ -1,5 +1,5 @@
 // Prueba de las reglas de notación (web/notacion.js): catálogo coherente y reglas XML que se pueden comprobar sin ojo.
-//   · identificadores de regla únicos y con el formato N-XXX-n
+//   · identificadores de regla únicos y con el formato N-XXX-n; catálogo y docs/ESPECIFICACION_GRABADO_MUSICAL.md coinciden
 //   · N-INI-1: un fragmento que empieza a mitad de obra muestra el compás; con la regla apagada, no
 //   · N-INI-1: un fragmento que empieza en el primer compás no duplica la indicación de compás
 //   · N-ALT-2: la alteración se escribe una vez por compás y se repite solo si cambia
@@ -17,11 +17,14 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.goto(URL); await p.waitForFunction(() => window.__prueba, null, { timeout: 60000 });
   const ids = await p.evaluate(() => Notacion.reglas.map(r => r.id));
   ok(ids.length > 0 && new Set(ids).size === ids.length && ids.every(i => /^N-[A-Z]+-\d+$/.test(i)), `catálogo: ${ids.length} reglas con identificador único (${ids.join(', ')})`);
-  const doc = fs.existsSync(__dirname + '/../docs/NOTACION.md') ? fs.readFileSync(__dirname + '/../docs/NOTACION.md', 'utf8') : '';
-  const sinDoc = ids.filter(i => !doc.includes('`' + i + '`'));
-  ok(sinDoc.length === 0, `docs/NOTACION.md documenta todas las reglas del catálogo${sinDoc.length ? ' (faltan: ' + sinDoc.join(', ') + ')' : ''}`);
+  // catálogo ↔ especificación (docs/ESPECIFICACION_GRABADO_MUSICAL.md): cada regla del código tiene ficha, y cada ficha, regla
+  const esp = fs.readFileSync(__dirname + '/../docs/ESPECIFICACION_GRABADO_MUSICAL.md', 'utf8');
+  const enEsp = new Set(esp.split('\n').filter(l => l.startsWith('#### ')).flatMap(l => l.match(/N-[A-Z]+-\d+/g) || []));
+  const sinDoc = ids.filter(i => !enEsp.has(i)), sinCod = [...enEsp].filter(i => !ids.includes(i));
+  ok(sinDoc.length === 0, `la especificación tiene una ficha para cada regla del catálogo${sinDoc.length ? ' (faltan: ' + sinDoc.join(', ') + ')' : ''}`);
+  ok(sinCod.length === 0, `cada ficha de la especificación está en el catálogo del código${sinCod.length ? ' (faltan: ' + sinCod.join(', ') + ')' : ''}`);
   const medidas = async h => {
-    await p.evaluate(h => { __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, h);
+    await p.evaluate(h => { document.querySelector("#partitura").innerHTML = ""; __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, h);
     await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && c.querySelector('svg g.cifrados') }, null, { timeout: 60000 });
     await p.waitForTimeout(200);
     return p.evaluate(() => ({ compases: document.querySelectorAll('#partitura svg g.meterSig').length, pentagramas: document.querySelector('#partitura svg g.measure').querySelectorAll(':scope > g.staff').length }));
@@ -34,6 +37,13 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.evaluate(() => { Notacion.config.compasAlInicio = true });
   const inicio = { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 };
   r = await medidas(inicio); ok(r.compases === r.pentagramas, `al principio de la obra (Suite inglesa 1, Allemande, c. 0): un solo compás por pentagrama (${r.compases} de ${r.pentagramas})`);
+  // opciones de Verovio dentro de sus rangos (un valor fuera de rango se rechaza en silencio: leftMarginAccid 2,2 hasta la 0.8.9)
+  const fueraDeRango = await p.evaluate(() => {
+    const tk = new verovio.toolkit(), av = tk.getAvailableOptions(), todos = {};
+    for (const g of Object.values(av.groups || av)) Object.assign(todos, g.options || {});
+    return Object.entries(Notacion.opciones).filter(([k, v]) => !todos[k] || (typeof v === 'number' && ((todos[k].min !== undefined && v < todos[k].min) || (todos[k].max !== undefined && v > todos[k].max)))).map(([k, v]) => k + '=' + v);
+  });
+  ok(fueraDeRango.length === 0, `todas las opciones de Notacion.opciones existen en Verovio y están dentro de su rango${fueraDeRango.length ? ' (fuera: ' + fueraDeRango.join(', ') + ')' : ''}`);
   // N-ALT-2: si♭ repetido dentro del compás, becuadro necesario, compás siguiente, acordes y voces distintas
   const nota = (paso, oct, alt, acc, extra = '', dur = 1) => `<note><pitch><step>${paso}</step>${alt ? `<alter>${alt}</alter>` : ''}<octave>${oct}</octave></pitch><duration>${dur}</duration><voice>1</voice><type>quarter</type>${acc ? `<accidental>${acc}</accidental>` : ''}${extra}<staff>1</staff></note>`;
   const xmlAlt = `<score-partwise><part-list><score-part id="P1"/></part-list><part id="P1">
@@ -59,7 +69,7 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   // la plica que ya traía el archivo se corrige y la que ya es correcta se deja
   ok(await plicas(env(nv('D', 3, 2, 1, '<stem>up</stem>') + '<backup><duration>2</duration></backup>' + nv('A', 4, 1, 1, '<stem>up</stem>'))) === '2:down 1:up', 'N-PLICA-2: corrige la plica errónea y respeta la correcta');
   // tres voces: solo las de los extremos
-  ok(await plicas(env(nv('A', 4, 1) + '<backup><duration>2</duration></backup>' + nv('E', 4, 2) + '<backup><duration>2</duration></backup>' + nv('C', 3, 3))) === '1:up 2:- 3:down', 'N-PLICA-2: con tres voces, aguda arriba, grave abajo y la intermedia como la resuelva el grabador');
+  ok(await plicas(env(nv('A', 4, 1) + '<backup><duration>2</duration></backup>' + nv('E', 4, 2) + '<backup><duration>2</duration></backup>' + nv('C', 3, 3))) === '1:up 2:up 3:down', 'N-PLICA-2/3: con tres voces, aguda arriba, grave abajo y la central arriba (LilyPond: voz 3 arriba)');
   // pentagramas distintos no se mezclan; la voz de otro pentagrama no cuenta
   ok(await plicas(env(nv('A', 4, 1, 1) + '<backup><duration>2</duration></backup>' + nv('C', 3, 1, 2))) === '1:- 1:-', 'N-PLICA-2: una sola voz por pentagrama: sin cambios');
   // la plica se inserta en el sitio que manda MusicXML (antes de staff/beam), para que el archivo siga siendo válido
@@ -114,10 +124,10 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
     }
     return { igual: y === x, capas: Object.fromEntries(Object.entries(porSt).map(([k, v]) => [k, v.size])), suena };
   }, x);
-  // arpegio sostenido (style brisé): la5 redonda, mi5 blanca, do#5 que entra una corchea después y se sostiene
+  // una voz que entra mientras las otras se sostienen, sin atacar ninguna nota a la vez: la5 redonda, mi5 blanca y do#5 que entra una corchea después
   const brise = gran(nr(['A', 5], 16, 1) + atras + nr(['E', 5], 8, 2) + nr(null, 8, 2) + atras + nr(null, 2, 3) + nr(['C', 5], 6, 3) + nr(null, 8, 3) + atras + nr(['A', 2], 16, 5, 2));
   let rv = await voces(brise);
-  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces de un arpegio sostenido quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
+  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces que entran escalonadas quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
   // una línea real de semicorcheas entre dos notas largas: absorberla pediría 15 ligaduras; se deja en su capa (como la edición, Allemande cc. 6-7)
   const linea = ['B', 'A', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'A', 'B', 'A', 'G', 'F', 'G', 'A'].map((s, i) => nr([s, s === 'C' ? 5 : 4], 1, 2)).join('');
   rv = await voces(gran(nr(['E', 5], 16, 1) + atras + linea + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2)));
@@ -127,13 +137,49 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   ok(rv.suena['A3@2'] === 16 && !rv.suena['A3@1'], `N-CRUCE-1: una voz que su mano no alcanza pasa al pentagrama de la otra (${JSON.stringify(rv.suena)})`);
   // un tenor que la mano izquierda alcanza (la3 sobre si2) se queda abajo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 16, 2) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['B', 2], 16, 6, 2)));
-  ok(rv.igual, 'N-CRUCE-1: voces que cada mano alcanza: sin cambios');
+  ok(rv.suena['E4@1'] === 16 && rv.suena['A4@1'] === 16 && rv.suena['A3@2'] === 16 && rv.suena['B2@2'] === 16, `N-CRUCE-1: voces que cada mano alcanza: ninguna cambia de mano (${JSON.stringify(rv.suena)})`);
   // N-VOC-2: mi4 atacado a la vez en las dos manos: se queda el más largo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 4, 2) + nr(null, 12, 2) + atras + nr(['E', 4], 8, 5, 2) + nr(null, 8, 5, 2) + atras + nr(['A', 3], 16, 6, 2)));
   ok(rv.suena['E4@2'] === 8 && !rv.suena['E4@1'], `N-VOC-2: un unísono entre manos se escribe una vez (${JSON.stringify(rv.suena)})`);
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false }));
-  ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2 y N-CRUCE-1 apagadas: el XML no cambia');
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true }));
+  // N-VOC-5: arpegio sostenido como lo trae el DCML (semicorcheas mi5-do#5 en una voz y mi5 con puntillo en otra, que atacan a la
+  // vez): no se funde en acordes y la voz que sostiene lleva la plica contraria a la del arpegio
+  const arpegio = gran(nr(['A', 5], 16, 1) + atras + nr(null, 1, 2) + nr(['E', 5], 3, 2) + nr(null, 12, 2) + atras + nr(null, 1, 3) + nr(['E', 5], 1, 3) + nr(['C', 5], 1, 3) + nr(null, 1, 3) + nr(null, 12, 3) + atras + nr(['A', 2], 16, 5, 2));
+  rv = await voces(arpegio);
+  ok(rv.capas['1'] === 3, `N-VOC-1: las voces de un arpegio sostenido no se funden en acordes ligados (${rv.capas['1']} capas)`);
+  const plUn = await p.evaluate(x => { const y = Notacion.plicasUnisono(x.replace(/<staff>1<\/staff>/g, '<stem>down</stem><staff>1</staff>')); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('note')].filter(n => n.querySelector('pitch') && n.querySelector('staff').textContent === '1').map(n => n.querySelector('voice').textContent + ':' + n.querySelector('stem').textContent).join(' ') }, arpegio);
+  ok(plUn === '1:down 2:up 3:down 3:down', `N-VOC-5: la voz que sostiene la nota compartida pasa a la plica contraria (${plUn})`);
+  // en la Allemande dibujada, el mi5 con puntillo y el do#5 en corchea del c. 2 (y el la3 y do#4 de la izquierda del c. 1)
+  // comparten la cabeza con las semicorcheas del arpegio
+  await p.evaluate(h => { __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 });
+  await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && c.querySelector('svg g.cifrados') }, null, { timeout: 60000 });
+  const compartidas = await p.evaluate(() => document.querySelectorAll('#partitura svg [data-n-voc3]').length);
+  ok(compartidas >= 2, `N-VOC-5: Allemande, cc. 0-3: ${compartidas} unísonos con puntillo distinto llevados a una cabeza (mi5 del c. 2, la3 del c. 1; los de figura igual ya los junta Verovio)`);
+  // N-VOC-6: tres voces; la intermedia es una línea de semicorcheas en la 1.ª blanca (N-VOC-1 no la funde) y una blanca (la4) que
+  // coincide en ritmo con la aguda (do#5) en la 2.ª: esa nota va al acorde de la aguda. Con dos voces, solo si el ritmo coincide en todo el compás
+  const v4 = (v2) => gran(nr(['D', 5], 4, 1) + nr(['D', 5], 4, 1) + nr(['C', 5], 8, 1) + atras + v2 + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2));
+  const acordes = x => p.evaluate(x => { const d = new DOMParser().parseFromString(Notacion.vocesReconstruidas(x), 'application/xml'); return [...d.querySelectorAll('note')].filter(n => n.querySelector('chord') && n.querySelector('staff').textContent === '1').map(n => n.querySelector('step').textContent + n.querySelector('octave').textContent + '/v' + n.querySelector('voice').textContent).join(' ') }, x);
+  const lineaInt = ['A', 'G', 'F', 'G', 'A', 'B', 'A', 'G'].map(x => nr([x, 4], 1, 2)).join('') + nr(['A', 4], 8, 2);
+  const rc4 = await acordes(v4(lineaInt));
+  ok(rc4 === 'A4/v1', `N-VOC-6: con tres voces, la nota interior que coincide en ritmo con la vecina va a su acorde; la línea de semicorcheas sigue aparte (${rc4})`);
+  const dos = gran(nr(['D', 5], 8, 1) + nr(['C', 5], 8, 1) + atras + nr(['F', 4], 8, 2) + nr(['A', 4], 8, 2) + atras + nr(['A', 2], 16, 5, 2));
+  ok(await acordes(dos) === 'F4/v1 A4/v1', `N-VOC-6: dos voces con el mismo ritmo en todo el compás van en acordes de una voz (${await acordes(dos)})`);
+  const contra = gran(nr(['D', 5], 8, 1) + nr(['C', 5], 4, 1) + nr(['B', 4], 4, 1) + atras + nr(['F', 4], 8, 2) + nr(['A', 4], 8, 2) + atras + nr(['A', 2], 16, 5, 2));
+  ok(await acordes(contra) === '', 'N-VOC-6: dos voces que coinciden solo en parte se dejan separadas (contrapunto)');
+  // N-CRUCE-2: en la voz aguda de la izquierda (sobre un la3, al alcance de la mano), mi4 (2 líneas en fa) se queda; la4 (3 líneas) y
+  // si4 suben a la derecha, bajo su mi5
+  rv = await voces(gran(nr(['E', 5], 16, 1) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['E', 4], 4, 6, 2) + nr(['A', 4], 4, 6, 2) + nr(['B', 4], 8, 6, 2)));
+  ok(rv.suena['E4@2'] === 4 && rv.suena['A4@1'] === 4 && rv.suena['B4@1'] === 8, `N-CRUCE-2: las notas de la izquierda con 3+ líneas adicionales pasan a la derecha (${JSON.stringify(rv.suena)})`);
+  // si la derecha toca más grave que esas notas (cruce de manos), no se tocan
+  rv = await voces(gran(nr(['G', 4], 16, 1) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['E', 4], 4, 6, 2) + nr(['A', 4], 4, 6, 2) + nr(['B', 4], 8, 6, 2)));
+  ok(rv.suena['A4@2'] === 4 && rv.suena['B4@2'] === 8, `N-CRUCE-2: no deshace un cruce de manos (${JSON.stringify(rv.suena)})`);
+  // N-LIG-6: ligadura de unión de la voz 1 a la voz 2 (mismo pentagrama y altura): se quita de <tied>, se conserva <tie> y se anota el par
+  const nl = (voz, tipo, extra) => `<note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><tie type="${tipo}"/><voice>${voz}</voice><type>half</type><staff>1</staff><notations><tied type="${tipo}"/></notations></note>`;
+  const ligx = env(nl(1, 'start') + '<backup><duration>2</duration></backup><forward><duration>2</duration><voice>2</voice><staff>1</staff></forward>' + nl(2, 'stop'));
+  const l4 = await p.evaluate(x => { const y = Notacion.ligadurasEntreCapas(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return { pares: Notacion.ligadurasPendientes(y).length, tied: d.querySelectorAll('tied').length, tie: d.querySelectorAll('tie').length, mei: Notacion.ligadurasMEI('<measure><note xml:id="hf-lig0"/><note xml:id="hf-lig1"/></measure>', Notacion.ligadurasPendientes(y)) } }, ligx);
+  ok(l4.pares === 1 && l4.tied === 0 && l4.tie === 2 && /<tie startid="#hf-lig0" endid="#hf-lig1"\/><\/measure>/.test(l4.mei), `N-LIG-6: una ligadura entre dos voces pasa a MEI (${JSON.stringify(l4)})`);
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false, vocesCondensadas: false, homorritmia: false, notasAlOtroPentagrama: false }));
+  ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2, N-VOC-6 y N-CRUCE-1 apagadas: el XML no cambia');
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true, vocesCondensadas: true, homorritmia: true, notasAlOtroPentagrama: true }));
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();
