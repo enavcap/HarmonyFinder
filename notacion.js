@@ -330,7 +330,8 @@
   // N-CRUCE-1. En un gran pentagrama (2 pentagramas en la parte), una voz que no es la exterior de su mano (la más aguda de la
   // derecha, la más grave de la izquierda) pasa al otro pentagrama en ese compás si su mano no puede tocarla: a la vez que alguna
   // de sus notas, otra voz del mismo pentagrama está a más de una décima (9 pasos diatónicos; Allemande, c. 1: la5 y la3 en la
-  // derecha; c. 5: sol#2 bajo sol#4), en la otra mano esa extensión cabe y allí no pasa de 3 líneas adicionales.
+  // derecha; c. 5: sol#2 bajo sol#4), y hay una voz activa a la vez en la otra mano donde esa extensión cabe y no pasa de 3
+  // líneas adicionales. No se traslada una voz a un pentagrama que está en silencio en ese tramo (Gigue, BWV 812, c. 2).
   // Una voz de tenor que la mano izquierda alcanza (la3-do#4 bajo un si2) se queda abajo, como en la edición. No se usan las
   // líneas adicionales para decidir: los cruces de manos de la fuente (Medtner, Op. 26 n.º 4, cc. 38-39: la izquierda por encima
   // de la derecha; Liszt, Sposalizio, c. 58) se escriben así a propósito y se conservan.
@@ -350,11 +351,12 @@
         propias.sort((a, b) => b.media - a.media);                        // de aguda a grave
         const exterior = s === '1' ? propias[0] : propias[propias.length - 1];
         const ajenas = [...vocesDe(C.grupos, o).values()];
+        const notasAjenas = ajenas.flatMap(V => V.notas);
         let movida = null;
         for (const V of propias) {
           if (V === exterior) continue;
           const vals = V.notas.flatMap(alturas);
-          if (extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
+          if (extension(V, propias.filter(x => x !== V)) > DECIMA && solapan(V.notas, notasAjenas) && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
           // (b) su mano tiene tres o más voces sonando a la vez y la otra como mucho una en ese tramo: la voz más cercana a la otra
           // mano pasa allí si cabe (como mucho 2 líneas adicionales) y no se cruza con ella (Sarabande, c. 5: el mi4 blanca con
           // puntillo de la derecha va en la izquierda, sobre el sol3, como en la edición)
@@ -362,7 +364,7 @@
           const juntas = V.notas.some(g => propias.filter(x => x !== V && x.notas.some(h => h.t < g.t + g.d && g.t < h.t + h.d)).length >= 2);
           const enTramo = ajenas.filter(x => x.notas.some(h => V.notas.some(g => h.t < g.t + g.d && g.t < h.t + h.d)));
           const sinCruce = enTramo.every(x => s === '1' ? Math.min(...vals) > Math.max(...x.notas.flatMap(alturas)) : Math.max(...vals) < Math.min(...x.notas.flatMap(alturas)));
-          if (cercana && juntas && enTramo.length <= 1 && sinCruce && Math.max(...vals.map(y => lineasAd(y, o))) <= 2) { movida = V; break }
+          if (cercana && juntas && enTramo.length === 1 && sinCruce && Math.max(...vals.map(y => lineasAd(y, o))) <= 2) { movida = V; break }
         }
         if (!movida) break;
         const libre = String(Math.max(0, ...C.grupos.map(g => +g.voz || 0)) + 1);
@@ -589,16 +591,18 @@
   }
 
   // N-VOC-2. La misma nota (altura y grafía) atacada a la vez en las dos manos: se queda la más larga, o, si duran lo mismo,
-  // la del pentagrama más cercano a su registro. Dentro de un mismo pentagrama no se toca: un unísono entre dos voces se
-  // escribe con una cabeza y dos plicas, y eso ya lo resuelve el grabador.
+  // la del pentagrama más cercano a su registro. Se conservan ambas si la nota que se quitaría tiene una barra explícita
+  // necesaria para el grupo rítmico de su mano (Gigue, BWV 812, c. 3: re4 del bajo enlazado con la3). Dentro de un mismo
+  // pentagrama no se toca: un unísono entre dos voces se escribe con una cabeza y dos plicas, y eso ya lo resuelve el grabador.
   function unisonosManos(C) {
     let cambios = 0;
     const notas = []; for (const g of C.grupos) if (!g.silencio) g.els.forEach(e => notas.push({ g, e, s: sonido(e), v: valorPaso(hijo(e, 'pitch')) }));
     const quitar = new Set();
     for (const x of notas) for (const y of notas) {
-      if (x === y || x.g.staff === y.g.staff || x.s !== y.s || x.g.t !== y.g.t || quitar.has(x.e) || quitar.has(y.e)) continue;
+      if (x === y || casa(x.g) === casa(y.g) || x.s !== y.s || x.g.t !== y.g.t || quitar.has(x.e) || quitar.has(y.e)) continue;
       if (ligadurasDe(x.e).stop || ligadurasDe(y.e).stop) continue;
-      const peor = x.g.d !== y.g.d ? (x.g.d < y.g.d ? x : y) : (lineasAd(x.v, x.g.staff) >= lineasAd(y.v, y.g.staff) ? x : y);
+      const peor = x.g.d !== y.g.d ? (x.g.d < y.g.d ? x : y) : (lineasAd(x.v, casa(x.g)) >= lineasAd(y.v, casa(y.g)) ? x : y);
+      if (hijo(peor.e, 'beam')) continue;
       quitar.add(peor.e);
     }
     if (!quitar.size) return 0;
@@ -986,22 +990,85 @@
   // la línea superior del pentagrama (MuseScore: con varias voces, los silencios de la voz 1 suben al menos un espacio).
   // Se ejecuta después de N-VOC-4, de modo que la voz aguda es la de número más bajo.
   const ARRIBA = { G2: ['F', 5], 'G2-1': ['F', 4], F4: ['A', 3], C3: ['G', 4], C4: ['E', 4], C1: ['C', 5], G1: ['A', 5], F3: ['C', 4] };  // línea superior según la clave
+  const TIPOS_FIGURA = [[4, 'whole'], [2, 'half'], [1, 'quarter'], [0.5, 'eighth'], [0.25, '16th'], [0.125, '32nd'], [0.0625, '64th']];
+  // figura (con o sin un punto) cuya duración en negras es d/dv; null si no es una figura simple
+  function tipoDeDuracion(d, dv) {
+    const q = d / dv;
+    for (const [v, type] of TIPOS_FIGURA) { if (Math.abs(q - v) < 1e-6) return { type, punto: false }; if (Math.abs(q - v * 1.5) < 1e-6) return { type, punto: true } }
+    return null;
+  }
+  // Altura de un silencio de la voz aguda: a la altura media de las notas vecinas de su propia voz (la anterior y la siguiente),
+  // dentro del pentagrama (entre el segundo espacio por encima de la línea inferior y la línea superior menos un paso);
+  // sin vecinas, en la línea superior. N-SIL-2 lo aparta después si pisa otra voz.
+  const LETRAS_PASO = 'CDEFGAB';
+  const indiceDiatonico = (paso, oct) => oct * 7 + LETRAS_PASO.indexOf(paso);
+  function alturaSilencio(tope, x, notas) {
+    const arriba = indiceDiatonico(tope[0], tope[1]), abajo = arriba - 8;
+    const mismas = notas.filter(o => o.v === x.v && o.conAltura && o !== x);
+    const previa = mismas.filter(o => o.fin <= x.ini).sort((a, b) => b.fin - a.fin)[0];
+    const siguiente = mismas.filter(o => o.ini >= x.fin).sort((a, b) => a.ini - b.ini)[0];
+    const alturas = [previa, siguiente].filter(Boolean).map(o => { const pi = hijo(o.n, 'pitch'); return indiceDiatonico(txt(pi, 'step'), +txt(pi, 'octave')) });
+    if (!alturas.length) return tope;
+    const media = Math.round(alturas.reduce((a, b) => a + b, 0) / alturas.length);
+    const i = Math.max(abajo + 2, Math.min(arriba - 1, media));
+    return [LETRAS_PASO[((i % 7) + 7) % 7], Math.floor(i / 7)];
+  }
   function silenciosReconstruccion(doc) {
     let cambios = 0;
     for (const parte of doc.getElementsByTagName('part')) {
-      const claves = {};
+      const claves = {}; let dv = 1;
       for (const m of compasesDe(parte)) {
+        const dd = m.getElementsByTagName('divisions')[0]; if (dd) dv = +dd.textContent || dv;
         for (const cl of m.getElementsByTagName('clef')) { const nn = cl.getAttribute('number') || '1', oc = +(txt(cl, 'clef-octave-change') || 0); claves[nn] = (txt(cl, 'sign') || 'G') + (txt(cl, 'line') || '2') + (oc ? String(oc) : '') }
         const porPent = new Map();
-        for (const n of hijos(m, 'note')) { const st = casaDe(n); if (!porPent.has(st)) porPent.set(st, []); porPent.get(st).push({ n, v: +(txt(n, 'voice') || 1), conAltura: !!hijo(n, 'pitch'), silencio: !!hijo(n, 'rest') }) }
+        let pos = 0, prev = 0;   // posición en divisiones: backup/forward mueven el cursor; los acordes no avanzan
+        for (const e of [...m.children]) {
+          if (e.tagName === 'backup') { pos -= +(txt(e, 'duration') || 0); continue }
+          if (e.tagName === 'forward') { pos += +(txt(e, 'duration') || 0); continue }
+          if (e.tagName !== 'note') continue;
+          const n = e, st = casaDe(n), du = +(txt(n, 'duration') || 0), acorde = !!hijo(n, 'chord'), grace = !!hijo(n, 'grace');
+          const ini = acorde ? pos - prev : pos;
+          if (!acorde && !grace) { prev = du; pos += du }
+          if (!porPent.has(st)) porPent.set(st, []);
+          porPent.get(st).push({ n, v: +(txt(n, 'voice') || 1), conAltura: !!hijo(n, 'pitch'), silencio: !!hijo(n, 'rest'), ini, fin: ini + (grace ? 0 : du) });
+        }
         for (const [st, notas] of porPent) {
           const voces = [...new Set(notas.map(x => x.v))]; if (voces.length < 2) continue;
           const alta = Math.min(...voces), conNotas = new Set(notas.filter(x => x.conAltura).map(x => x.v)).size;
-          for (const { n, v, silencio } of notas) {
+          // Un silencio de voz secundaria solo es redundante si otra voz (notas, o los silencios de la voz aguda, que se imprimen)
+          // ocupa todo su tramo; si queda un hueco sin nada, ese silencio es el único que lo indica y se conserva.
+          const cubierto = (x) => {
+            const tramos = notas.filter(o => o.v !== x.v && o.fin > o.ini && (o.conAltura || o.v === alta) && o.fin > x.ini && o.ini < x.fin).sort((a, b) => a.ini - b.ini);
+            let hasta = x.ini;
+            for (const o of tramos) { if (o.ini > hasta) return false; hasta = Math.max(hasta, o.fin); if (hasta >= x.fin) return true }
+            return hasta >= x.fin;
+          };
+          // Recorte: si otra voz suena con notas durante el principio o el final de un silencio, ese tramo ya está ocupado y solo
+          // queda por indicar el hueco real; el silencio se acorta a ese hueco y el resto pasa a ser un <forward> invisible.
+          for (const x of notas) {
+            if (!x.silencio || x.ini >= x.fin || hijo(x.n, 'time-modification') || hijo(x.n, 'chord')) continue;
+            const ocupa = notas.filter(o => o.v !== x.v && o.conAltura && o.fin > o.ini && o.fin > x.ini && o.ini < x.fin).sort((a, b) => a.ini - b.ini);
+            if (!ocupa.length) continue;
+            let a = x.ini; for (const o of ocupa) { if (o.ini > a) break; a = Math.max(a, o.fin) }
+            let b = x.fin; for (const o of [...ocupa].reverse()) { if (o.fin < b) break; b = Math.min(b, o.ini) }
+            if (a >= b || (a === x.ini && b === x.fin) || ocupa.some(o => o.fin > a && o.ini < b)) continue;   // sin hueco, sin recorte o hueco partido
+            const tipo = tipoDeDuracion(b - a, dv); if (!tipo) continue;
+            const pre = a - x.ini, post = x.fin - b, vo = txt(x.n, 'voice') || '1', stf = txt(x.n, 'staff');
+            const avance = d => { const f = doc.createElement('forward'), du = doc.createElement('duration'), vv = doc.createElement('voice'); du.textContent = String(d); vv.textContent = vo; f.append(du, vv); if (stf) { const s = doc.createElement('staff'); s.textContent = stf; f.append(s) } return f };
+            const ty = hijo(x.n, 'type'); if (!ty) continue;
+            hijo(x.n, 'duration').textContent = String(b - a); ty.textContent = tipo.type;
+            for (const dt of [...x.n.getElementsByTagName('dot')]) dt.remove();
+            if (tipo.punto) ty.after(doc.createElement('dot'));
+            if (pre) x.n.before(avance(pre)); if (post) x.n.after(avance(post));
+            x.ini = a; x.fin = b; cambios++;
+          }
+          for (const x of notas) {
+            const { n, v, silencio } = x;
             if (!silencio) continue;
-            if (v !== alta) { if (n.getAttribute('print-object') !== 'no') { n.setAttribute('print-object', 'no'); cambios++ } continue }
+            if (v !== alta) { if (cubierto(x) && n.getAttribute('print-object') !== 'no') { n.setAttribute('print-object', 'no'); cambios++ } continue }
             if (conNotas < 2) continue;
-            const r = hijo(n, 'rest'), pos = ARRIBA[claves[st] || 'G2']; if (!pos || !r || hijo(r, 'display-step')) continue;
+            const r = hijo(n, 'rest'), tope = ARRIBA[claves[st] || 'G2']; if (!tope || !r || hijo(r, 'display-step')) continue;
+            const pos = alturaSilencio(tope, x, notas);
             const ds = doc.createElement('display-step'), dO = doc.createElement('display-octave'); ds.textContent = pos[0]; dO.textContent = pos[1]; r.append(ds, dO); cambios++;
           }
         }
@@ -1009,7 +1076,7 @@
     }
     return cambios;
   }
-  transformacion({ id: 'silencios-reconstruccion', regla: 'N-SIL-1', tipo: 'notacion', fuentes: ['reconstruida'], modifica: ['silenciosVisibles'], aplicar: silenciosReconstruccion });
+  transformacion({ id: 'silencios-reconstruccion', regla: 'N-SIL-1', tipo: 'notacion', fuentes: ['reconstruida'], modifica: ['silencios', 'silenciosVisibles'], aplicar: silenciosReconstruccion });
 
   // --- N-BARRA-1 / N-BARRA-3: barras automáticas (solo reconstrucciones) ---------------------------------------
   // La reconstrucción solo agrupa algunas figuras; las demás (tresillos de fusas, grupos sueltos) quedan con corchetes.
