@@ -10,6 +10,7 @@
 //   · plicaCruza                 plicas que atraviesan la cabeza de una nota de otra voz
 //   · alteracionChoque           alteraciones que pisan otra alteración o una cabeza de nota
 //   · notaNota                   cabezas de notas de voces distintas que se pisan sin ser unísono
+//   · capas3                    pentagramas-compás con 3 o más capas (voces) con notas (N-VOC-1)
 //   · plicaVoz / pentVoces       pentagramas con 2+ voces cuyas plicas no siguen la convención (aguda arriba, grave abajo) / total de esos pentagramas
 //   · unionChoque / expresionChoque  como lazoChoque, separando las ligaduras de unión (prolongación) de las de expresión
 //   · barraSilencio              barras que pasan por encima de un silencio de su misma voz
@@ -31,7 +32,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   const inter = (a, b) => { const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? { w, h } : null };
   const encoge = (c, k) => ({ x0: c.x0 + k, x1: c.x1 - k, y0: c.y0 + k, y1: c.y1 - k });
   const out = { lineasAdic4: 0, lineasAdic6: 0, barraEmpinada: 0, barras: 0, plicaCorta: 0, plicaNoLlega: 0, plicas: 0, lazoChoque: 0, lazos: 0, plicaCruza: 0, alteracionChoque: 0, notaNota: 0, notas: 0, medidas: 0, sinClave: 0, sinCompas: 0, maxPendiente: 0, peores: [], barraSubida: 0, maxSubida: 0, peoresSubida: [],
-    plicaVoz: 0, pentVoces: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
+    plicaVoz: 0, pentVoces: 0, capas3: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
   const medidas = [...svg.querySelectorAll('g.measure')]; out.medidas = medidas.length;
   // clave en cada pentagrama y compás al principio del fragmento
   if (medidas[0]) {
@@ -106,6 +107,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
     }));
     // convención de plicas (Gould): con dos voces en un pentagrama, la aguda lleva la plica hacia arriba y la grave hacia abajo
     porPent.forEach(vs => {
+      if (vs.filter(x => x.ys.length).length >= 3) out.capas3++;     // N-VOC-1: pentagrama-compás con 3 o más capas con notas
       const v = vs.filter(x => x.ys.length && (x.arriba + x.abajo) > 0); if (v.length < 2) return;
       out.pentVoces++;
       v.sort((a, b) => a.ys.reduce((s, y) => s + y, 0) / a.ys.length - b.ys.reduce((s, y) => s + y, 0) / b.ys.length);   // y crece hacia abajo: la primera es la más aguda
@@ -204,7 +206,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   }
   fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1));
   const ok = res.filter(r => !r.fallo && !r.sinPartitura);
-  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'barraSilencio'];
+  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'capas3', 'barraSilencio'];
   const resumen = f => { const g = ok.filter(f), o = { fragmentos: g.length, notas: g.reduce((s, r) => s + r.notas, 0), barras: g.reduce((s, r) => s + r.barras, 0), lazos: g.reduce((s, r) => s + r.lazos, 0), uniones: g.reduce((s, r) => s + r.uniones, 0) };
     for (const c of CLAVES) { o[c] = g.reduce((s, r) => s + r[c], 0); o['frag_' + c] = g.filter(r => r[c] > 0).length } return o };
   console.log('errores de página', errores.length, '· fallos', res.filter(r => r.fallo).length, '· sin partitura', res.filter(r => r.sinPartitura).length);

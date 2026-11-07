@@ -1699,7 +1699,7 @@ async function xmlDe(o){
   }
   x=quitarExpresion(x);
   if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(x,o.src.inst));
+  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(Notacion.vocesReconstruidas(x),o.src.inst));   // N-CRUCE-1, N-VOC-1, N-VOC-2 antes de elegir claves
   else{ if(!Notacion.config.clavesDeLaEdicion) x=corregirClaves(x); if(o.convertida) x=Notacion.alteracionesRedundantes(x) }
   // N-PLICA-2: una dirección de plica por voz, igual para todas las fuentes (reconstruidas, convertidas y ediciones)
   x=Notacion.plicasPorVoz(x);
@@ -1841,7 +1841,10 @@ function asignarClaves(doc,inst,hijo,solo=null){
       else def=cand.reduce((a,b)=>total(b)<total(a)?b:a);
     }
     if(voz){const mejor=cand.reduce((a,b)=>total(b)<total(a)?b:a); if(total(mejor)<total(def)*0.5-2) def=mejor}
-    const CAMBIO=voz?10:6, SESGO=voz?1.5:0.6;
+    // teclado: la mano izquierda se queda en fa salvo un pasaje agudo sostenido (en la edición impresa de la Allemande de la
+    // Suite inglesa n.º 1 no cambia de clave en toda la pieza, aunque el tenor suba a mi4); la derecha sigue con 0,6
+    const izquierda=!voz&&P.n===2&&P.s===2&&def==='F4';
+    const CAMBIO=voz?10:6, SESGO=voz?1.5:izquierda?2:0.6;
     // con «solo» (partitura original) se parte de las claves del editor: cambiar una cuesta, y solo compensa
     // donde ahorra muchas líneas adicionales
     const cands=solo?[...new Set([...cand,...P.orig])]:cand; cand=cands;
@@ -1972,7 +1975,7 @@ function barrasAutomaticas(doc,hijo){
                 const a=ant&&ant.nivel>=l, s=sig&&sig.nivel>=l;
                 const est=a&&s?'continue':a?'end':s?'begin':(i===0?'forward hook':'backward hook');
                 if(!a&&!s&&!(g.nivel>1&&l>1)) continue;           // el nivel 1 aislado no existe (grupo de ≥2)
-                for(const nt of [g.n,...g.acorde_n]){
+                for(const nt of [g.n]){                            // solo en la nota principal del acorde (Verovio rechaza la barra en las demás)
                   const be=doc.createElement('beam'); be.setAttribute('number',String(l)); be.textContent=est;
                   const ref=[...nt.children].find(c=>c.tagName==='notations'||c.tagName==='lyric'||c.tagName==='play'||c.tagName==='listen');
                   ref?nt.insertBefore(be,ref):nt.append(be);

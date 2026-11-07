@@ -8,6 +8,17 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Partituras reconstruidas desde el DCML con varias voces por pentagrama, según cómo las escribe una edición profesional (cotejado compás a compás con una edición impresa de la *Allemande* de la Suite inglesa n.º 1 de Bach):
+  - Regla `N-CRUCE-1`: una voz que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano. En la *Allemande*, c. 1, el arpegio la3-do#4-mi4 pasa a la mano izquierda, y en el c. 5 el sol#2 ya no queda en clave de sol con seis líneas adicionales. Se apaga con `Notacion.config.vocesPorRegistro = false`.
+  - Regla `N-VOC-1`: como mucho dos capas por pentagrama cuando la tercera es un arpegio sostenido (*style brisé*), que se escribe como acordes con ligaduras de unión (c. 2: de 4 voces encimadas a 2). Una línea melódica real se deja en su capa, como en la edición. En 60 fragmentos con 3+ voces, los pentagramas con 3+ capas bajan de 45 a 13. Se apaga con `Notacion.config.dosCapas = false`.
+  - Regla `N-VOC-2`: una nota atacada a la vez en las dos manos se escribe una sola vez. Se apaga con `Notacion.config.unisonosUnaVez = false`.
+  - La mano izquierda del teclado ya no pasa a clave de sol por un pasaje de tenor (la *Allemande* empezaba en sol), y la clave se elige después de repartir las voces.
+  - En los acordes que se agrupan con barra automática, la barra va solo en la primera nota; antes Verovio avisaba y la descartaba.
+
+### Changed
+- `herramientas/auditoria_gould.js`: nueva métrica `capas3` (pentagramas-compás con 3 o más capas con notas). `herramientas/notacion_casos.json`: cuatro casos nuevos de voces múltiples; `herramientas/prueba_notacion.js`: pruebas de las tres reglas.
+
 ## [0.8.7] - 2026-11-06
 
 ### Fixed
