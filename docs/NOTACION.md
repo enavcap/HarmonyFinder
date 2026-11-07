@@ -367,6 +367,17 @@ Partir notas en trozos ligados (`acordar`) era la vía de la 0.8.8 para el *bris
 (`CONFIG.trozosLigados`). Regresión visual: solo cambia Couperin (*L'Art de toucher*, 8.º, c. 12: la nota grave de la derecha,
 antes partida y ligada, queda como una figura).
 
+| 0.8.11 → ahora | 60 fragmentos con 3+ voces | Muestra estándar, reconstruidas |
+|---|---|---|
+| Ligaduras de unión dibujadas | 330 → 284 | 165 → 157 |
+| Cabezas dibujadas (los trozos repetidos desaparecen) | 5 544 → 5 498 | 4 738 → 4 731 |
+| Pentagramas-compás con 3+ capas | 26 → 42 | 3 → 6 |
+| Ligaduras de unión que chocan | 1 → 1 | 3 → 3 |
+| Plicas que cruzan una cabeza de otra voz | 1 → 2 | 0 → 0 |
+
+Las originales no cambian. Más capas es lo esperado: cada voz conserva su figura en su capa, como en la edición. Integridad en
+modo estricto: 2 060 de 2 060 partituras.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
