@@ -446,7 +446,9 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 <script src="progresiones.js"></script>
 <script src="canonicos.js"></script>
 <script src="cifrado.js"></script>
+<script src="musica.js"></script>
 <script src="notacion.js"></script>
+<script src="notacion_svg.js"></script>
 <script>
 (async function(){
 const $=s=>document.querySelector(s);
@@ -1676,8 +1678,8 @@ const fuentesListas=(document.fonts?Promise.all([document.fonts.load("40px Acade
 // fuente incrustada en el SVG copiado, para que se vea igual en cualquier programa
 const fuenteB64=fetch('fonts/academico.woff2').then(r=>r.arrayBuffer()).then(b=>{let s='';const u=new Uint8Array(b);for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(s)}).catch(()=>null);
 let fuenteB64Lista=null; fuenteB64.then(x=>fuenteB64Lista=x);
-async function xmlDe(o){
-  if(xmlCache.has(o.m)) return xmlCache.get(o.m);
+// adaptación de la fuente: bytes del paquete → texto MusicXML original, sin ninguna transformación
+async function textoDe(o){
   if(!zips[o.pq]) zips[o.pq]=fetch(`scores/${o.pq}.json`).then(r=>r.json());
   const paquete=await zips[o.pq];
   // casi todas vienen comprimidas (.mxl); alguna (BWV 69/6) es MusicXML sin comprimir
@@ -1687,372 +1689,22 @@ async function xmlDe(o){
     const nombre=Object.keys(mxl.files).find(n=>n.endsWith('.xml')&&!n.startsWith('META-INF'))||Object.keys(mxl.files).find(n=>n.endsWith('.musicxml'));
     bytes=await mxl.file(nombre).async('uint8array');
   } else {const bin=atob(paquete[o.m]); bytes=Uint8Array.from(bin,ch=>ch.charCodeAt(0))}
-  // se quitan las etiquetas armónicas que traen algunos archivos de origen (<harmony>, p. ej. «C.I»):
-  // Verovio las dibujaría sobre el pentagrama superior y duplicarían, en otra notación, los cifrados de abajo
   // algunas partituras (madrigales de Monteverdi) vienen en UTF-16: se detecta y se decodifica bien
   const utf16=(bytes[0]===0xFF&&bytes[1]===0xFE)||(bytes[0]===0xFE&&bytes[1]===0xFF)||bytes[1]===0||bytes[0]===0;
   const codif=!utf16?'utf-8':(bytes[0]===0xFE||bytes[0]===0)?'utf-16be':'utf-16le';
-  let x=new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
-  x=x.replace(/<harmony\b[\s\S]*?<\/harmony>/g,'');
-  // «dinámicas» que son solo signos sueltos — ( ) [ ] — restos de la conversión desde Humdrum (marcas de ligadura y
-  // de paréntesis del **dynam): Verovio las dibujaría como texto bajo el pentagrama. Se quitan con su indicación si
-  // se queda vacía; las dinámicas de verdad (p, cresc., (p)…) llevan letras y se conservan
-  if(x.includes('<other-dynamics')){
-    x=x.replace(/<other-dynamics>[^<A-Za-z0-9]*<\/other-dynamics>/g,'').replace(/<dynamics\b[^>]*>\s*<\/dynamics>/g,'')
-       .replace(/<direction-type>\s*<\/direction-type>/g,'')
-       .replace(/<direction\b[^>]*>(?:\s*(?:<sound\b[^>]*\/>|<offset>[^<]*<\/offset>|<staff>[^<]*<\/staff>|<voice>[^<]*<\/voice>))*\s*<\/direction>/g,'');
-  }
-  x=quitarExpresion(x);
-  if((x.match(/<score-part\b/g)||[]).length===1) x=x.replace(/<part-name\b[^>]*>[\s\S]*?<\/part-name>/,'<part-name print-object="no"></part-name>').replace(/<part-abbreviation\b[^>]*>[\s\S]*?<\/part-abbreviation>/,'');
-  if(o.reconstruida) x=Notacion.alteracionesRedundantes(ordenarVoces(Notacion.vocesReconstruidas(x),o.src.inst));   // N-CRUCE-1, N-VOC-1, N-VOC-2 antes de elegir claves
-  else{ if(!Notacion.config.clavesDeLaEdicion) x=corregirClaves(x); if(o.convertida) x=Notacion.alteracionesRedundantes(x) }
-  // N-PLICA-2: una dirección de plica por voz, igual para todas las fuentes (reconstruidas, convertidas y ediciones)
-  x=Notacion.plicasPorVoz(x);
-  // N-VOC-3: dos voces que atacan la misma nota llevan plicas opuestas (para compartir la cabeza en el SVG)
-  if(o.reconstruida) x=Notacion.ligadurasEntreCapas(Notacion.plicasUnisono(x));   // N-VOC-3, N-LIG-4
-  // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
-  if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
+  return new TextDecoder(codif).decode(bytes).replace(/^\uFEFF/,'').replace(/(<\?xml[^>]*encoding=)(['"])utf-16\2/i,'$1$2UTF-8$2');
+}
+async function xmlDe(o){
+  if(xmlCache.has(o.m)) return xmlCache.get(o.m);
+  const x0=await textoDe(o);
+  // motor de notación (web/notacion.js): transformaciones declaradas y reglas de grabado según la fuente, con
+  // comprobación de integridad musical en cada paso; la anacrusa se alinea con la numeración del análisis
+  const anacrusa=(await acordesDe(o.id)).some(c=>c.compas===0);
+  const x=Notacion.preparar(x0,{fuente:Notacion.fuenteDe(o),inst:o.src.inst||[],anacrusa});
   xmlCache.set(o.m,x); return x;
 }
-// Los ejemplos se muestran solo con notas, ritmos y ligaduras: se quitan dinámicas, reguladores, pedales, textos de
-// expresión, metrónomos y articulaciones, que chocan con los cifrados y con las demás voces. Se conservan las
-// ligaduras (<slur>, <tied>), los cambios de octava (<octave-shift>) y las fermatas (<fermata>), que marcan el final
-// de frase y afectan a la lectura de las cadencias.
-function quitarExpresion(x){
-  x=x.replace(/<direction\b[^>]*>[\s\S]*?<\/direction>/g,d=>{
-    if(!d.includes('<octave-shift')) return '';
-    const tipos=d.match(/<direction-type\b[^>]*>[\s\S]*?<\/direction-type>/g)||[];
-    const util=tipos.filter(t=>t.includes('<octave-shift'));
-    return util.length?d.replace(/<direction-type\b[^>]*>[\s\S]*?<\/direction-type>/g,'').replace(/(<direction\b[^>]*>)/,'$1'+util.join('')).replace(/<sound\b[^>]*\/>/g,''):'';
-  });
-  x=x.replace(/<dynamics\b[^>]*>[\s\S]*?<\/dynamics>/g,'').replace(/<dynamics\b[^>]*\/>/g,'')
-     .replace(/<articulations\b[^>]*>[\s\S]*?<\/articulations>/g,'')
-     .replace(/<notations\b[^>]*>\s*<\/notations>/g,'');
-  return x;
-}
-function alinearAnacrusa(x){
-  const parte=x.slice(0,x.indexOf('</part>')>0?x.indexOf('</part>'):x.length);
-  const nums=[...parte.matchAll(/<measure\b[^>]*\bnumber=["']([^"']*)["']/g)].map(m=>m[1]);
-  if(!nums.length||nums[0]!=='1'||nums.includes('0')) return x;
-  const m1=parte.match(/<measure\b[^>]*\bnumber=["']1["'][^>]*>([\s\S]*?)<\/measure>/); if(!m1) return x;
-  const div=+(parte.match(/<divisions>(\d+)/)||[])[1], bt=parte.match(/<beats>(\d+)<\/beats>\s*<beat-type>(\d+)/);
-  if(!div||!bt) return x;
-  const lleno=div*4*(+bt[1])/(+bt[2]);
-  let t=0, mx=0;
-  for(const tok of m1[1].match(/<note\b[\s\S]*?<\/note>|<backup>[\s\S]*?<\/backup>|<forward>[\s\S]*?<\/forward>/g)||[]){
-    const d=+((tok.match(/<duration>(\d+)/)||[])[1]||0);
-    if(tok.startsWith('<backup')){t-=d;continue}
-    if(/<chord\b|<grace\b/.test(tok)) continue;
-    t+=d; mx=Math.max(mx,t);
-  }
-  if(mx>=lleno-1e-6) return x;                       // primer compás completo: no es anacrusa
-  return x.replace(/(<measure\b[^>]*\bnumber=["'])(\d+)([^"']*["'])/g,(m,a,n,c)=>a+(+n-1)+c);   // también «24X1», «4a»
-}
-// Partituras reconstruidas desde tablas de notas: en cada pentagrama con varias voces se ordenan las voces por
-// altura (la más aguda, plica arriba; la más grave, abajo), los silencios de la voz aguda se colocan arriba y se
-// ocultan los de las demás (las tablas del DCML no contienen silencios; esos los añadió la reconstrucción).
-const PASO={C:0,D:1,E:2,F:3,G:4,A:5,B:6};
-const ARRIBA={G2:['F',5],'G2-1':['F',4],F4:['A',3],C3:['G',4],C4:['E',4],C1:['C',5],G1:['A',5],F3:['C',4]};  // línea superior según la clave
-// En un pentagrama con 3+ voces, la voz cuyas notas coinciden todas (inicio y duración) con las de otra
-// se convierte en acordes de esa otra; su hueco temporal se mantiene como <forward> (espacio invisible).
-function fusionarVocesIguales(doc,m,hijo){
-  let t=0, prevD=0; const ev=[];
-  for(const c of [...m.children]){
-    const d=+(hijo(c,'duration')?.textContent||0);
-    if(c.tagName==='backup'){t-=d;continue}
-    if(c.tagName==='forward'){t+=d;continue}
-    if(c.tagName!=='note') continue;
-    const ch=!!hijo(c,'chord'); if(ch) t-=prevD;
-    ev.push({n:c,t,d,ch,st:c.getAttribute('data-hf-casa')||hijo(c,'staff')?.textContent||'1',v:hijo(c,'voice')?.textContent||'1',silencio:!!hijo(c,'rest'),gracia:!!hijo(c,'grace')});
-    t+=d; prevD=d;
-  }
-  const porSt=new Map(); for(const e of ev){if(!porSt.has(e.st))porSt.set(e.st,new Map());const m2=porSt.get(e.st);if(!m2.has(e.v))m2.set(e.v,[]);m2.get(e.v).push(e)}
-  for(const voces of porSt.values()){
-    const conNotas=[...voces].filter(([v,l])=>l.some(e=>!e.silencio));
-    if(conNotas.length<3) continue;
-    const clave=e=>e.t+'|'+e.d;
-    const huellas=new Map(conNotas.map(([v,l])=>[v,new Set(l.filter(e=>!e.silencio&&!e.gracia).map(clave))]));
-    const orden=conNotas.map(x=>x[0]).sort((a,b)=>huellas.get(b).size-huellas.get(a).size), quedan=[];
-    for(const v of orden){
-      const lista=voces.get(v);
-      if(lista.some(e=>e.gracia)){quedan.push(v);continue}
-      const destino=quedan.find(w=>[...huellas.get(v)].every(k=>huellas.get(w).has(k)));
-      if(!destino||!huellas.get(v).size){quedan.push(v);continue}
-      const objetivo=new Map(); for(const e of voces.get(destino)) if(!e.silencio&&!e.ch) objetivo.set(clave(e),e.n);
-      for(const e of lista){
-        if(e.ch) continue;                                    // los miembros de acorde viajan con su nota principal
-        const grupo=[e.n]; let sig=e.n.nextElementSibling; while(sig&&sig.tagName==='note'&&hijo(sig,'chord')){grupo.push(sig);sig=sig.nextElementSibling}
-        const hueco=doc.createElement('forward'), du=doc.createElement('duration'); du.textContent=String(e.d); hueco.append(du);
-        e.n.parentNode.insertBefore(hueco,e.n);
-        if(e.silencio){grupo.forEach(g=>g.remove());continue}
-        let ref=objetivo.get(clave(e)); while(ref.nextElementSibling&&ref.nextElementSibling.tagName==='note'&&hijo(ref.nextElementSibling,'chord')) ref=ref.nextElementSibling;
-        for(const g of grupo){
-          if(!hijo(g,'chord')){const c=doc.createElement('chord'); g.insertBefore(c,g.firstElementChild)}
-          [...g.children].filter(c=>c.tagName==='beam').forEach(c=>c.remove());
-          const vo=hijo(g,'voice'); if(vo) vo.textContent=destino;
-          ref.after(g); ref=g;
-        }
-      }
-    }
-  }
-}
-// Claves de las partituras reconstruidas (DCML): la reconstrucción pone una sola clave por pentagrama para toda la
-// pieza. Aquí se elige, compás a compás, la clave que pediría un copista: las propias del instrumento (violonchelo:
-// fa, tenor y sol; viola: do en 3.ª y sol; tenor vocal: sol octava baja; teclado: sol y fa…), evitando pasajes con
-// 3 o más líneas adicionales, sin cambios de un compás y cambiando solo en la barra de compás (programación dinámica).
-const CLAVES={G2:{s:'G',l:2,c:34},'G2-1':{s:'G',l:2,o:-1,c:27},F4:{s:'F',l:4,c:22},C3:{s:'C',l:3,c:28},C4:{s:'C',l:4,c:26}};
-function clavesDeInstrumento(nombre){
-  const t=(nombre||'').toLowerCase();
-  if(/cello|violoncell|gamba/.test(t)) return {c:['F4','C4','G2'],d:'F4'};
-  if(/viola\b|bratsche/.test(t)) return {c:['C3','G2'],d:'C3'};
-  if(/violin|flute|flöte|oboe|recorder|clarinet|trumpet|cornet/.test(t)) return {c:['G2'],d:'G2'};
-  if(/continuo|bassoon|fagott/.test(t)) return {c:['F4','C4'],d:'F4'};
-  // voces: una clave para toda la pieza (la de su tesitura); se cambia solo si la parte se sale mucho de ella
-  if(/tenor/.test(t)) return {c:['G2-1','F4','G2'],d:'G2-1',voz:1};
-  if(/bass|basso|bajo/.test(t)) return {c:['F4','G2-1'],d:'F4',voz:1};
-  if(/soprano|alto|mezzo|contralto|canto/.test(t)) return {c:['G2','G2-1'],d:'G2',voz:1};
-  if(/voice|voce|stimme/.test(t)) return {c:['G2','G2-1','F4'],d:null,voz:1};
-  return {c:['G2','F4'],d:null};                     // teclado o desconocido: gran pentagrama sol / fa
-}
-function asignarClaves(doc,inst,hijo,solo=null){
-  const partes=[...doc.getElementsByTagName('part')];
-  const lineas=(pos,clave)=>{const d=Math.abs(pos-CLAVES[clave].c);return d>=6?Math.floor((d-4)/2):0};
-  const coste=L=>L<=2?0.15*L:0.3+1.5*(L-2);
-  // pentagramas: una parte puede tener varios (gran pentagrama del teclado, <staves>2)
-  const pent=[];
-  for(const parte of partes){
-    const compases=[...parte.children].filter(c=>c.tagName==='measure'); if(!compases.length) continue;
-    const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
-    for(let s=1;s<=n;s++){
-      // clave que escribió el editor en cada compás (para respetarla cuando solo se corrigen algunos pentagramas)
-      let k=n===2&&s===2?'F4':'G2'; const orig=compases.map(m=>{for(const c of m.getElementsByTagName('clef')) if(+(c.getAttribute('number')||1)===s){
-        const x=(hijo(c,'sign')?.textContent||'')+(hijo(c,'line')?.textContent||'')+(+(hijo(c,'clef-octave-change')?.textContent||0)===-1?'-1':''); if(CLAVES[x]) k=x} return k});
-      pent.push({parte,compases,s,n,orig,alt:compases.map(()=>[])});
-    }
-  }
-  for(const P of pent){
-    P.compases.forEach((m,i)=>{for(const no of m.children){if(no.tagName!=='note')continue;
-      if(P.n>1&&+(hijo(no,'staff')?.textContent||1)!==P.s) continue;
-      const pi=hijo(no,'pitch'); if(pi) P.alt[i].push((PASO[hijo(pi,'step')?.textContent]??0)+7*(+(hijo(pi,'octave')?.textContent||4)))}});
-  }
-  const nombres=inst.length===pent.length?inst:[];
-  pent.forEach((P,g)=>{
-    const todas=P.alt.flat(); if(!todas.length||(solo&&!solo.has(g))){P.elegida=null;return}
-    const nom=nombres[g]; let {c:cand,d:def,voz}=clavesDeInstrumento(nom);
-    const total=k=>todas.reduce((s,q)=>s+coste(lineas(q,k)),0);
-    if(!def){
-      // gran pentagrama: el de arriba en sol y el de abajo en fa
-      const hermanos=P.n===2?2:nombres.length?nombres.filter(x=>x===nom).length:0;
-      const arriba=P.n===2?P.s===1:nombres.indexOf(nom)===g;
-      if(!voz&&hermanos===2) def=arriba?'G2':'F4';
-      else def=cand.reduce((a,b)=>total(b)<total(a)?b:a);
-    }
-    if(voz){const mejor=cand.reduce((a,b)=>total(b)<total(a)?b:a); if(total(mejor)<total(def)*0.5-2) def=mejor}
-    // teclado: la mano izquierda se queda en fa salvo un pasaje agudo sostenido (en la edición impresa de la Allemande de la
-    // Suite inglesa n.º 1 no cambia de clave en toda la pieza, aunque el tenor suba a mi4); la derecha sigue con 0,6
-    const izquierda=!voz&&P.n===2&&P.s===2&&def==='F4';
-    const CAMBIO=voz?10:6, SESGO=voz?1.5:izquierda?2:0.6;
-    // con «solo» (partitura original) se parte de las claves del editor: cambiar una cuesta, y solo compensa
-    // donde ahorra muchas líneas adicionales
-    const cands=solo?[...new Set([...cand,...P.orig])]:cand; cand=cands;
-    const loc=P.alt.map((ps,i)=>cand.map(k=>(solo?(k===P.orig[i]?0:2):(k===def?0:SESGO))+ps.reduce((s,q)=>s+coste(lineas(q,k)),0)));
-    let prev=loc[0].slice(); const atras=[];
-    for(let i=1;i<loc.length;i++){
-      const de=[], act=cand.map((k,j)=>{let mejor=Infinity,arg=0;cand.forEach((k2,j2)=>{const v=prev[j2]+(j2===j?0:CAMBIO);if(v<mejor){mejor=v;arg=j2}});de.push(arg);return mejor+loc[i][j]});
-      atras.push(de); prev=act;
-    }
-    let j=prev.indexOf(Math.min(...prev)); P.elegida=new Array(loc.length);
-    for(let i=loc.length-1;i>=0;i--){P.elegida[i]=cand[j]; if(i>0) j=atras[i-1][j]}
-  });
-  // se reescriben las claves (solo de los pentagramas con notas)
-  for(const P of pent){
-    if(!P.elegida) continue;
-    for(const cl of [...P.parte.getElementsByTagName('clef')]) if(P.n===1||+(cl.getAttribute('number')||1)===P.s) cl.remove();
-  }
-  for(const P of pent){
-    if(!P.elegida) continue;
-    P.elegida.forEach((k,i)=>{
-      if(i>0&&k===P.elegida[i-1]) return;
-      const m=P.compases[i];
-      let at=[...m.children].find(c=>c.tagName==='attributes');
-      const primero=[...m.children].find(c=>['note','backup','forward'].includes(c.tagName));
-      if(at&&primero&&(at.compareDocumentPosition(primero)&Node.DOCUMENT_POSITION_PRECEDING)) at=null;
-      if(!at){at=doc.createElement('attributes'); primero?m.insertBefore(at,primero):m.append(at)}
-      const cl=doc.createElement('clef'), sg=doc.createElement('sign'), ln=doc.createElement('line'), K=CLAVES[k];
-      if(P.n>1) cl.setAttribute('number',String(P.s));
-      sg.textContent=K.s; ln.textContent=String(K.l); cl.append(sg,ln);
-      if(K.o){const oc=doc.createElement('clef-octave-change'); oc.textContent=String(K.o); cl.append(oc)}
-      // orden de MusicXML: las claves van tras divisions/key/time/staves…, por número de pentagrama
-      const tras=[...at.children].find(c=>['staff-details','transpose','directive','measure-style'].includes(c.tagName)||(c.tagName==='clef'&&+(c.getAttribute('number')||1)>P.s));
-      tras?at.insertBefore(cl,tras):at.append(cl);
-    });
-  }
-}
-// Partituras originales (no reconstruidas): se respetan las claves del editor, salvo en los pentagramas donde
-// producen notas a 4 o más líneas adicionales en varios compases (cruces de manos escritos sin cambiar de clave,
-// p. ej. Mozart, K. 457/iii, cc. 289-309: la mano izquierda toca re♭5 en clave de fa). Solo en esos pentagramas
-// se eligen las claves por tesitura (asignarClaves).
-function corregirClaves(xml){
-  let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
-  if(doc.querySelector('parsererror')) return xml;
-  const hijo=(n,t)=>[...n.children].find(c=>c.tagName===t), txt=(n,t)=>{const h=n&&hijo(n,t);return h?h.textContent.trim():''};
-  const solo=new Set(); let g=0;
-  for(const parte of doc.getElementsByTagName('part')){
-    const compases=[...parte.children].filter(c=>c.tagName==='measure');
-    const n=Math.max(1,...[...parte.getElementsByTagName('staves')].map(e=>+e.textContent||1));
-    for(let st=1;st<=n;st++,g++){
-      let clave=n===2&&st===2?'F4':'G2', malos=0, desp=0;
-      for(const m of compases){
-        // claves de este pentagrama en el compás, con el instante en que entran (los cambios de clave a mitad de
-        // compás de la edición, p. ej. Beethoven Op. 53/iii: fa para el do grave y sol para la melodía en el mismo
-        // compás, no deben leerse como una sola clave para todo el compás)
-        const dur=e=>+(txt(e,'duration')||0);
-        const cambios=[], notas=[], octavas=[]; let pos=0, ant=0;
-        for(const e of m.children){
-          if(e.tagName==='backup'){pos-=dur(e);continue}
-          if(e.tagName==='forward'){pos+=dur(e);continue}
-          if(e.tagName==='direction'){
-            // líneas de octava (8va/8ba): las notas se escriben desplazadas, así que cuenta su altura escrita
-            if(+(txt(e,'staff')||1)===st) for(const o of e.getElementsByTagName('octave-shift')){
-              const ti=o.getAttribute('type'), tam=+(o.getAttribute('size')||8);
-              octavas.push({t:pos,d:ti==='stop'?0:(ti==='down'?-1:1)*7*Math.round((tam-1)/7)})}
-            continue}
-          if(e.tagName==='attributes'){
-            for(const c of e.children) if(c.tagName==='clef'&&+(c.getAttribute('number')||1)===st){
-              const k=txt(c,'sign')+txt(c,'line')+(+txt(c,'clef-octave-change')===-1?'-1':''); if(CLAVES[k]) cambios.push({t:pos,k})}
-            continue}
-          if(e.tagName!=='note') continue;
-          const acorde=!!hijo(e,'chord'), adorno=!!hijo(e,'grace'), ini=acorde?pos-ant:pos;
-          if(!acorde&&!adorno){ant=dur(e);pos+=ant}
-          if(n>1&&+(txt(e,'staff')||1)!==st) continue;
-          const pi=hijo(e,'pitch'); if(pi) notas.push({t:ini,alt:PASO[txt(pi,'step')]+7*+txt(pi,'octave')});
-        }
-        let lejos=0;
-        for(const nt of notas){
-          let k=clave; for(const cb of cambios) if(cb.t<=nt.t) k=cb.k;       // clave vigente cuando suena la nota
-          let dz=desp; for(const o of octavas) if(o.t<=nt.t) dz=o.d;
-          const lin=q=>{const d=Math.abs(nt.alt+dz-CLAVES[q].c);return d>=6?Math.floor((d-4)/2):0};
-          // solo cuenta si otra clave habitual (sol o fa) ahorraría 3 o más líneas: un pasaje agudo que la edición
-          // escribe con líneas adicionales en sol no tiene arreglo con otra clave y no se toca
-          const ahora=lin(k); if(ahora>=4&&ahora-Math.min(lin('G2'),lin('F4'))>=3) lejos++}
-        if(cambios.length) clave=cambios[cambios.length-1].k;
-        if(octavas.length) desp=octavas[octavas.length-1].d;
-        if(lejos>=2) malos++;
-      }
-      if(malos>=2) solo.add(g);
-    }
-  }
-  if(!solo.size) return xml;
-  try{asignarClaves(doc,[],hijo,solo)}catch(e){return xml}
-  return new XMLSerializer().serializeToString(doc);
-}
-// Barras de las partituras reconstruidas: la reconstrucción solo agrupa algunas figuras; las demás (tresillos de fusas,
-// grupos sueltos) quedan con corchetes. Aquí se agrupan, por pentagrama y voz, las figuras de corchea o menos que no
-// tienen barra: se cortan en cada pulso (de 3 corcheas en compases compuestos), en silencios y en notas largas.
-const NIVEL_BARRA={eighth:1,'16th':2,'32nd':3,'64th':4,'128th':5};
-function barrasAutomaticas(doc,hijo){
-  for(const parte of doc.getElementsByTagName('part')){
-    let dv=1, pulso=null;
-    for(const m of [...parte.children].filter(c=>c.tagName==='measure')){
-      const dd=m.getElementsByTagName('divisions')[0]; if(dd) dv=+dd.textContent||dv;
-      const ti=m.getElementsByTagName('time')[0];
-      if(ti){const b=+(hijo(ti,'beats')?.textContent||4), bt=+(hijo(ti,'beat-type')?.textContent||4);
-        pulso=(bt===8&&b%3===0&&b>=6)?dv*1.5:dv*4/bt}
-      const P=pulso||dv;
-      let pos=0, prev=0; const porVoz=new Map();
-      for(const n of [...m.children]){
-        if(n.tagName==='backup'){pos-=+(hijo(n,'duration')?.textContent||0);continue}
-        if(n.tagName==='forward'){pos+=+(hijo(n,'duration')?.textContent||0);continue}
-        if(n.tagName!=='note') continue;
-        const du=+(hijo(n,'duration')?.textContent||0), acorde=!!hijo(n,'chord'), grace=!!hijo(n,'grace');
-        const ini=acorde?pos-prev:pos;
-        if(!acorde&&!grace){prev=du;pos+=du}
-        const clave=(n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');   // N-CRUCE-2: la barra cruza de pentagrama
-        if(!porVoz.has(clave)) porVoz.set(clave,[]);
-        porVoz.get(clave).push({n,ini,acorde,grace,sil:!!hijo(n,'rest'),nivel:NIVEL_BARRA[hijo(n,'type')?.textContent]||0});
-      }
-      for(const lista of porVoz.values()){
-        // se agrupan los acordes en su primera nota
-        const cab=[]; for(const x of lista){if(x.acorde&&cab.length) cab[cab.length-1].acorde_n.push(x.n); else cab.push({...x,acorde_n:[]})}
-        let grupo=[]; const cerrar=()=>{
-          if(grupo.length>=2&&grupo.every(g=>!hijo(g.n,'beam')&&!g.acorde_n.some(c=>hijo(c,'beam')))){
-            grupo.forEach((g,i)=>{
-              const ant=grupo[i-1], sig=grupo[i+1];
-              for(let l=1;l<=g.nivel;l++){
-                const a=ant&&ant.nivel>=l, s=sig&&sig.nivel>=l;
-                const est=a&&s?'continue':a?'end':s?'begin':(i===0?'forward hook':'backward hook');
-                if(!a&&!s&&!(g.nivel>1&&l>1)) continue;           // el nivel 1 aislado no existe (grupo de ≥2)
-                for(const nt of [g.n]){                            // solo en la nota principal del acorde (Verovio rechaza la barra en las demás)
-                  const be=doc.createElement('beam'); be.setAttribute('number',String(l)); be.textContent=est;
-                  const ref=[...nt.children].find(c=>c.tagName==='notations'||c.tagName==='lyric'||c.tagName==='play'||c.tagName==='listen');
-                  ref?nt.insertBefore(be,ref):nt.append(be);
-                }
-              }
-            });
-          }
-          grupo=[];
-        };
-        for(const x of cab){
-          if(x.sil||x.grace||x.nivel<1){cerrar();continue}
-          if(grupo.length){const a=grupo[0]; if(Math.floor(x.ini/P+1e-6)!==Math.floor(a.ini/P+1e-6)) cerrar()}
-          grupo.push(x);
-        }
-        cerrar();
-      }
-    }
-  }
-}
-function ordenarVoces(xml,inst){
-  let doc; try{doc=new DOMParser().parseFromString(xml,'application/xml')}catch(e){return xml}
-  if(doc.querySelector('parsererror')) return xml;
-  const hijo=(n,t)=>[...n.children].find(c=>c.tagName===t);
-  try{asignarClaves(doc,inst||[],hijo)}catch(e){console.warn('claves',e)}
-  const ANTES=['notehead','notehead-text','staff','beam','notations','lyric','play','listen'];
-  for(const parte of doc.getElementsByTagName('part')){
-    const claves={};
-    for(const m of [...parte.children].filter(c=>c.tagName==='measure')){
-      for(const cl of m.getElementsByTagName('clef')){const nn=cl.getAttribute('number')||'1',oc=+(hijo(cl,'clef-octave-change')?.textContent||0);claves[nn]=(hijo(cl,'sign')?.textContent||'G')+(hijo(cl,'line')?.textContent||'2')+(oc?String(oc):'')}
-      fusionarVocesIguales(doc,m,hijo);
-      const porPent=new Map();
-      for(const n of [...m.children].filter(c=>c.tagName==='note')){
-        const st=n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1', v=+(hijo(n,'voice')?.textContent||1), pi=hijo(n,'pitch');
-        const alt=pi?(PASO[hijo(pi,'step')?.textContent]??0)+7*(+(hijo(pi,'octave')?.textContent||4)):null;
-        if(!porPent.has(st)) porPent.set(st,[]); porPent.get(st).push({n,v,alt,silencio:!!hijo(n,'rest')});
-      }
-      for(const [st,notas] of porPent){
-        const voces=[...new Set(notas.map(x=>x.v))];
-        if(voces.length<2) continue;
-        const media=new Map();
-        for(const v of voces){const a=notas.filter(x=>x.v===v&&x.alt!=null).map(x=>x.alt);if(a.length)media.set(v,a.reduce((s1,x)=>s1+x,0)/a.length)}
-        const orden=[...media].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);   // de aguda a grave
-        const alta=orden[0]??voces.sort((a,b)=>a-b)[0];
-        const dirDe=v=>{if(orden.length<2) return null; const k=orden.indexOf(v); if(k===0) return 'up'; if(k===orden.length-1) return 'down';
-          return media.get(v)-media.get(orden[orden.length-1])>media.get(orden[0])-media.get(v)?'up':'down'};
-        // renumerar: la voz más aguda pasa a ser la 1 (Verovio orienta plicas y barras por número de voz)
-        const base=Math.min(...voces), nueva=new Map();
-        [...orden,...voces.filter(v=>!orden.includes(v)).sort((a,b)=>a-b)].forEach((v,k)=>nueva.set(v,base+k));
-        // con notas dibujadas en el otro pentagrama (N-CRUCE-2) no se renumera: el número de voz es de la parte y chocaría con la otra mano
-        if(!m.querySelector('note[data-hf-casa]')) for(const x of notas){const vo=hijo(x.n,'voice'); if(vo) vo.textContent=String(nueva.get(x.v))}
-        for(const {n,v,silencio} of notas){
-          if(silencio){
-            if(v!==alta){n.setAttribute('print-object','no');continue}
-            if(orden.length<2) continue;
-            const r=hijo(n,'rest'), pos=ARRIBA[claves[st]||'G2']; if(!pos||!r||hijo(r,'display-step')) continue;
-            const ds=doc.createElement('display-step'), dO=doc.createElement('display-octave'); ds.textContent=pos[0]; dO.textContent=pos[1]; r.append(ds,dO);
-            continue;
-          }
-          // N-CRUCE-2: una nota dibujada en el otro pentagrama apunta hacia el suyo (la barra queda entre los dos, como en la edición)
-          const fuera=n.getAttribute('data-hf-casa'), dir=fuera?(fuera==='2'?'down':'up'):dirDe(v); if(!dir) continue;
-          let stm=hijo(n,'stem');
-          if(!stm){stm=doc.createElement('stem');const ref=[...n.children].find(c=>ANTES.includes(c.tagName));ref?n.insertBefore(stm,ref):n.append(stm)}
-          stm.textContent=dir;
-        }
-      }
-    }
-  }
-  try{barrasAutomaticas(doc,hijo)}catch(e){console.warn('barras',e)}
-  return new XMLSerializer().serializeToString(doc);
-}
+// Las transformaciones del MusicXML (claves, voces, barras, alteraciones, plicas, expresión, anacrusa) están en
+// web/notacion.js; los retoques del SVG, en web/notacion_svg.js.
 // h.desp: desplazamiento (en compases) de la ventana cuando se navega desde un acorde suelto con ◀ ▶
 function rango(h,primero){const m=+$('#margen').value,d=h.desp||0;return [Math.max(primero,h.ini+d-m),h.fin+d+m]}
 // Estructura de la partitura, compás a compás (por posición): número de compás del análisis, a qué aparición
@@ -2382,7 +2034,7 @@ async function mostrar(h){
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,
         ...GRABADO});
-      // N-LIG-4: ligaduras de unión entre capas (MusicXML no las admite en Verovio): se lee el MEI de la obra entera, se añaden
+      // N-LIG-6: ligaduras de unión entre capas (MusicXML no las admite en Verovio): se lee el MEI de la obra entera, se añaden
       // como <tie> de MEI y se vuelve a cargar con la selección de compases
       const ligPend=Notacion.ligadurasPendientes(xmlGrabar);
       if(ligPend.length){t.select({}); t.loadData(xmlGrabar); const mei=Notacion.ligadurasMEI(t.getMEI(),ligPend); t.select({measureRange:pos.sel}); t.loadData(mei)}
@@ -2390,22 +2042,17 @@ async function mostrar(h){
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
-      // números de compás internos de la reconstrucción («8X1»: compás partido): no se muestran
-      cont.querySelectorAll('g.mNum').forEach(g=>{if(!/^\s*\d+\s*$/.test(g.textContent))g.remove()});
-      // Verovio pone entre paréntesis el número de una casilla que empieza en el primer compás del fragmento, como si
-      // viniera de antes («(1)»): la casilla empieza ahí, así que va sin paréntesis
-      cont.querySelectorAll('g.voltaBracket text, g.voltaBracket tspan').forEach(t=>{if(!t.children.length&&/^\s*\(\s*\d+\s*\)\s*$/.test(t.textContent)) t.textContent=t.textContent.replace(/[()]/g,'')});
+      // números internos de la reconstrucción («8X1») y paréntesis de casillas (N-NUM-2, web/notacion_svg.js)
+      Notacion.limpiarNumeros(cont.querySelector('svg'));
       // con casillas renumeradas, la partitura muestra los números del análisis (los de la ficha y la búsqueda)
       if(E.casillas) cont.querySelectorAll('g.measure').forEach((g,j)=>{
         const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
-      // N-VOC-3: cabeza compartida en los unísonos entre capas (necesita el instante de cada nota: timemap)
+      // retoques de grabado sobre el SVG: silencios (N-SIL-2), ligaduras (N-LIG-2) y números de compás (N-NUM-2)
+      // y cabezas compartidas en los unísonos entre capas (N-VOC-5), que necesitan el instante de cada nota (timemap)
       cargado.tm=t.renderToTimemap({includeMeasures:true});
-      {const ini=new Map(); for(const ev of cargado.tm) for(const id of ev.on||[]) ini.set(id,ev.qstamp); Notacion.cabezasCompartidas(cont.querySelector('svg'),ini)}
-      despejarSilencios(cont.querySelector('svg'));
-      Notacion.despejarLigaduras(cont.querySelector('svg'));   // N-LIG-2
-      despejarNumeros(cont.querySelector('svg'));
+      {const ini=new Map(); for(const ev of cargado.tm) for(const id of ev.on||[]) ini.set(id,ev.qstamp); Notacion.svg.aplicar(cont.querySelector('svg'),ini)}
       svg=cont.querySelector('svg');
       const r=anotar(svg,ac,occ,E,pos,intento===2);
       if(r>=0.9||intento===2) break;
@@ -2427,7 +2074,7 @@ async function mostrar(h){
     // en la primera pasada algunas cajas (claves, barras) aún no tienen su tamaño final
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     if(seleccion!==h||!svg.isConnected) return;
-    svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); despejarNumeros(svg);
+    svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); Notacion.despejarNumeros(svg);
     // partitura más ancha que su caja: se centra en el acorde resaltado (si no, quedaba fuera de la vista)
     const rs=[...svg.querySelectorAll('.resalte')];
     if(cont.scrollWidth>cont.clientWidth+4){
@@ -2524,90 +2171,6 @@ function reinterpretar(rn,tonoNuevo,tonoViejo){
     return num+marca+(p.dig||'');
   }
   return null;
-}
-// Silencios que pisan notas: en un pentagrama con varias voces, Verovio no siempre mira lo que hacen las otras voces en
-// ese instante, y las partituras reconstruidas fijan el silencio de la voz aguda en una altura fija. Si un silencio pisa
-// una cabeza de nota, una plica, una barra, un corchete o una alteración de otra voz, se oculta: esa otra voz suena en ese
-// instante y el silencio no aporta nada a un ejemplo armónico. Si pisa el silencio de otra voz, se desplaza en múltiplos de
-// media línea, alejándose de lo que pisa, hasta quedar libre. Devuelve cuántos ocultó o movió.
-// El desplazamiento va en un <g> interno del silencio, no en él mismo: getBBox() ignora el transform propio del elemento
-// y despejarNumeros() (que se ejecuta después, y otra vez al acabar de maquetar) necesita la caja ya movida.
-function despejarSilencios(svg){
-  const pm=svg&&svg.querySelector('g.page-margin'); if(!pm) return 0;
-  const caja=e=>{try{const b=e.getBBox();return b.width>0&&b.height>0?{x:b.x,y:b.y,w:b.width,h:b.height}:null}catch(_){return null}};
-  // las plicas son líneas sin anchura propia: se les da la de la plica más un margen a cada lado, para que el silencio no las roce
-  const cajaFina=(e,sp)=>{try{const b=e.getBBox(); if(!(b.height>0)) return null; const w=Math.max(b.width,0)+sp*0.28; return {x:b.x+b.width/2-w/2,y:b.y,w,h:b.height}}catch(_){return null}};
-  let movidos=0;
-  for(const st of pm.querySelectorAll('g.measure > g.staff')){
-    const capas=[...st.querySelectorAll(':scope > g.layer')]; if(capas.length<2) continue;
-    // un espacio del pentagrama, leído de sus dos primeras líneas (en Verovio, 180 unidades)
-    const ys=[...st.querySelectorAll(':scope > path')].slice(0,2).map(p=>+(p.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)||[])[1]);
-    const sp=ys.length===2&&ys[1]>ys[0]?ys[1]-ys[0]:180, paso=sp/2, m=sp*0.06;
-    const pisa=(a,b)=>a.x+m<b.x+b.w&&a.x+a.w-m>b.x&&a.y+m<b.y+b.h&&a.y+a.h-m>b.y;
-    const voces=capas.map(c=>({
-      silencios:[...c.querySelectorAll('g.rest,g.mRest')].map(e=>({e,b:caja(e),dy:0})).filter(r=>r.b),
-      notas:[...c.querySelectorAll('g.note g.notehead')].map(caja).filter(Boolean),
-      // plicas, barras, corchetes y alteraciones: el silencio de otra voz tampoco puede quedar encima de ellos
-      trazos:[...c.querySelectorAll('g.stem,g.beam,g.flag,g.accid')].map(e=>cajaFina(e,sp)).filter(Boolean)}));
-    voces.forEach((v,iv)=>{
-      for(const r of v.silencios){
-        const choques=dy=>{
-          const c={x:r.b.x,y:r.b.y+dy,w:r.b.w,h:r.b.h}, fuera=[];
-          voces.forEach((w,jw)=>{ if(jw===iv) return;
-            for(const n of w.notas) if(pisa(c,n)) fuera.push(n);
-            for(const n of w.trazos) if(pisa(c,n)) fuera.push(n);
-            for(const s of w.silencios){ if(s.oculto) continue; const sb={x:s.b.x,y:s.b.y+s.dy,w:s.b.w,h:s.b.h,sil:true}; if(pisa(c,sb)) fuera.push(sb)}
-          });
-          return fuera;
-        };
-        const c0=choques(0); if(!c0.length) continue;
-        if(!c0.some(b=>b.sil)){ r.e.setAttribute('display','none'); r.oculto=true; movidos++; continue }   // solo pisa notas, plicas o alteraciones: se oculta
-        const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
-        const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
-        let mejor=null;
-        for(let k=1;k<=10;k++) for(const signo of [pref,-pref]){
-          const coste=k+(signo===pref?0:1.5);
-          if((!mejor||coste<mejor.coste)&&!choques(signo*k*paso).length) mejor={coste,dy:signo*k*paso};
-        }
-        if(!mejor) continue;
-        const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('transform',`translate(0,${mejor.dy})`);
-        while(r.e.firstChild) g.appendChild(r.e.firstChild);
-        r.e.appendChild(g); r.dy=mejor.dy; movidos++;
-      }
-    });
-  }
-  return movidos;
-}
-// Verovio pone el número de compás a una altura fija sobre el pentagrama: si choca con notas agudas,
-// líneas adicionales, plicas, barras, tresillos, ligaduras, casillas de repetición o indicaciones, se sube por encima de todas ellas.
-function despejarNumeros(svg){
-  const pm=svg&&svg.querySelector('g.page-margin'), inner=svg&&svg.querySelector('svg.definition-scale'); if(!pm||!inner) return;
-  const nums=[...pm.querySelectorAll('g.mNum')]; if(!nums.length) return;
-  const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket,g.slur,g.tie';
-  const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
-  let minY=Infinity;
-  for(const g of nums){
-    let nb; try{nb=g.getBBox()}catch(_){continue}
-    const pad=nb.height*0.25, x0=nb.x-pad, x1=nb.x+nb.width+pad;
-    let dy=0;
-    for(let vuelta=0;vuelta<20;vuelta++){
-      const y0=nb.y+dy-pad, y1=nb.y+nb.height+dy+pad;
-      const choque=cajas.filter(b=>b.x<x1&&b.x+b.width>x0&&b.y<y1&&b.y+b.height>y0);
-      if(!choque.length) break;
-      dy=Math.min(...choque.map(b=>b.y))-pad-(nb.y+nb.height);   // justo encima del elemento más alto que choca
-    }
-    if(dy<0) g.setAttribute('transform',`translate(0,${dy})`);
-    minY=Math.min(minY,nb.y+dy);
-  }
-  // ampliar el lienzo por arriba si algún número ha quedado fuera
-  const vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);
-  const tr=(pm.getAttribute('transform')||'').match(/translate\(\s*(-?[\d.]+)[ ,]+(-?[\d.]+)/)||[0,0,0];
-  const arriba=+tr[2]+minY-80;
-  if(arriba<vb[1]){
-    const nvb=[vb[0],arriba,vb[2],vb[3]+(vb[1]-arriba)];
-    inner.setAttribute('viewBox',nvb.join(' '));
-    svg.setAttribute('viewBox',`${ovb[0]} ${ovb[1]} ${ovb[2]} ${ovb[3]*nvb[3]/vb[3]}`);
-  }
 }
 // resalte del ejemplo buscado: solo el acorde, desde su ataque hasta el acorde siguiente (aunque pase la barra);
 // en una cadena (cadencias, 6/4 cadencial…), todos sus acordes, del primero al último;
@@ -3338,7 +2901,7 @@ async function aplicarURL(vaciar=false){
 }
 window.addEventListener('popstate',()=>{if(location.search!==urlActual) aplicarURL(true)});
 // acceso de solo lectura para las pruebas automáticas
-window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces,despejarSilencios,acordesDe,xmlDe,estructura,alinear,situar,parteDe,ocurrencias,desajustes,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
+window.__prueba={OBRAS,porId,porMov,NOMBRE,textoOpcion,tokensProg,elegir,cerrar,mostrar,quitar,ordenarVoces:(x,inst)=>Notacion.prepararReconstruccion(x,inst),despejarSilencios:svg=>Notacion.despejarSilencios(svg),acordesDe,xmlDe,textoDe,estructura,alinear,situar,parteDe,ocurrencias,desajustes,interpretar,parsearFacetas,extraerForma,sugerir,enviar,ejecutar,LANG,
   fijarTexto:t=>{q.value=t},get actual(){return actual},
   get opciones(){return opciones},get filas(){return filas},fijarSeleccion:h=>{seleccion=h}};
 })();
