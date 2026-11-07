@@ -16,6 +16,11 @@ const buscar=(texto,comp='')=>{
   const r=O.buscarObra(pal,pal.map(()=>false),INDICE,{comp});
   return r&&{titulo:r.obra.ob,compositor:r.obra.c,trozo:pal.slice(r.i,r.i+r.L).join(' ')};
 };
+const buscarFamilia=(texto,comp='')=>{
+  const pal=norm(texto).trim().split(' ').filter(Boolean);
+  const r=O.buscarFamiliaObras(pal,pal.map(()=>false),INDICE,{comp});
+  return r&&{obras:r.obras,etiqueta:r.etiqueta,trozo:pal.slice(r.i,r.i+r.L).join(' ')};
+};
 
 test('la obra del ejemplo: «suite inglesa 1» con Bach',()=>{
   const r=buscar('dominante de la dominante en suite inglesa 1 de',BACH);
@@ -26,6 +31,19 @@ test('también en inglés, con «n.º» y sin compositor si la obra es única',(
   assert.equal(buscar('english suite no. 1').titulo,'English Suite No. 1');
   assert.equal(buscar('suite inglesa n.º 3',BACH).titulo,'English Suite No. 3');
   assert.equal(buscar('suite francesa 5',BACH).titulo,'French Suite No. 5');
+});
+test('una familia de obras en español o inglés se reconoce sin inventar un número',()=>{
+  const familia=buscarFamilia('suite francesa');
+  assert.equal(familia.etiqueta,'suite francesa');
+  assert.equal(familia.trozo,'suite francesa');
+  assert.equal(new Set(familia.obras.map(o=>o.w)).size,6);
+  assert(familia.obras.every(o=>o.c===BACH&&o.ob.startsWith('French Suite No.')));
+  assert.equal(buscarFamilia('french suite').obras.length,6);
+  assert.equal(buscarFamilia('suites francesas').obras.length,6);
+  assert.equal(buscarFamilia('french suites').obras.length,6);
+  assert.equal(buscarFamilia('suite francesa', 'Wolfgang Amadeus Mozart'),null);
+  assert.equal(buscarFamilia('suite francesa 1'),null);
+  assert.equal(buscar('suite francesa 1').titulo,'French Suite No. 1');
 });
 test('números de catálogo: K., Op. y la sigla pegada al número',()=>{
   assert.equal(buscar('sonata k 331 de mozart').titulo,'Sonata para piano, K. 331');
@@ -43,6 +61,7 @@ test('títulos con cifra pegada («Partita No2, BWV1004»)',()=>{
 test('ambiguo → no se adivina',()=>{
   assert.equal(buscar('suite 1'),null);                         // hay varias «Suite n.º 1»
   assert.equal(buscar('suite 1',BACH),null);                    // inglesa, francesa, violonchelo…
+  assert.equal(buscarFamilia('suite'),null);
 });
 test('lo que no es una obra no la elige',()=>{
   assert.equal(buscar('dominante de la dominante',BACH),null);

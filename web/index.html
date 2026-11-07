@@ -539,11 +539,13 @@ function inicioForma(m,f){
 const TONOS=['C','c','C#','c#','D-','D','d','E-','e-','E','e','F','f','F#','f#','G-','G','g','g#','A-','A','a','B-','b-','B','b'];
 function rellenarObras(){
   // la obra elegida se lee antes de vaciar el desplegable (si no, cada refresco de los menús quitaba el filtro de obra)
-  const sel=$('#obraSel'), comp=$('#compositor').value, sel0=+sel.value||0; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
-  sel.hidden=!comp; if(!comp){rellenarMovs();return}
-  const vistas=new Map(), F=facetas(); for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)&&(F.obra.has(o.w)||o.w===sel0)) vistas.set(o.w,o.ob);
+  const sel=$('#obraSel'), comp=$('#compositor').value, sel0=sel.value, sel0Num=+sel0||0; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
+  sel.hidden=!comp; if(!comp){const grupo=desglosarGrupoObra(sel0);if(grupo){sel.append(opcionGrupoObra(sel0));sel.value=sel0}rellenarMovs();return}
+  const vistas=new Map(), F=facetas(); for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)&&(F.obra.has(o.w)||o.w===sel0Num)) vistas.set(o.w,o.ob);
   for(const [w,t] of [...vistas].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true}))){const op=document.createElement('option');op.value=w;op.textContent=t;sel.append(op)}
-  if(sel0) sel.value=String(sel0);
+  const grupo=desglosarGrupoObra(sel0);
+  if(grupo){sel.append(opcionGrupoObra(sel0));sel.value=sel0}
+  else if(sel0Num) sel.value=String(sel0Num);
   rellenarMovs();
 }
 // movimientos de la obra elegida (solo si tiene varios con nombre y dan resultados con los demás filtros)
@@ -555,10 +557,28 @@ function rellenarMovs(){
   for(const o of movs.values()) if(F.mov.has(o.m)||o.m===m0){const op=document.createElement('option');op.value=o.m;op.textContent=movDe(o);sm.append(op)}
   if(m0&&movs.has(m0)) sm.value=String(m0);
 }
-const filtros=()=>({comp:$('#compositor').value,obra:+$('#obraSel').value||0,mov:+$('#movSel').value||0,fuente:$('#fuente').value,per:$('#epoca').value,
+function desglosarGrupoObra(valor){
+  const m=String(valor||'').match(/^grupo:([\d,]+)\|(.*)$/);
+  return m?{ids:m[1].split(',').map(Number).filter(Number.isFinite),etiqueta:m[2]}:null;
+}
+const valorGrupoObra=(obras,etiqueta)=>`grupo:${obras.map(o=>o.w).join(',')}|${etiqueta}`;
+function textoGrupoObra(valor){
+  const g=desglosarGrupoObra(valor); if(!g) return '';
+  const etiqueta=g.etiqueta?g.etiqueta[0].toLocaleUpperCase(EN?'en':'es')+g.etiqueta.slice(1):trd('Obras agrupadas','Grouped works');
+  return `${etiqueta} (${g.ids.length} ${trd('obras','works')})`;
+}
+function opcionGrupoObra(valor){
+  const op=document.createElement('option');op.value=valor;op.textContent=textoGrupoObra(valor);return op;
+}
+const filtros=()=>({comp:$('#compositor').value,obra:$('#obraSel').value||'',mov:+$('#movSel').value||0,fuente:$('#fuente').value,per:$('#epoca').value,
   tono:$('#tonalidad').value,modo:$('#modo').value,sec:$('#seccion').value,zona:$('#zona').value,fg:$('#formaGlobal').value,
   lim:$('#unaPorObra').checked?2:Infinity,L:+$('#longitud').value});
-const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&!(f.obra&&o.w!==f.obra)&&!(f.mov&&o.m!==f.mov)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per)
+function coincideObra(o,filtro){
+  if(!filtro) return true;
+  const grupo=desglosarGrupoObra(filtro);
+  return grupo?grupo.ids.includes(o.w):o.w===+filtro;
+}
+const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&coincideObra(o,f.obra)&&!(f.mov&&o.m!==f.mov)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per)
   &&!((f.sec||f.zona)&&!inicioForma(o.m,f))&&!(f.fg&&(FORMAS[o.m]||[])[0]!==f.fg);
 const pasaTono=(t,f)=>!t||(!(f.tono&&t!==f.tono)&&!(f.modo&&((t[0]===t[0].toUpperCase())?'M':'m')!==f.modo));
 
@@ -846,7 +866,7 @@ function facetas(){
   facClave=clave; facAct=R; return R;
 }
 const CAMPO_FAC={compositor:'comp',obraSel:'obra',movSel:'mov',fuente:'fuente',epoca:'per',tonalidad:'tono',modo:'modo',formaGlobal:'fg',seccion:'sec',zona:'zona'};
-const disponible=(campo,valor)=>{const k=CAMPO_FAC[campo]; if(!k) return true; const F=facetas(); return F[k].has(k==='obra'||k==='mov'?+valor:valor)};
+const disponible=(campo,valor)=>{const k=CAMPO_FAC[campo]; if(!k) return true; const F=facetas(); const grupo=k==='obra'&&desglosarGrupoObra(valor); return grupo?grupo.ids.some(id=>F[k].has(id)):F[k].has(k==='obra'||k==='mov'?+valor:valor)};
 // procedimientos (menú Armonía y sugerencias): ejemplos que quedan con los filtros elegidos
 let armClave='', armN=null, armCargando=null;
 async function disponibilidadArmonia(){
@@ -927,6 +947,8 @@ function sugerirFiltros(t){
       const empieza=o=>{const ws=norm(o.ob).replace(/n º/g,'n').split(' ');return pals.every(p=>ws.some(w=>w.startsWith(p)))||(tc.length>=6&&norm(o.ob).includes(tc))};
       for(const o of OBRAS) if((!comp||o.c===comp)&&!vistas.has(o.w)&&empieza(o)) vistas.set(o.w,o);
       for(const o of [...vistas.values()].slice(0,comp?6:4)) x('obraSel',String(o.w),o.ob+(comp?'':' · '+nombreCorto(o.c)),false);
+      const palabras=tc.split(/\s+/).filter(Boolean), familia=ObrasTexto.buscarFamiliaObras(palabras,palabras.map(()=>false),indiceObras(),{comp});
+      if(familia){const valor=valorGrupoObra(familia.obras,familia.etiqueta), exacta=familia.i===0&&familia.L===palabras.length;x('obraSel',valor,textoGrupoObra(valor),exacta)}
     }
   }
   if(t.length>=2){
@@ -1106,8 +1128,15 @@ function marcar(i){
 }
 function ponerFiltro(o){
   if(o.campo==='movSel'){const x=OBRAS.find(y=>String(y.m)===o.valor); if($('#obraSel').value!==String(x.w)) ponerFiltro({campo:'obraSel',valor:String(x.w),txt:x.ob}); rellenarMovs()}
-  if(o.campo==='obraSel'){const ob=OBRAS.find(x=>String(x.w)===o.valor);$('#compositor').value=ob.c;rellenarObras()}
-  if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
+  if(o.campo==='obraSel'){
+    const grupo=desglosarGrupoObra(o.valor), ob=OBRAS.find(x=>String(x.w)===o.valor);
+    if(ob){
+      $('#compositor').value=ob.c;rellenarObras();
+      const sel=$('#obraSel');if(![...sel.options].some(op=>op.value===o.valor)){const op=document.createElement('option');op.value=o.valor;op.textContent=ob.ob;sel.append(op)}
+      sel.value=o.valor;
+    }
+    else if(grupo){$('#movSel').value='';rellenarObras();$('#obraSel').append(opcionGrupoObra(o.valor));$('#obraSel').value=o.valor}
+  }else if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
   else{const sel=$('#'+o.campo);if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===o.valor)){const op=document.createElement('option');op.value=o.valor;op.textContent=o.txt;sel.append(op)}sel.value=o.valor}
   cuentaCache.clear();
 }
@@ -1144,7 +1173,7 @@ function pintarEtiquetas(){
   else if(actual&&!hayFiltros()) ch.push({campo:'principal',txt:trd('todas las obras','all works'),tp:''});
   for(const id of CAMPOS){
     const v=$('#'+id).value; if(!v) continue;
-    const txt=id==='compositor'?v:id==='obraSel'?(OBRAS.find(o=>String(o.w)===v)||{}).ob:id==='movSel'?movDe(OBRAS.find(o=>String(o.m)===v)||{t:'',ob:''}):id==='tonalidad'?tonoLargo(v)
+    const txt=id==='compositor'?v:id==='obraSel'?(desglosarGrupoObra(v)?textoGrupoObra(v):(OBRAS.find(o=>String(o.w)===v)||{}).ob):id==='movSel'?movDe(OBRAS.find(o=>String(o.m)===v)||{t:'',ob:''}):id==='tonalidad'?tonoLargo(v)
       :id==='modo'?(v==='M'?trd('modo mayor','major mode'):trd('modo menor','minor mode')):id==='fuente'?(v==='wir'?'When in Rome':'DCML')
       :id==='epoca'?perTxt(v):id==='seccion'||id==='zona'?formaTxt(v):id==='formaGlobal'?formaGTxt(v):v;
     ch.push({campo:id,txt,tp:id==='movSel'?trd('movimiento','movement'):id==='seccion'||id==='zona'?trd('sección','section'):id==='formaGlobal'?trd('forma','form'):''});
@@ -1347,6 +1376,12 @@ function descomponer(texto){
   const compObra=(fil.find(f=>f.campo==='compositor')||{}).valor||$('#compositor').value;
   const ob=!fil.some(f=>f.campo==='obraSel')&&ObrasTexto.buscarObra(pal,usado,indiceObras(),{comp:compObra});
   if(ob){fil.push({t:'x',campo:'obraSel',valor:String(ob.obra.w),txt:ob.obra.ob});usado.fill(true,ob.i,ob.i+ob.L)}
+  const grupo=!ob&&!fil.some(f=>f.campo==='obraSel')&&ObrasTexto.buscarFamiliaObras(pal,usado,indiceObras(),{comp:compObra});
+  if(grupo){
+    const valor=valorGrupoObra(grupo.obras,grupo.etiqueta);
+    fil.push({t:'x',campo:'obraSel',valor,txt:textoGrupoObra(valor)});
+    usado.fill(true,grupo.i,grupo.i+grupo.L);
+  }
   // y un movimiento de esa obra («allemande», «courante 2», «segundo movimiento»)
   const wObra=ob?ob.obra.w:(fil.some(f=>f.campo==='obraSel')?0:+$('#obraSel').value||0);
   const mv=wObra&&!fil.some(f=>f.campo==='movSel')&&ObrasTexto.buscarMovimiento(pal,usado,indiceMovs().filter(x=>x.w===wObra));

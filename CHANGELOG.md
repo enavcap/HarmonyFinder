@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.14] - 2026-11-08
+
+### Fixed
+- Buscador: «suite francesa» reconoce la familia completa de Suites francesas, tanto en español como en inglés; si se escribe un número, se mantiene el filtro de una sola suite.
+
 ## [0.8.13] - 2026-11-08
 
 ### Added
@@ -355,7 +360,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.13...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...HEAD
+[0.8.14]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.13...v0.8.14
 [0.8.13]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...v0.8.13
 [0.8.12]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...v0.8.12
 [0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
