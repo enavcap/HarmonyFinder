@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.9] - 2026-11-07
+
 ### Fixed
 - Regla `N-VOC-3`: los arpegios sostenidos (*style brisé*) se escriben como en la edición impresa. Cada nota sostenida aparece una sola vez, con su duración real, y comparte la cabeza con la semicorchea del arpegio (una cabeza y dos plicas). En la v0.8.8 la nota se repetía ligada en cada acorde (p. ej. la *Allemande* de la Suite inglesa n.º 1, c. 2: el mi5 cuatro veces; ahora, mi5 con puntillo y do#5 en corchea sobre mi5-do#5-la4, como en la edición). Verovio solo compartía la cabeza si figura y puntillo coincidían: ahora se junta también en el SVG, con su plica, puntillo y ligaduras, en todas las fuentes. En 60 fragmentos con 3+ voces, los unísonos dibujados con dos cabezas separadas bajan de 5 a 2 (9 sin las reglas) y las ligaduras de unión dibujadas, de 367 a 323. Se apaga con `Notacion.config.cabezaCompartida = false`.
 
@@ -307,7 +309,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...HEAD
+[0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
