@@ -22,6 +22,7 @@ Versión de la especificación: 1 (2026-11-06), escrita sobre la v0.8.7.
 | **DAISY** | *DAISY Engraving Guidelines* (`daisy.org/…/daisy-engraving-guidelines/`, act. 10-06-2025) | Criterios de **corrección estructural** del MusicXML (elementos anclados a su nota, sin notas ni silencios ocultos superfluos, alteraciones entre voces) | 2026-11-06 |
 | **Gould** | Elaine Gould, *Behind Bars* (Faber, 2011) | Referencia temática histórica del proyecto. **Sin páginas verificadas**: no se usa como única fuente de ninguna regla nueva | — |
 | **Ed-806** | J. S. Bach, Suite inglesa n.º 1, BWV 806, edición impresa (IMSLP 917223), *Allemande* cotejada compás a compás con la reconstrucción del DCML | **Evidencia de grabado profesional** para las reglas de voces de las reconstrucciones (`N-CRUCE-1/2`, `N-VOC-1/2/5/6`, `N-LIG-6`): qué hace una edición con el reparto de voces del DCML | 2026-11-07 |
+| **Ed-812** | J. S. Bach, Suite francesa n.º 1, BWV 812, Bach-Gesellschaft Ausgabe, vol. XLV(1), p. 92 (IMSLP 02100), *Gigue* | **Evidencia de grabado profesional** para `N-CRUCE-1`: en el c. 2 la línea interior sigue en el pentagrama superior y el inferior conserva el silencio | 2026-11-07 |
 | **Propia** | Decisión del proyecto | Umbrales numéricos, adaptaciones a ejemplos armónicos breves y a las limitaciones de Verovio | — |
 
 Páginas de MuseScore citadas (todas bajo `https://handbook.musescore.org/`):
@@ -250,12 +251,16 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 
 #### `N-VOC-2` — Unísonos entre las dos manos
 - **Descripción.** Reconstrucciones: la misma nota (altura y grafía) atacada a la vez en las dos manos se escribe una vez: la
-  más larga o, si duran igual, la del pentagrama de su registro. Dentro de un pentagrama no se quita: una cabeza y dos plicas
-  (`N-VOC-5`).
-- **Referencia.** Ed-806 (c. 1: el do#4 duplicado en las dos manos se escribe una vez); MS-cabezas.
-- **Excepciones.** Notas que llegan ligadas (forman parte de otra nota).
+  más larga o, si duran igual, la que pertenece al pentagrama más cercano a su registro. La comparación usa el pentagrama de
+  origen, incluso si `N-CRUCE-2` ya dibujó la nota en el pentagrama de la otra mano; así se evita dejar dos cabezas iguales
+  contiguas después de un cruce. Dentro de una misma mano no se quita: una cabeza y dos plicas (`N-VOC-5`).
+- **Referencia.** Ed-806 (c. 1: el do#4 duplicado en las dos manos se escribe una vez); Ed-812 (Gigue, c. 3: el re4 repetido
+  conserva la barra del bajo hacia la3); MS-cabezas.
+- **Excepciones.** Notas que llegan ligadas (forman parte de otra nota); si la nota que se quitaría lleva una barra explícita,
+  se conserva el unísono para no romper el grupo rítmico de esa mano.
 - **Implementación.** `unisono-entre-manos` (estructural; declara notas, duraciones, voces, pentagramas, acordes, ligaduras).
-- **Prueba.** `prueba_notacion.js` («un unísono entre manos se escribe una vez»). **Estado.** aplicada.
+- **Prueba.** `prueba_notacion.js` (Ed-806, c. 3: identifica el par tras el cruce y conserva ambas notas porque una llega ligada;
+  además, un unísono normal entre manos y el grupo del bajo de BWV 812, Gigue, c. 3). **Estado.** aplicada.
 
 #### `N-VOC-5` — Unísonos entre capas: una cabeza y dos plicas
 - **Descripción.** Dos voces que atacan a la vez la misma nota (el *style brisé*: un arpegio en semicorcheas y, en otras
@@ -358,13 +363,16 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 ### E. Silencios
 
 #### `N-SIL-1` — Silencios de la reconstrucción con varias voces
-- **Descripción.** En las reconstrucciones, los silencios de las voces secundarias se ocultan y los de la voz aguda suben a
-  la línea superior del pentagrama.
+- **Descripción.** En las reconstrucciones, los silencios de las voces secundarias se ocultan y los de la voz aguda se colocan
+  a la altura media de las notas vecinas de su propia voz (dentro del pentagrama; sin vecinas, en la línea superior).
 - **Referencia.** MS-voces («remove redundant rests in secondary voices», «Voice 1 […] must remain rhythmically complete»,
   «rests for voice 1 are moved up at least one space»); DAISY G15 (limpiar silencios ocultos: aquí no se borran del
   MusicXML, se marcan `print-object="no"`, para no alterar la duración de la voz).
 - **Casos especiales.** Los silencios de la reconstrucción no existen en las tablas del DCML: los añadió la reconstrucción.
-- **Excepciones.** Solo reconstrucciones; las ediciones conservan sus silencios.
+- **Excepciones.** Solo reconstrucciones; las ediciones conservan sus silencios. Un silencio de voz secundaria solo se oculta
+  si otra voz (notas o silencios de la voz aguda) ocupa todo su tramo; si deja un hueco sin nada, se conserva.
+  Si otra voz suena con notas durante el principio o el final de un silencio, este se recorta al hueco real (el resto pasa a
+  un `<forward>` invisible) para no dibujar un silencio que contradice las notas (BWV 806, Allemande, c. 21, mano izquierda).
 - **Implementación.** `silencios-reconstruccion` (tras `N-VOC-4`, la voz aguda es la de número más bajo).
 - **Prueba.** `prueba_motor.js` (E).
 - **Estado.** aplicada.
@@ -378,6 +386,8 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
   leído en la v0.8.6). El tope de 3 espacios y el ocultar como último recurso son **Propia**.
 - **Casos especiales.** Silencio que pisa el silencio de otra voz: se desplaza en el sentido que más lo aleja (como antes).
 - **Excepciones.** No toca silencios de una sola voz.
+- **Límite de altura.** Un silencio apartado no se aleja del pentagrama más de un espacio por arriba ni por abajo; si no cabe
+  dentro de ese margen, se oculta en lugar de quedar flotando.
 - **Implementación.** `despejarSilencios` en `notacion_svg.js` (capa SVG: Verovio no siempre mira las otras capas y la
   altura final solo se conoce tras dibujar); marca `data-n-sil2`; `Notacion.config.silenciosApartados`.
 - **Prueba.** `prueba_motor.js` (SVG sintético); `regresion_visual.js` cuenta silencios apartados y ocultos.
@@ -480,14 +490,17 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 #### `N-CRUCE-1` — Una voz que su mano no alcanza pasa a la otra
 - **Descripción.** Reconstrucciones: una voz que no es la exterior de su mano (la más aguda de la derecha, la más grave de la
   izquierda) pasa al pentagrama de la otra mano en ese compás si, a la vez que alguna de sus notas, otra voz de su pentagrama
-  está a más de una décima, y en la otra mano cabe (y allí no pasa de 3 líneas adicionales).
+  está a más de una décima, y una voz del pentagrama destino también suena a la vez, la alcanza y allí no pasa de 3 líneas
+  adicionales. Sin una voz activa simultánea en el destino, se conserva el reparto de la fuente.
 - **Referencia.** Ed-806 (c. 1: la3-do#4-mi4 mientras la derecha toca la5 → mano izquierda; c. 5: sol#2 bajo sol#4; c. 4: un
-  tenor la3-do#4 sobre si2 se queda abajo). El umbral (décima, 9 pasos diatónicos) es **Propia**.
+  tenor la3-do#4 sobre si2 se queda abajo); Ed-812 (Gigue, c. 2: la voz F4–E4–D4–C4–D4–G4 permanece en la derecha sobre el
+  pentagrama inferior en silencio). El umbral (décima, 9 pasos diatónicos) es **Propia**.
 - **Excepciones.** No se decide por líneas adicionales: los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4,
   cc. 38-39; Liszt, *Sposalizio*, c. 58).
 - **Casos especiales.** Al reescribir un compás, cada nota con altura lleva su alteración explícita (las que sobran las quita
   `N-ALT-2`): mover una nota a otro pentagrama no puede hacer que se lea mal (I-5). Vale para todas las reglas de voces.
-- **Implementación.** `voces-a-su-mano` (estructural), antes de `N-CLAVE-1`. **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
+- **Implementación.** `voces-a-su-mano` (estructural), antes de `N-CLAVE-1`. **Prueba.** `prueba_notacion.js` (incluye BWV 812,
+  Gigue, c. 2). **Estado.** aplicada.
 
 #### `N-CRUCE-2` — Notas sueltas al otro pentagrama, con barra que cruza
 - **Descripción.** En una voz interior, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro se dibuja

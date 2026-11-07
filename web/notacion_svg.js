@@ -115,6 +115,9 @@
       // un espacio del pentagrama, leído de sus dos primeras líneas (en Verovio, 180 unidades)
       const ys=[...st.querySelectorAll(':scope > path')].slice(0,2).map(p=>+(p.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)||[])[1]);
       const sp=ys.length===2&&ys[1]>ys[0]?ys[1]-ys[0]:180, paso=sp/2, m=sp*0.06;
+      // extensión vertical del pentagrama: un silencio apartado no debe alejarse de él más de un espacio (si no, queda flotando)
+      const lineas=[...st.querySelectorAll(':scope > path')].slice(0,5).map(p=>+(p.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)||[])[1]).filter(Number.isFinite);
+      const techo=lineas.length?Math.min(...lineas)-sp:-Infinity, suelo=lineas.length?Math.max(...lineas)+sp:Infinity;
       const pisa=(a,b)=>a.x+m<b.x+b.w&&a.x+a.w-m>b.x&&a.y+m<b.y+b.h&&a.y+a.h-m>b.y;
       const voces=capas.map(c=>({
         silencios:[...c.querySelectorAll('g.rest,g.mRest')].map(e=>({e,b:caja(e),dy:0})).filter(r=>r.b),
@@ -124,6 +127,7 @@
       voces.forEach((v,iv)=>{
         for(const r of v.silencios){
           // holgura: distancia vertical mínima exigida (N-SIL-2 pide 0,35 espacios entre el silencio apartado y las notas)
+          const fuera_=dy=>r.b.y+dy<techo||r.b.y+r.b.h+dy>suelo;
           const choques=(dy,holgura=0)=>{
             const c={x:r.b.x,y:r.b.y+dy-holgura,w:r.b.w,h:r.b.h+2*holgura}, fuera=[];
             voces.forEach((w,jw)=>{ if(jw===iv) return;
@@ -138,14 +142,14 @@
             while(r.e.firstChild) g.appendChild(r.e.firstChild); r.e.appendChild(g); r.dy=dy; r.e.setAttribute('data-n-sil2',String(Math.round(dy/paso))); movidos++};
           if(!c0.some(b=>b.sil)){
             // N-SIL-2: solo pisa notas, plicas o alteraciones de otra voz: se aparta hacia fuera; si no cabe, se oculta
-            if(Notacion.config.silenciosApartados){ const signo=iv===0?-1:1; let k=1; while(k<=6&&choques(signo*k*paso,sp*0.35).length) k++; if(k<=6){ mover(signo*k*paso); continue } }
+            if(Notacion.config.silenciosApartados){ const signo=iv===0?-1:1; let k=1; while(k<=6&&(fuera_(signo*k*paso)||choques(signo*k*paso,sp*0.35).length)) k++; if(k<=6){ mover(signo*k*paso); continue } }
             r.e.setAttribute('display','none'); r.oculto=true; movidos++; continue }
           const centro=r.b.y+r.b.h/2, medio=c0.reduce((s,b)=>s+b.y+b.h/2,0)/c0.length;
           const pref=Math.abs(medio-centro)>sp*0.25?(medio>centro?-1:1):(iv===0?-1:1);   // y crece hacia abajo
           let mejor=null;
           for(let k=1;k<=10;k++) for(const signo of [pref,-pref]){
             const coste=k+(signo===pref?0:1.5);
-            if((!mejor||coste<mejor.coste)&&!choques(signo*k*paso,sp*0.35).length) mejor={coste,dy:signo*k*paso};
+            if((!mejor||coste<mejor.coste)&&!fuera_(signo*k*paso)&&!choques(signo*k*paso,sp*0.35).length) mejor={coste,dy:signo*k*paso};
           }
           if(!mejor) continue;
           mover(mejor.dy);
@@ -163,6 +167,8 @@
     const sel='g.note,g.rest,g.mRest,g.accid,g.stem,g.beam,g.flag,g.artic,g.tupletNum,g.tupletBracket,g.ledgerLines,g.dynam,g.dir,g.tempo,g.fermata,g.ornam,g.trill,g.turn,g.mordent,g.clef,g.keySig,g.meterSig,g.harm,g.verse,g.voltaBracket,g.slur,g.tie';
     const cajas=[...pm.querySelectorAll(sel)].map(e=>{try{return e.getBBox()}catch(_){return null}}).filter(b=>b&&b.width>0&&b.height>0);
     let minY=Infinity;
+    // los números de un mismo sistema van alineados: todos a la altura que necesita el que más tiene que subir
+    const porSistema=new Map();
     for(const g of nums){
       let nb; try{nb=g.getBBox()}catch(_){continue}
       const pad=nb.height*0.25, x0=nb.x-pad, x1=nb.x+nb.width+pad;
@@ -173,8 +179,11 @@
         if(!choque.length) break;
         dy=Math.min(...choque.map(b=>b.y))-pad-(nb.y+nb.height);   // justo encima del elemento más alto que choca
       }
-      if(dy<0) g.setAttribute('transform',`translate(0,${dy})`);
-      minY=Math.min(minY,nb.y+dy);
+      const sis=g.closest('g.system')||pm, L=porSistema.get(sis)||[]; L.push({g,nb,dy}); porSistema.set(sis,L);
+    }
+    for(const L of porSistema.values()){
+      const dy=Math.min(0,...L.map(x=>x.dy));
+      for(const {g,nb} of L){ if(dy<0) g.setAttribute('transform',`translate(0,${dy})`); minY=Math.min(minY,nb.y+dy) }
     }
     // ampliar el lienzo por arriba si algún número ha quedado fuera
     const vb=inner.getAttribute('viewBox').split(/[ ,]+/).map(Number), ovb=svg.getAttribute('viewBox').split(/[ ,]+/).map(Number);

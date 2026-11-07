@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Harmony Finder</title>
 <link rel="icon" type="image/svg+xml" href="icono.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -169,6 +170,8 @@ button.btn:disabled{opacity:.45;cursor:default}
 #vista .herr a{color:var(--accent)}
 #partitura{padding:10px 12px 14px;overflow-x:auto;background:#fff;color:#000}
 #partitura svg{max-width:100%;height:auto;display:block}
+#partitura .leyenda-sec{display:flex;flex-wrap:wrap;gap:4px 14px;font:12px var(--body);color:#3b434b;margin:0 0 6px}
+#partitura .leyenda-sec i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px;opacity:.7}
 #partitura.desliza{position:relative}
 #partitura.desliza::before{content:attr(data-desliza);position:sticky;left:0;display:block;font:12px var(--body);color:#5d6670;margin:0 0 4px}
 #partitura .vacio{font-family:var(--body);color:#5d6670;padding:40px 16px;text-align:center;font-size:14px}
@@ -383,6 +386,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
     <div hidden>
           <select id="compositor" aria-label="Compositor"><option value="">Todos los compositores</option></select>
           <select id="obraSel" aria-label="Obra" hidden><option value="">Todas sus obras</option></select>
+          <select id="movSel" aria-label="Movimiento" hidden><option value="">Todos sus movimientos</option></select>
           <select id="fuente" aria-label="Fuente"><option value="">Todas las fuentes</option><option value="wir">When in Rome</option><option value="dcml">Distant Listening Corpus (DCML)</option></select>
           <select id="epoca" aria-label="Época"><option value="">Todas las épocas</option></select>
           <select id="tonalidad" aria-label="Tonalidad"><option value="">Todas las tonalidades</option></select>
@@ -418,6 +422,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
       <label class="chk rom"><input type="checkbox" id="verRom" checked> <span data-en="Roman numerals">romano</span></label>
       <label class="chk int"><input type="checkbox" id="verInt" checked> <span data-en="figured bass">interválico</span></label>
       <label class="chk fun"><input type="checkbox" id="verFun" checked> <span data-en="functional">funcional</span></label>
+      <label class="chk" id="verSecL" hidden title="Barras de color sobre los compases con cada sección de la forma (exposición, desarrollo, reexposición…)" data-en-title="Colour bars above the bars for each section of the form (exposition, development, recapitulation…)"><input type="checkbox" id="verSec" checked> <span data-en="sections">secciones</span></label>
     </span>
     <label title="Compases de margen" data-en-title="Bars of margin">±<input type="range" id="margen" min="0" max="4" value="1"> <span id="margenV">1</span></label>
     <button class="btn" id="copiarSVG" type="button" title="Copia la partitura con los cifrados como SVG (vectorial) para pegar en Inkscape, Illustrator, Affinity, Word…" data-en-title="Copies the score and analysis as SVG (vector) to paste into Inkscape, Illustrator, Affinity, Word…" data-en="Copy SVG">Copiar SVG</button>
@@ -440,6 +445,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 <script src="jszip.min.js"></script>
 <script src="progresiones.js"></script>
 <script src="canonicos.js"></script>
+<script src="obras_texto.js"></script>
 <script src="cifrado.js"></script>
 <script src="musica.js"></script>
 <script src="notacion.js"></script>
@@ -534,15 +540,25 @@ const TONOS=['C','c','C#','c#','D-','D','d','E-','e-','E','e','F','f','F#','f#',
 function rellenarObras(){
   // la obra elegida se lee antes de vaciar el desplegable (si no, cada refresco de los menús quitaba el filtro de obra)
   const sel=$('#obraSel'), comp=$('#compositor').value, sel0=+sel.value||0; sel.innerHTML=`<option value="">${trd('Todas sus obras','All their works')}</option>`;
-  sel.hidden=!comp; if(!comp) return;
+  sel.hidden=!comp; if(!comp){rellenarMovs();return}
   const vistas=new Map(), F=facetas(); for(const o of OBRAS) if(o.c===comp&&!vistas.has(o.w)&&(F.obra.has(o.w)||o.w===sel0)) vistas.set(o.w,o.ob);
   for(const [w,t] of [...vistas].sort((a,b)=>a[1].localeCompare(b[1],'es',{numeric:true}))){const op=document.createElement('option');op.value=w;op.textContent=t;sel.append(op)}
   if(sel0) sel.value=String(sel0);
+  rellenarMovs();
 }
-const filtros=()=>({comp:$('#compositor').value,obra:+$('#obraSel').value||0,fuente:$('#fuente').value,per:$('#epoca').value,
+// movimientos de la obra elegida (solo si tiene varios con nombre y dan resultados con los demás filtros)
+function rellenarMovs(){
+  const sm=$('#movSel'), w=+$('#obraSel').value||0, m0=+sm.value||0; sm.innerHTML=`<option value="">${trd('Todos sus movimientos','All its movements')}</option>`;
+  const movs=new Map(); if(w) for(const o of OBRAS) if(o.w===w&&!movs.has(o.m)&&movDe(o)!=='—') movs.set(o.m,o);
+  sm.hidden=movs.size<2; if(sm.hidden) return;
+  const F=facetas();
+  for(const o of movs.values()) if(F.mov.has(o.m)||o.m===m0){const op=document.createElement('option');op.value=o.m;op.textContent=movDe(o);sm.append(op)}
+  if(m0&&movs.has(m0)) sm.value=String(m0);
+}
+const filtros=()=>({comp:$('#compositor').value,obra:+$('#obraSel').value||0,mov:+$('#movSel').value||0,fuente:$('#fuente').value,per:$('#epoca').value,
   tono:$('#tonalidad').value,modo:$('#modo').value,sec:$('#seccion').value,zona:$('#zona').value,fg:$('#formaGlobal').value,
   lim:$('#unaPorObra').checked?2:Infinity,L:+$('#longitud').value});
-const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&!(f.obra&&o.w!==f.obra)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per)
+const pasaObra=(o,f)=>!!o&&!(f.comp&&o.c!==f.comp)&&!(f.obra&&o.w!==f.obra)&&!(f.mov&&o.m!==f.mov)&&!(f.fuente&&o.f!==f.fuente)&&!(f.per&&o.per!==f.per)
   &&!((f.sec||f.zona)&&!inicioForma(o.m,f))&&!(f.fg&&(FORMAS[o.m]||[])[0]!==f.fg);
 const pasaTono=(t,f)=>!t||(!(f.tono&&t!==f.tono)&&!(f.modo&&((t[0]===t[0].toUpperCase())?'M':'m')!==f.modo));
 
@@ -810,7 +826,7 @@ function pasaU(u,f){
   if((f.sec||f.zona)&&!u.sz.some(([a,b])=>(!f.sec||a===f.sec)&&(!f.zona||b===f.zona))) return false;
   return true;
 }
-const VALORES_FAC={comp:u=>[u.o.c],obra:u=>[u.o.w],fuente:u=>[u.o.f],per:u=>[u.o.per],
+const VALORES_FAC={comp:u=>[u.o.c],obra:u=>[u.o.w],mov:u=>[u.o.m],fuente:u=>[u.o.f],per:u=>[u.o.per],
   tono:(u,f)=>u.tonos.filter(t=>t&&pasaTono(t,f)),modo:(u,f)=>u.tonos.filter(t=>t&&pasaTono(t,f)).map(t=>t[0]===t[0].toUpperCase()?'M':'m'),
   fg:u=>[(FORMAS[u.o.m]||[])[0]],sec:(u,f)=>u.sz.filter(p=>!f.zona||p[1]===f.zona).map(p=>p[0]),zona:(u,f)=>u.sz.filter(p=>!f.sec||p[0]===f.sec).map(p=>p[1])};
 // {faceta: Map(valor → {w: obras, m: movimientos})}, calculada sin el filtro de esa misma faceta
@@ -819,7 +835,7 @@ function facetas(){
   if(clave===facClave) return facAct;
   const U=unidades(), R={};
   for(const [k,fn] of Object.entries(VALORES_FAC)){
-    const g={...f,[k]:k==='obra'?0:''}; if(k==='comp') g.obra=0;
+    const g={...f,[k]:k==='obra'||k==='mov'?0:''}; if(k==='comp'||k==='obra') g.mov=0; if(k==='comp') g.obra=0;
     const m=new Map();
     for(const u of U){if(!u.o||!pasaU(u,g)) continue;
       for(const v of new Set(fn(u,g))){if(v==null||v==='') continue; let x=m.get(v); if(!x) m.set(v,x={w:new Set(),m:new Set(),cw:new Map()}); x.w.add(u.o.w); x.m.add(u.o.m); x.cw.set(u.o.w,(x.cw.get(u.o.w)||0)+1)}}
@@ -829,8 +845,8 @@ function facetas(){
   }
   facClave=clave; facAct=R; return R;
 }
-const CAMPO_FAC={compositor:'comp',obraSel:'obra',fuente:'fuente',epoca:'per',tonalidad:'tono',modo:'modo',formaGlobal:'fg',seccion:'sec',zona:'zona'};
-const disponible=(campo,valor)=>{const k=CAMPO_FAC[campo]; if(!k) return true; const F=facetas(); return F[k].has(k==='obra'?+valor:valor)};
+const CAMPO_FAC={compositor:'comp',obraSel:'obra',movSel:'mov',fuente:'fuente',epoca:'per',tonalidad:'tono',modo:'modo',formaGlobal:'fg',seccion:'sec',zona:'zona'};
+const disponible=(campo,valor)=>{const k=CAMPO_FAC[campo]; if(!k) return true; const F=facetas(); return F[k].has(k==='obra'||k==='mov'?+valor:valor)};
 // procedimientos (menú Armonía y sugerencias): ejemplos que quedan con los filtros elegidos
 let armClave='', armN=null, armCargando=null;
 async function disponibilidadArmonia(){
@@ -935,8 +951,8 @@ function sugerirFiltros(t){
   }
   return out;
 }
-const TIPO_FILTRO=EN?{compositor:'Composer',obraSel:'Work',tonalidad:'Key',modo:'Mode',epoca:'Period',fuente:'Source',formaGlobal:'Form',seccion:'Sections · section',zona:'Sections · zone'}
-  :{compositor:'Compositor',obraSel:'Obra',tonalidad:'Tonalidad',modo:'Modo',epoca:'Época',fuente:'Fuente',formaGlobal:'Forma',seccion:'Secciones · sección',zona:'Secciones · zona'};
+const TIPO_FILTRO=EN?{compositor:'Composer',obraSel:'Work',movSel:'Movement',tonalidad:'Key',modo:'Mode',epoca:'Period',fuente:'Source',formaGlobal:'Form',seccion:'Sections · section',zona:'Sections · zone'}
+  :{compositor:'Compositor',obraSel:'Obra',movSel:'Movimiento',tonalidad:'Tonalidad',modo:'Modo',epoca:'Época',fuente:'Fuente',formaGlobal:'Forma',seccion:'Secciones · sección',zona:'Secciones · zona'};
 // combinar condiciones de pasaje: la nueva sustituye a la de su mismo grupo
 const combinar=ids=>{if(actual?.t!=='f') return ids; const m={}; for(const id of [...actual.ids,...ids]) m[FAC[id].g]=id; return ORDEN_G.map(g=>m[g]).filter(Boolean)};
 const textoOpcion=o=>o.t==='x'?o.txt:o.t==='c'?NOMBRE(o.k):o.t==='o'?(o.comp?trd('obras de ','works by ')+o.comp:trd('todas las obras','all works')):o.t==='p'?trd('progresión ','progression ')+o.q.join(' – '):etiquetaFacetas(o.ids);
@@ -1089,6 +1105,7 @@ function marcar(i){
   const li=$('#op'+activa); if(li) li.scrollIntoView({block:'nearest'}); q.setAttribute('aria-activedescendant','op'+activa);
 }
 function ponerFiltro(o){
+  if(o.campo==='movSel'){const x=OBRAS.find(y=>String(y.m)===o.valor); if($('#obraSel').value!==String(x.w)) ponerFiltro({campo:'obraSel',valor:String(x.w),txt:x.ob}); rellenarMovs()}
   if(o.campo==='obraSel'){const ob=OBRAS.find(x=>String(x.w)===o.valor);$('#compositor').value=ob.c;rellenarObras()}
   if(o.campo==='compositor'){$('#compositor').value=o.valor;rellenarObras()}
   else{const sel=$('#'+o.campo);if(sel.tagName==='SELECT'&&![...sel.options].some(op=>op.value===o.valor)){const op=document.createElement('option');op.value=o.valor;op.textContent=o.txt;sel.append(op)}sel.value=o.valor}
@@ -1102,7 +1119,7 @@ function elegir(o){
   if(o.t==='o'&&o.comp){$('#compositor').value=o.comp;rellenarObras()}
   ejecutar(o);
 }
-const CAMPOS=['compositor','obraSel','tonalidad','modo','epoca','fuente','formaGlobal','seccion','zona'];
+const CAMPOS=['compositor','obraSel','movSel','tonalidad','modo','epoca','fuente','formaGlobal','seccion','zona'];
 const hayFiltros=()=>CAMPOS.some(id=>$('#'+id).value);
 // vuelve a buscar tras cambiar las etiquetas; sin procedimiento, lista las obras que cumplen los filtros
 function relanzar(){
@@ -1118,7 +1135,7 @@ function reiniciar(){
 }
 function quitar(campo){
   if(campo==='principal') actual=null;
-  else{$('#'+campo).value=''; if(campo==='compositor'){$('#obraSel').value='';rellenarObras()}}
+  else{$('#'+campo).value=''; if(campo==='compositor'||campo==='obraSel'){$('#movSel').value=''; if(campo==='compositor') $('#obraSel').value=''; rellenarObras()}}
   cuentaCache.clear(); relanzar(); q.focus();
 }
 function pintarEtiquetas(){
@@ -1127,10 +1144,10 @@ function pintarEtiquetas(){
   else if(actual&&!hayFiltros()) ch.push({campo:'principal',txt:trd('todas las obras','all works'),tp:''});
   for(const id of CAMPOS){
     const v=$('#'+id).value; if(!v) continue;
-    const txt=id==='compositor'?v:id==='obraSel'?(OBRAS.find(o=>String(o.w)===v)||{}).ob:id==='tonalidad'?tonoLargo(v)
+    const txt=id==='compositor'?v:id==='obraSel'?(OBRAS.find(o=>String(o.w)===v)||{}).ob:id==='movSel'?movDe(OBRAS.find(o=>String(o.m)===v)||{t:'',ob:''}):id==='tonalidad'?tonoLargo(v)
       :id==='modo'?(v==='M'?trd('modo mayor','major mode'):trd('modo menor','minor mode')):id==='fuente'?(v==='wir'?'When in Rome':'DCML')
       :id==='epoca'?perTxt(v):id==='seccion'||id==='zona'?formaTxt(v):id==='formaGlobal'?formaGTxt(v):v;
-    ch.push({campo:id,txt,tp:id==='seccion'||id==='zona'?trd('sección','section'):id==='formaGlobal'?trd('forma','form'):''});
+    ch.push({campo:id,txt,tp:id==='movSel'?trd('movimiento','movement'):id==='seccion'||id==='zona'?trd('sección','section'):id==='formaGlobal'?trd('forma','form'):''});
   }
   $('#chips').innerHTML=ch.map(c=>`<span class="chip${c.campo==='principal'?' principal':''}">${c.tp?`<span class="tp">${esc(c.tp)}</span>`:''}<span class="tx">${esc(c.txt)}</span><button type="button" data-quitar="${c.campo}" aria-label="${trd('Quitar','Remove')} ${esc(c.txt)}">×</button></span>`).join('');
   $('#chips').querySelectorAll('[data-quitar]').forEach(b=>b.onclick=e=>{e.stopPropagation();quitar(b.dataset.quitar)});
@@ -1315,6 +1332,8 @@ function filtroExacto(s){
   for(const e of EPOCAS){const v=VOC.periodos[e]||{};if([e,v.es,v.en,...(v.sin_es||[]),...(v.sin_en||[])].filter(Boolean).some(w=>norm(w)===s)&&vale('epoca',e)) return {t:'x',campo:'epoca',valor:e,txt:perTxt(e)}}
   return null;
 }
+let _indiceMovs=null; const indiceMovs=()=>_indiceMovs||(_indiceMovs=ObrasTexto.indexarMovimientos(OBRAS,norm,movDe));
+let _indiceObras=null; const indiceObras=()=>_indiceObras||(_indiceObras=ObrasTexto.indexar(OBRAS,norm));
 function descomponer(texto){
   const fp=extraerForma(texto), base=fp?fp.resto:texto;
   const pal=norm(base).trim().split(/\s+/).filter(Boolean), usado=pal.map(()=>false), fil=[];
@@ -1324,13 +1343,23 @@ function descomponer(texto){
     const m=filtroExacto(s);
     if(m&&!fil.some(f=>f.campo===m.campo)){fil.push(m);usado.fill(true,i,i+L)}
   }
+  // una obra nombrada en el texto («suite inglesa 1»): se busca entre las del compositor escrito o ya elegido
+  const compObra=(fil.find(f=>f.campo==='compositor')||{}).valor||$('#compositor').value;
+  const ob=!fil.some(f=>f.campo==='obraSel')&&ObrasTexto.buscarObra(pal,usado,indiceObras(),{comp:compObra});
+  if(ob){fil.push({t:'x',campo:'obraSel',valor:String(ob.obra.w),txt:ob.obra.ob});usado.fill(true,ob.i,ob.i+ob.L)}
+  // y un movimiento de esa obra («allemande», «courante 2», «segundo movimiento»)
+  const wObra=ob?ob.obra.w:(fil.some(f=>f.campo==='obraSel')?0:+$('#obraSel').value||0);
+  const mv=wObra&&!fil.some(f=>f.campo==='movSel')&&ObrasTexto.buscarMovimiento(pal,usado,indiceMovs().filter(x=>x.w===wObra));
+  if(mv){fil.push({t:'x',campo:'movSel',valor:String(mv.mov.m),txt:mv.mov.rotulo});usado.fill(true,mv.i,mv.i+mv.L)}
   if(!fil.length) return null;
   const crudo=String(base).trim().split(/\s+/).filter(Boolean);   // la progresión necesita mayúsculas y minúsculas
   const resto=(crudo.length===pal.length?crudo:pal).filter((_,i)=>!usado[i]).join(' ').trim();
   const restoN=norm(resto).split(' ').filter(w=>w&&!NEXOS.has(w)).join(' ');
   let o=null;
   if(restoN){
-    const tp=tokensProg(resto), P=parsearFacetas(restoN), k=interpretar(restoN)||puntuarConceptos(restoN)[0];
+    // los nexos internos importan («dominante de la dominante» ≠ «dominante dominante»): solo se recortan los de los extremos
+    const pr=norm(resto).trim().split(' ').filter(Boolean); while(pr.length&&NEXOS.has(pr[0])) pr.shift(); while(pr.length&&NEXOS.has(pr[pr.length-1])) pr.pop();
+    const tp=tokensProg(resto), P=parsearFacetas(restoN), k=interpretar(pr.join(' '))||interpretar(restoN)||puntuarConceptos(restoN)[0];
     o=tp?{t:'p',q:tp}:P.ids.length&&!P.libres.length?{t:'f',ids:P.ids}:k?{t:'c',k}:null;
     if(!o) return null;                                            // queda texto que no se entiende: mejor no adivinar
   }
@@ -1650,7 +1679,7 @@ $('#next').onclick=()=>{pagina++;pintar();$('#tabla').scrollIntoView({block:'sta
 function contarFiltros(){pintarEtiquetas()}
 for(const id of ['longitud','progInv','progFund','progGap','progMin']) $('#'+id).addEventListener('change',()=>{cuentaCache.clear();if(actual)ejecutar(actual)});
 let seleccion=null;
-for(const id of ['verRom','verInt','verFun']){
+for(const id of ['verRom','verInt','verFun','verSec']){
   const v=pref(id); if(v!==null) $('#'+id).checked=v==='1';
   $('#'+id).addEventListener('change',()=>{pref(id,$('#'+id).checked?'1':'0');pintar();if(seleccion)mostrar(seleccion)});
 }
@@ -2070,6 +2099,7 @@ async function mostrar(h){
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     if(seleccion!==h||!svg.isConnected) return;
     svg.querySelectorAll('g.mNum').forEach(g=>g.removeAttribute('transform')); Notacion.despejarNumeros(svg);
+    colorearSecciones(svg,cont,o,E,pos);   // después de colocar los números de compás: las barras van por encima de ellos
     // partitura más ancha que su caja: se centra en el acorde resaltado (si no, quedaba fuera de la vista)
     const rs=[...svg.querySelectorAll('.resalte')];
     if(cont.scrollWidth>cont.clientWidth+4){
@@ -2209,6 +2239,57 @@ function resaltarAcorde(svg,h,ac,occ,E,pos,occA){
   r.setAttribute('x',x0);r.setAttribute('y',yA-120);r.setAttribute('width',Math.max(0,x1-x0));r.setAttribute('height',yB-yA+240);
   r.setAttribute('fill','#f3c74b');r.setAttribute('fill-opacity','0.28');r.setAttribute('rx','40');
   m.parentNode.insertBefore(r,m);
+}
+// color de cada sección de la forma (fondo claro: la partitura es siempre blanca); las no listadas toman un tono por orden
+const COLOR_SEC={introduccion:'#9aa3ab',exposicion:'#4f9fb0',desarrollo:'#e0a040',reexposicion:'#6aa84f',coda:'#b5651d',tema:'#4f9fb0',variacion:'#8a6fc0',
+  minueto:'#4f9fb0',trio:'#d9779a',scherzo:'#4f9fb0',seccion_a:'#4f9fb0',seccion_b:'#e0a040',seccion_c:'#6aa84f',seccion_d:'#8a6fc0'};
+// barras de color sobre cada compás según la sección vigente en él (FORMA, nivel 1), con su nombre al empezar la sección
+// (y al principio de cada sistema), y leyenda con las secciones que se ven
+function colorearSecciones(svg,cont,o,E,pos){
+  const L=$('#verSecL'), hay=!!(FORMA[o.m]&&FORMA[o.m].some(x=>x[2]));
+  L.hidden=!hay; cont.querySelectorAll('.leyenda-sec').forEach(n=>n.remove()); svg.querySelectorAll('.barra-sec').forEach(n=>n.remove());
+  if(!hay||!$('#verSec').checked) return;
+  const vistas=[], tramos=[];   // tramo: compases seguidos de un mismo sistema y de una misma sección
+  [...svg.querySelectorAll('g.measure')].forEach((m,i)=>{
+    const n=E.n[pos.p0+i], sec=n==null?null:(formaEn(o.m,n,1)||[])[0], sis=m.closest('g.system');
+    if(!sec) return;
+    if(!vistas.includes(sec)) vistas.push(sec);
+    const bb=m.getBBox(), linea=m.querySelector('g.staff > path'), c=linea?(linea.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number):[];
+    const x0=c.length>=4?Math.min(c[0],c[2]):bb.x, x1=c.length>=4?Math.max(c[0],c[2]):bb.x+bb.width;
+    const ys=[...m.querySelector('g.staff').children].filter(q=>q.tagName==='path').map(q=>(q.getAttribute('d').match(/-?\d+(\.\d+)?/g)||[]).map(Number)).filter(q=>q.length>=4&&q[1]===q[3]).map(q=>q[1]).slice(0,5);
+    const sp=ys.length===5&&ys[4]>ys[0]?(ys[4]-ys[0])/4:180, yTop=ys.length?Math.min(...ys):bb.y;
+    // parte alta de lo que ya hay sobre el pentagrama de este compás (su número, ya colocado)
+    let alto=yTop-sp*2;
+    const nm=m.querySelector('g.mNum'); if(nm){try{const b=nm.getBBox(),t=nm.transform.baseVal.numberOfItems?nm.transform.baseVal.getItem(0).matrix.f:0; alto=Math.min(alto,b.y+t)}catch(_){}}
+    const ult=tramos[tramos.length-1];
+    if(ult&&ult.sec===sec&&ult.sis===sis&&Math.abs(x0-ult.x1)<sp*3){ult.x1=x1;ult.alto=Math.min(ult.alto,alto)}
+    else tramos.push({sec,sis,x0,x1,alto,sp,pm:m.parentNode,ref:m});
+  });
+  // una barra por tramo; en cada sistema, todas a la misma altura (por encima de los números de compás)
+  const altoSis=new Map(); for(const t of tramos) altoSis.set(t.sis,Math.min(altoSis.get(t.sis)??Infinity,t.alto));
+  let minY=Infinity;
+  for(const t of tramos){
+    const h=t.sp*2, y=altoSis.get(t.sis)-t.sp*0.6-h, col=COLOR_SEC[t.sec]||'#9aa3ab';
+    const g=document.createElementNS(NS,'g'); g.setAttribute('class','barra-sec');
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',t.x0);r.setAttribute('y',y);r.setAttribute('width',t.x1-t.x0);r.setAttribute('height',h);r.setAttribute('rx',h*0.2);
+    r.setAttribute('fill',col);r.setAttribute('fill-opacity','0.6'); g.append(r);
+    const tx=document.createElementNS(NS,'text'); tx.setAttribute('x',t.x0+t.sp*0.6);tx.setAttribute('y',y+h*0.7);tx.setAttribute('font-size',Math.round(h*0.6));
+    tx.setAttribute('font-family',FUENTE);tx.setAttribute('fill','#1d2126');tx.textContent=formaTxt(t.sec); g.append(tx);
+    t.pm.insertBefore(g,t.ref); minY=Math.min(minY,y);
+  }
+  // la barra de la primera línea puede quedar fuera del lienzo: se amplía por arriba el SVG interior de Verovio
+  // (escala x10; su origen está desplazado por el margen de página) y, en proporción, el exterior
+  const ini=svg.querySelector('svg.definition-scale'), vbI=ini&&ini.viewBox.baseVal, vbE=svg.viewBox&&svg.viewBox.baseVal;
+  const margen=(()=>{const t=svg.querySelector('g.page-margin')?.transform.baseVal; return t&&t.numberOfItems?t.getItem(0).matrix.f:0})();
+  const d=vbI?Math.ceil(vbI.y+20-(minY+margen)):0;
+  if(vbI&&vbE&&vbI.width&&minY<Infinity&&d>0){
+    const k=vbE.width/vbI.width;
+    ini.setAttribute('viewBox',`${vbI.x} ${vbI.y-d} ${vbI.width} ${vbI.height+d}`);
+    svg.setAttribute('viewBox',`${vbE.x} ${vbE.y-d*k} ${vbE.width} ${vbE.height+d*k}`);
+  }
+  if(!vistas.length) return;
+  cont.insertAdjacentHTML('afterbegin',`<div class="leyenda-sec">${vistas.map(k=>`<span><i style="background:${COLOR_SEC[k]||'#9aa3ab'}"></i>${esc(formaTxt(k))}</span>`).join('')}</div>`);
 }
 // geometría de la partitura dibujada: compases, espacio entre líneas del pentagrama y x de un punto (compás, negras)
 function geometria(svg,E,pos){

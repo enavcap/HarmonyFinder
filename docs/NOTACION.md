@@ -195,14 +195,16 @@ Conclusiones aplicables a otras partituras:
 
 1. **Cada voz va con la mano que puede tocarla** (y un cruce de manos de la fuente se respeta). El criterio que distingue los casos de la edición no es la altura media (el
    tenor la3-do#4 bajo un si2 se queda en la izquierda, c. 4) sino la extensión: una mano no toca a la vez notas a más de una
-   décima. → `N-CRUCE-1`.
+   décima. Solo se redistribuye si una voz activa del pentagrama destino coincide; si está en silencio, se conserva el reparto de
+   la fuente (Gigue de la Suite francesa n.º 1, BWV 812, c. 2). → `N-CRUCE-1`.
 2. **En un arpegio sostenido, cada nota se escribe una vez, con su duración real**, y comparte la cabeza con la semicorchea del
    arpegio (una cabeza, dos plicas). Se reconoce porque dos voces atacan la misma nota a la vez. Esas voces no se convierten en
    acordes; lo que falta es dibujar bien el unísono, porque Verovio solo comparte la cabeza si figura y puntillo coinciden. Una
    blanca y una negra de la misma nota, en cambio, sí van una al lado de la otra. → `N-VOC-5`.
 3. **Una línea melódica intermedia es una voz propia** (cc. 6-7). Solo se funde en la vecina una voz que no comparte ataques y
    cabe con pocas ligaduras. → `N-VOC-1`.
-4. **Un unísono entre las manos se escribe una vez.** → `N-VOC-2`.
+4. **Un unísono entre las manos se escribe una vez**, salvo si quitar la nota rompería el grupo de barras de esa voz
+   (Gigue de la Suite francesa n.º 1, BWV 812, c. 3: el re4 del bajo mantiene la barra con la3). → `N-VOC-2`.
 5. **La mano izquierda no cambia de clave por un pasaje de tenor**, y la clave se decide con las voces ya repartidas. → `N-CLAVE-1`.
 
 Medición (reglas apagadas → encendidas, `CFG='{"vocesPorRegistro":false,"dosCapas":false,"unisonosUnaVez":false}'`):
@@ -426,4 +428,4 @@ después de cada regla (`CASOS=1`).
 - **Compás al inicio de un fragmento** (`N-INI-1`): activado. Se apaga con `Notacion.config.compasAlInicio = false`.
 - **Pendiente máxima de las barras** (`N-BARRA-2`): replanteada (ver «Revisión»); no actuar sin un caso concreto que contrastar con la edición.
 - **Muchas líneas adicionales** (`N-OCT-1`): cambio de clave, 8va o pasar de pentagrama; y a partir de cuántas líneas.
-- **Reparto de voces de las reconstrucciones** (`N-VOC-1`, `N-VOC-5`, `N-VOC-6`, `N-CRUCE-1/2`): aplicado en la 0.8.11. Queda abierto juntar dos notas iguales de las dos manos cuando una pasa al otro pentagrama (Allemande, c. 3).
+- **Reparto de voces de las reconstrucciones** (`N-VOC-1`, `N-VOC-5`, `N-VOC-6`, `N-CRUCE-1/2`): aplicado en la 0.8.11. `N-VOC-2` compara ahora el pentagrama de origen, no el dibujado. En la Allemande de BWV 806, c. 3, el par coincidente tras el cruce se conserva porque una de las notas llega ligada; este caso prueba la excepción, no la eliminación de una cabeza duplicada.

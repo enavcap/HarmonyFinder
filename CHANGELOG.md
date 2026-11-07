@@ -8,6 +8,22 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.12] - 2026-11-08
+
+### Added
+- Partitura: en los movimientos con secciones anotadas (Taking Form) una barra de color sobre cada compás indica su sección (exposición, desarrollo, reexposición, coda…) con su nombre, y una leyenda de las secciones visibles. Se activa o desactiva con la casilla «secciones» (se recuerda la preferencia).
+
+- Buscador: se puede nombrar una obra concreta dentro de la misma frase que el procedimiento («dominante de la dominante en suite inglesa 1 de Bach», «cadencia rota sonata K. 331 Mozart»). La obra se reconoce por palabras del título (en español o inglés: «inglesa» ↔ *English*, «cuarteto» ↔ *quartet*) y por número de catálogo (`Op.`, `K.`, `BWV`…), y se aplica como filtro «Obra». Si el texto no identifica una sola obra («suite 1») no se adivina. También se puede nombrar un movimiento de esa obra («allemande», «courante 2», «segundo movimiento», «gute nacht»), que pasa a ser un filtro nuevo «Movimiento» (chip propio, se guarda en la dirección, se quita al quitar la obra). Un número solo se acepta con la palabra «movimiento», para que «segundo grupo temático» no elija el movimiento 2. Código en `web/obras_texto.js`; pruebas en `herramientas/prueba_obras_texto.js`.
+
+### Fixed
+- `N-SIL-1`: el silencio de la voz aguda en pentagramas con varias voces ya no se fija siempre en la línea superior; se coloca a la altura media de las notas vecinas de su voz, dentro del pentagrama (BWV 806, Allemande, c. 21: el silencio de corchea de la mano izquierda quedaba demasiado alto).
+- `N-SIL-2`: un silencio apartado por chocar con notas de otra voz ya no sube o baja más de un espacio fuera del pentagrama (antes podía quedar flotando hasta tres espacios por encima, como el silencio de blanca del c. 17 de la Allemande, BWV 806); si no cabe, se oculta.
+- `N-SIL-1`: en pentagramas con varias voces, un silencio de voz secundaria ya no se oculta si ninguna otra voz ocupa su tramo (p. ej. un silencio de corchea en la clave de fa); solo se ocultan los redundantes. Además, un silencio que se solapa con notas de otra voz se recorta al hueco real (BWV 806, Allemande, c. 21: sobraba un silencio de negra con puntillo y faltaba el de corchea).
+- Buscador: con un filtro en la misma frase (compositor, tonalidad…), «dominante de la dominante» se interpretaba como «dominante secundaria» porque se quitaban los nexos internos («de la») antes de reconocer el procedimiento.
+- `N-VOC-2`: tras un cruce de pentagrama (`N-CRUCE-2`), comparar los unísonos entre manos por el pentagrama de origen, no por el pentagrama donde se dibujan. La prueba de BWV 806, *Allemande*, c. 3, confirma que el par coincidente se identifica y que se conservan ambas notas cuando una llega ligada.
+- `N-VOC-2`: conservar un unísono entre manos si la nota que se quitaría inicia o termina un grupo de barras propio. En la *Gigue* de la Suite francesa n.º 1, BWV 812, c. 3, mantener el re4 del bajo restituye su grupo con la3, como en la edición de Bach-Gesellschaft.
+- `N-CRUCE-1`: no trasladar una voz a un pentagrama que solo tiene silencios en el tramo simultáneo. En la *Gigue* de la Suite francesa n.º 1, BWV 812, la línea interior del c. 2 permanece en el pentagrama superior, como en la edición de Bach-Gesellschaft.
+
 ## [0.8.11] - 2026-11-07
 
 Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que se publicaron como 0.8.8 y 0.8.9 desde otra rama (la rama de voces partía de la 0.8.7, igual que la del motor). Esas dos publicaciones sobrescribieron la 0.8.10 en GitHub Pages; esta versión reúne las dos líneas. Para no repetir identificadores del motor, las reglas `N-VOC-3`, `N-VOC-4` y `N-LIG-4` de aquella rama pasan a ser `N-VOC-5`, `N-VOC-6` y `N-LIG-6`.
@@ -332,7 +348,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...HEAD
+[0.8.12]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...v0.8.12
 [0.8.11]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...v0.8.11
 [0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
 [0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9

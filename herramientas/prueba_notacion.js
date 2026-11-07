@@ -37,6 +37,48 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   await p.evaluate(() => { Notacion.config.compasAlInicio = true });
   const inicio = { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 };
   r = await medidas(inicio); ok(r.compases === r.pentagramas, `al principio de la obra (Suite inglesa 1, Allemande, c. 0): un solo compás por pentagrama (${r.compases} de ${r.pentagramas})`);
+  const cruceUnisono = await p.evaluate(async () => {
+    const obra = __prueba.OBRAS.find(o => o.id === 206);
+    const d = new DOMParser().parseFromString(await __prueba.textoDe(obra), 'application/xml');
+    for (const id of ['voces-a-su-mano', 'notas-al-otro-pentagrama', 'dos-capas', 'voces-condensadas'])
+      Notacion.transformaciones.find(t => t.id === id).aplicar(d);
+    const eventos = () => {
+      const m = [...d.querySelectorAll('part > measure')].find(x => x.getAttribute('number') === '2');
+      let t = 0, ultimo = 0; const notas = [];
+      for (const e of m.children) {
+        const dur = +(e.querySelector('duration')?.textContent || 0);
+        if (e.tagName === 'backup') { t -= dur; continue }
+        if (e.tagName === 'forward') { t += dur; continue }
+        if (e.tagName !== 'note') continue;
+        const acorde = !!e.querySelector('chord'); if (acorde) t = ultimo;
+        const p = e.querySelector('pitch');
+        if (p && t === 10080 && p.querySelector('step').textContent === 'A' &&
+          +(p.querySelector('alter')?.textContent || 0) === 0 && p.querySelector('octave').textContent === '4')
+          notas.push({ origen: e.getAttribute('data-hf-casa') || e.querySelector('staff').textContent, staff: e.querySelector('staff').textContent, dur });
+        if (!acorde) { ultimo = t; t += dur }
+      }
+      return notas;
+    };
+    const antes = eventos();
+    Notacion.transformaciones.find(t => t.id === 'unisono-entre-manos').aplicar(d);
+    return { antes, despues: eventos() };
+  });
+  ok(cruceUnisono.antes.length === 2 && cruceUnisono.antes.every(n => n.staff === '1') &&
+    new Set(cruceUnisono.antes.map(n => n.origen)).size === 2,
+    `N-VOC-2: BWV 806, Allemande, c. 3: identifica el unísono tras el cruce (${JSON.stringify(cruceUnisono.antes)})`);
+  ok(cruceUnisono.despues.length === 2 && cruceUnisono.despues.every(n => n.dur > 0),
+  `N-VOC-2: conserva ambas notas mientras una forma parte de una ligadura (${JSON.stringify(cruceUnisono.despues)})`);
+  const unisonoCruzado = await p.evaluate(() => {
+    const xml = `<score-partwise><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>4</divisions><staves>2</staves></attributes><note data-hf-casa="1"><pitch><step>A</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>quarter</type><staff>1</staff></note><backup><duration>4</duration></backup><note data-hf-casa="2"><pitch><step>A</step><octave>4</octave></pitch><duration>8</duration><voice>2</voice><type>half</type><staff>1</staff></note></measure></part></score-partwise>`;
+    const d = new DOMParser().parseFromString(xml, 'application/xml');
+    const cambios = Notacion.transformaciones.find(t => t.id === 'unisono-entre-manos').aplicar(d);
+    return { cambios, notas: [...d.querySelectorAll('note')].map(e => ({
+      origen: e.getAttribute('data-hf-casa'), dur: +(e.querySelector('duration')?.textContent || 0)
+    })) };
+  });
+  ok(unisonoCruzado.cambios === 1 && unisonoCruzado.notas.length === 1 &&
+    unisonoCruzado.notas[0].origen === '2' && unisonoCruzado.notas[0].dur === 8,
+  `N-VOC-2: tras el cruce, conserva la nota más larga según el pentagrama de origen (${JSON.stringify(unisonoCruzado)})`);
   // opciones de Verovio dentro de sus rangos (un valor fuera de rango se rechaza en silencio: leftMarginAccid 2,2 hasta la 0.8.9)
   const fueraDeRango = await p.evaluate(() => {
     const tk = new verovio.toolkit(), av = tk.getAvailableOptions(), todos = {};
@@ -135,6 +177,48 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   // N-CRUCE-1: la3 a la vez que la5 en la mano derecha (dos octavas) pasa a la izquierda, donde cabe sobre el do3
   rv = await voces(gran(nr(['A', 5], 16, 1) + atras + nr(['A', 3], 16, 2) + atras + nr(['C', 3], 16, 5, 2)));
   ok(rv.suena['A3@2'] === 16 && !rv.suena['A3@1'], `N-CRUCE-1: una voz que su mano no alcanza pasa al pentagrama de la otra (${JSON.stringify(rv.suena)})`);
+  // si el otro pentagrama solo tiene un silencio, no hay una voz con la que justificar el cambio de mano
+  rv = await voces(gran(nr(['A', 5], 16, 1) + atras + nr(['A', 3], 16, 2) + atras + nr(null, 16, 5, 2)));
+  ok(rv.suena['A3@1'] === 16 && !rv.suena['A3@2'], `N-CRUCE-1: conserva la voz en su pentagrama si el otro está en silencio (${JSON.stringify(rv.suena)})`);
+  const gigaBWV812 = await p.evaluate(async () => {
+    const obra = __prueba.OBRAS.find(o => o.id === 282);
+    const d = new DOMParser().parseFromString(Notacion.vocesReconstruidas(await __prueba.textoDe(obra)), 'application/xml');
+    const m = [...d.querySelectorAll('part > measure')].find(x => x.getAttribute('number') === '2');
+    const notas = [...m.querySelectorAll('note')].filter(n => n.querySelector(':scope > pitch'));
+    const interiores = notas.filter(n => ['F4', 'E4', 'D4', 'C4', 'G4'].includes(n.querySelector(':scope > pitch > step').textContent + n.querySelector(':scope > pitch > octave').textContent));
+    return { interiores: interiores.map(n => n.querySelector(':scope > staff').textContent), bajo: notas.filter(n => n.querySelector(':scope > staff').textContent === '2').length };
+  });
+  ok(gigaBWV812.interiores.length === 6 && gigaBWV812.interiores.every(s => s === '1') && gigaBWV812.bajo === 0,
+    `N-CRUCE-1: BWV 812, Gigue, c. 2: mantiene la línea interior en el pentagrama superior y el inferior en silencio (${JSON.stringify(gigaBWV812)})`);
+  const gigaBWV812Barras = await p.evaluate(async () => {
+    const obra = __prueba.OBRAS.find(o => o.id === 282);
+    const d = new DOMParser().parseFromString(await __prueba.xmlDe(obra), 'application/xml');
+    const m = [...d.querySelectorAll('part > measure')].find(x => x.getAttribute('number') === '3');
+    let t = 0, ultimaDur = 0;
+    const notas = [];
+    for (const e of m.children) {
+      const dur = +(e.querySelector(':scope > duration')?.textContent || 0);
+      if (e.tagName === 'backup') { t -= dur; continue }
+      if (e.tagName === 'forward') { t += dur; continue }
+      if (e.tagName !== 'note') continue;
+      const acorde = !!e.querySelector(':scope > chord');
+      if (acorde) t -= ultimaDur;
+      const pitch = e.querySelector(':scope > pitch');
+      if (pitch) notas.push({
+        t, nombre: pitch.querySelector(':scope > step').textContent + pitch.querySelector(':scope > octave').textContent,
+        staff: e.querySelector(':scope > staff').textContent,
+        beam: [...e.querySelectorAll(':scope > beam')].map(b => b.getAttribute('number') + ':' + b.textContent)
+      });
+      if (!acorde) { ultimaDur = dur; t += dur }
+    }
+    return {
+      re4: notas.filter(n => n.t === 10080 && n.nombre === 'D4'),
+      la4: notas.filter(n => n.t === 17640 && n.nombre === 'A3')
+    };
+  });
+  ok(gigaBWV812Barras.re4.length === 2 && gigaBWV812Barras.re4.some(n => n.staff === '2' && n.beam.includes('1:begin')) &&
+    gigaBWV812Barras.la4.some(n => n.staff === '2' && n.beam.includes('1:end')),
+    `N-VOC-2: BWV 812, Gigue, c. 3: conserva el re4 del bajo para completar su barra con la3 (${JSON.stringify(gigaBWV812Barras)})`);
   // un tenor que la mano izquierda alcanza (la3 sobre si2) se queda abajo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 16, 2) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['B', 2], 16, 6, 2)));
   ok(rv.suena['E4@1'] === 16 && rv.suena['A4@1'] === 16 && rv.suena['A3@2'] === 16 && rv.suena['B2@2'] === 16, `N-CRUCE-1: voces que cada mano alcanza: ninguna cambia de mano (${JSON.stringify(rv.suena)})`);
