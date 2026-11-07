@@ -9,5 +9,7 @@
   {"obra": 890, "ini": 9, "fin": 20, "nota": "Beethoven, Op. 2 n.º 1, i, cc. 9-20 (captura del usuario): voces de la mano izquierda con tresillos, alteraciones y plicas cruzadas"},
   {"obra": 893, "ini": 0, "fin": 6, "nota": "Beethoven, Op. 2 n.º 1, ii, cc. 0-6 (captura del usuario): varias voces con silencios, ligaduras y plicas en el piano"},
   {"obra": 905, "ini": 1, "fin": 8, "nota": "Beethoven, Op. 2 n.º 2, ii, cc. 1-8 (captura del usuario): mano izquierda a dos voces (negra + semicorcheas con silencios) con las plicas al revés"},
+  {"obra": 882, "ini": 152, "fin": 157, "nota": "Beethoven, Op. 14 n.º 1, ii, cc. 152-157: la conversión anterior perdía la mano izquierda desde el c. 154"},
+  {"obra": 974, "ini": 1, "fin": 5, "nota": "Beethoven, Op. 81a, ii, cc. 1-5: voces que se dividen y se juntan a mitad de compás en la mano izquierda"},
   {"obra": 926, "ini": 44, "fin": 47, "nota": "Beethoven, Op. 31 n.º 1, iii, cc. 44-47: ligadura de unión larga de la voz aguda atravesando las notas de la voz grave"}
 ]

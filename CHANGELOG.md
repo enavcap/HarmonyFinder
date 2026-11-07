@@ -8,7 +8,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
-## [0.8.8] - 2026-11-07
+## [0.8.9] - 2026-11-07
 
 ### Added
 - Especificación de grabado musical (`docs/ESPECIFICACION_GRABADO_MUSICAL.md`): fichas de todas las reglas del motor de notación (plicas, cabezas, barras, alteraciones, silencios, ligaduras, espaciado, elementos expresivos), cada una con su fundamento en el manual de MuseScore, la *Notation Reference* de LilyPond o las guías de grabado de DAISY (o marcada como decisión propia), su implementación y su prueba. Auditoría del sistema anterior en `docs/AUDITORIA_MOTOR_NOTACION.md`.
@@ -29,6 +29,16 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ### Removed
 - Limpieza previa de las «dinámicas» vacías de la conversión desde Humdrum: era redundante (la eliminación de dinámicas ya las quitaba todas).
+
+## [0.8.8] - 2026-11-06
+
+### Fixed
+- Sonatas de Beethoven (edición de Sapp convertida desde Humdrum): las voces que aparecen o desaparecen a mitad de compás (`*^`/`*v` en el Humdrum) ya no se descolocan. music21 empezaba la voz nueva en el pulso 1 en vez de donde entra (p. ej. Op. 2 n.º 1, ii, c. 3: sol y fa en el primer pulso, debajo del fa-do) y, tras una fusión, mandaba el resto del compás a una segunda capa con el mismo número de voz, que Verovio dibujaba a continuación (c. 2: el la-sol de la mano izquierda desplazado a la derecha, con silencios de relleno y un hueco grande). `krn_beethoven_a_mxl.py` lleva ahora esas divisiones y fusiones al principio y al final del compás y rellena la voz con espacio invisible (`voces_por_compas`). Los compases con capas de voz rotas en los 58 movimientos pasan de 134 a 38 (31 de ellos en el Op. 10 n.º 3, i, que no se reconvierte porque la codificación actual de Sapp tiene otro número de compases); 52 compases recuperan la colocación correcta de sus notas.
+- Los silencios que la edición de Sapp marca como invisibles (`ryy`) ya no se dibujan: music21 no leía la marca y aparecían como silencios de relleno (916 compases).
+- Op. 81a, ii (todo el movimiento) y Op. 14 n.º 1, ii (desde el c. 154): se recuperan notas de la mano izquierda que faltaban en la conversión anterior.
+
+### Changed
+- `krn_beethoven_a_mxl.py --reconvertir`: vuelve a convertir los movimientos ya convertidos del paquete y conserva su numeración de compases; informa de cuántos compases cambian. Con `SIN_VOCES_POR_COMPAS=1` se convierte sin la corrección anterior, para comparar.
 
 ## [0.8.7] - 2026-11-06
 
@@ -296,7 +306,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...HEAD
+[0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6

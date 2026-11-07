@@ -3,6 +3,7 @@ Humdrum de Craig Sapp (https://github.com/craigsapp/beethoven-piano-sonatas), he
 (Durand 1915, Paul Dukas), con sus voces, silencios, barras y ligaduras reales.
 
     python krn_beethoven_a_mxl.py <dir_kern> <web/data/obras.json> <web/scores/beethoven.json> <salida.json> [--solo m1,m2]
+    python krn_beethoven_a_mxl.py --reconvertir <dir_kern> <obras.json> <beethoven.json> <salida.json>   (las ya convertidas)
 
 No modifica sus entradas: escribe <salida.json> con el paquete de partituras actualizado y imprime el informe
 (qué movimiento usa qué archivo). La conversión a MusicXML se hace con music21; las dos manos quedan en una
@@ -162,6 +163,153 @@ def solo_kern(texto):
     return "\n".join(salida)
 
 
+def _es_datos(l):
+    return bool(l) and not l.startswith(("!", "*", "="))
+
+
+def _duraciones_lineas(lineas):
+    """Duración (en negras, Fraction) de cada línea de datos de un Humdrum solo **kern: el tiempo hasta la línea siguiente.
+    Una línea solo con notas de adorno dura 0. Las demás líneas valen None."""
+    from fractions import Fraction
+    def dur(tok):
+        t = tok.split(" ")[0]
+        if t in (".", "") or re.search(r"[qQ]", t): return None
+        m = re.search(r"(\d+)(?:%(\d+))?(\.*)", t)
+        if not m: return None
+        a, b, pts = int(m.group(1)), int(m.group(2) or 1), len(m.group(3))
+        base = Fraction(8) if a == 0 else Fraction(4 * b, a)
+        return base * (2 - Fraction(1, 2 ** pts))
+    T, fines, out = Fraction(0), None, []
+    for l in lineas:
+        if not _es_datos(l):
+            out.append(None)
+            if l.startswith("*") and not l.startswith("**") and fines is not None:
+                c, nuevas, i = l.split("\t"), [], 0
+                if len(c) == len(fines):
+                    while i < len(c):
+                        if c[i] == "*^": nuevas += [fines[i], fines[i]]
+                        elif c[i] == "*v":
+                            j = i
+                            while j + 1 < len(c) and c[j + 1] == "*v": j += 1
+                            nuevas.append(max(fines[i:j + 1])); i = j
+                        elif c[i] != "*-": nuevas.append(fines[i])
+                        i += 1
+                    fines = nuevas
+            elif l.startswith("**"):
+                fines = [Fraction(0)] * len(l.split("\t"))
+            continue
+        c = l.split("\t")
+        if fines is None or len(c) != len(fines):
+            out.append(None); continue
+        nuevo, adorno = False, False
+        for k, x in enumerate(c):
+            d = dur(x)
+            if d is not None: fines[k] = T + d; nuevo = True
+            elif re.search(r"[qQ]", x) and x != ".": adorno = True
+        if adorno and not nuevo:
+            out.append(Fraction(0)); continue
+        fut = [f - T for f in fines if f > T]
+        d = min(fut) if fut else Fraction(0)
+        out.append(d); T += d
+    return out
+
+
+def _silencio_invisible(d):
+    """Señal **kern de un silencio invisible (`yy`) de d negras, en notación de duración racional si hace falta (3%2…)."""
+    from fractions import Fraction
+    r = Fraction(4) / d
+    return (str(r.numerator) if r.denominator == 1 else f"{r.numerator}%{r.denominator}") + "ryy"
+
+
+def voces_por_compas(texto):
+    """Lleva las divisiones (`*^`) y fusiones (`*v`) de columnas que el Humdrum hace a mitad de compás al principio y al final
+    del compás, y rellena la voz que antes no existía con silencios invisibles (`ryy`, que luego son <forward>). music21
+    convierte mal esas divisiones: la voz nueva empezaba en el pulso 1 en vez de donde empieza (Op. 2 n.º 1, ii, c. 3) y,
+    tras una fusión, el resto del compás iba a una segunda capa con el mismo número de voz, que Verovio dibuja a
+    continuación (c. 2: notas fuera de sitio y un hueco). Solo se mueven líneas con una única operación (una `*^` o un
+    par `*v`), que es lo que deja `solo_kern`; las demás se respetan y hacen de tope."""
+    lineas = texto.split("\n")
+    durs = _duraciones_lineas(lineas)
+    filas = [[l, d] for l, d in zip(lineas, durs)]
+
+    def op_simple(l):
+        """('^', c) / ('v', c) si la línea es una sola división de la columna c o una sola fusión de c y c+1."""
+        if not l.startswith("*") or l.startswith("**"): return None
+        c = l.split("\t")
+        otros = [i for i, x in enumerate(c) if x != "*"]
+        if len(otros) == 1 and c[otros[0]] == "*^": return ("^", otros[0])
+        if len(otros) == 2 and otros[1] == otros[0] + 1 and c[otros[0]] == c[otros[1]] == "*v": return ("v", otros[0])
+        return None
+
+    def es_op(l):
+        return l.startswith("*") and not l.startswith("**") and any(x in ("*^", "*v", "*-") for x in l.split("\t"))
+
+    def relleno(fila, c):
+        """Campo para la columna nueva insertada tras la columna c de la fila."""
+        l, d = fila
+        campos = l.split("\t")
+        if _es_datos(l): return _silencio_invisible(d) if d else "."
+        if l.startswith("!"): return "!"
+        x = campos[c]
+        return x if x.startswith("*") and x not in ("*^", "*v", "*-") and not re.match(r"\*X?(8va|15ma|8ba|15mb)$", x) else "*"
+
+    def insertar(fila, pos, campo):
+        c = fila[0].split("\t"); c.insert(pos, campo); fila[0] = "\t".join(c)
+
+    def con_columnas(l):
+        return not l.startswith("!!") and l.strip() != "" and not l.startswith("**")
+
+    # segmentos: tramos entre barras (o entre la cabecera y la primera barra, y la última barra y el fin de las columnas)
+    i, n, cambios = 0, len(filas), 0
+    while i < n:
+        if filas[i][0].startswith("**") or filas[i][0].startswith("="):
+            ini = i + 1
+            fin = ini
+            while fin < n and not filas[fin][0].startswith("=") and not all(x == "*-" for x in filas[fin][0].split("\t")):
+                fin += 1
+            if fin >= n: break
+            seg = [list(f) for f in filas[ini:fin]]
+            nuevo = _normalizar_segmento(seg, op_simple, es_op, relleno, insertar, con_columnas)
+            if nuevo is not None:
+                filas[ini:fin] = nuevo; cambios += 1
+            i = ini + (len(nuevo) if nuevo is not None else fin - ini)
+            continue
+        i += 1
+    return "\n".join(f[0] for f in filas)
+
+
+def _normalizar_segmento(seg, op_simple, es_op, relleno, insertar, con_columnas):
+    """Mueve las operaciones de columnas de un compás a sus extremos (ver voces_por_compas). None si no cambia nada."""
+    cambiado = False
+    inicio = 0                                    # las divisiones ya movidas quedan en seg[:inicio]
+    while True:                                   # divisiones, de la primera a la última
+        k = next((k for k in range(inicio, len(seg)) if es_op(seg[k][0])), None)
+        if k is None: break
+        op = op_simple(seg[k][0])
+        hay_datos = any(_es_datos(f[0]) for f in seg[inicio:k])
+        if op is None or op[0] != "^": break
+        if not hay_datos:                         # ya está al principio del compás
+            inicio = k + 1; continue
+        c = op[1]
+        for f in seg[inicio:k]:
+            if con_columnas(f[0]): insertar(f, c + 1, relleno(f, c))
+        seg.insert(inicio, seg.pop(k)); inicio += 1; cambiado = True
+    final = len(seg)                              # las fusiones ya movidas quedan en seg[final:]
+    while True:                                   # fusiones, de la última a la primera
+        k = next((k for k in range(final - 1, inicio - 1, -1) if es_op(seg[k][0])), None)
+        if k is None: break
+        op = op_simple(seg[k][0])
+        hay_datos = any(_es_datos(f[0]) for f in seg[k + 1:final])
+        if op is None or op[0] != "v": break
+        if not hay_datos:                         # ya está al final del compás
+            final = k; continue
+        c = op[1]
+        for f in seg[k + 1:final]:
+            if con_columnas(f[0]): insertar(f, c + 1, relleno(f, c))
+        seg.insert(final - 1, seg.pop(k)); final -= 1; cambiado = True
+    return seg if cambiado else None
+
+
 _OCTAVAS = {"8va": ("down", 8, "above"), "15ma": ("down", 15, "above"), "8ba": ("up", 8, "below"), "15mb": ("up", 15, "below")}
 
 
@@ -281,9 +429,35 @@ def insertar_octavas(xml, eventos):
     return xml[:pm.start()] + "".join(pieza) + xml[pm.end():]
 
 
+def _con_invisibles():
+    """music21 no lee la marca de invisibilidad `yy` de **kern: se añade a su lector de notas (silencio oculto)."""
+    from music21.humdrum import spineParser as sp
+    if getattr(sp.hdStringToNote, "_yy", False): return
+    original = sp.hdStringToNote
+    def lector(contenido):
+        o = original(contenido)
+        if "yy" in contenido and o.isRest: o.style.hideObjectOnPrint = True
+        return o
+    lector._yy = True
+    sp.hdStringToNote = lector
+
+
+def invisibles_a_forward(xml):
+    """Los silencios invisibles (print-object="no") pasan a <forward>: espacio sin dibujo, que Verovio respeta."""
+    def cambia(m):
+        x = m.group(0)
+        if "<rest" not in x: return x
+        d = re.search(r"<duration>(\d+)</duration>", x)
+        if not d: return x
+        v = re.search(r"<voice>[^<]*</voice>", x); st = re.search(r"<staff>[^<]*</staff>", x)
+        return "<forward><duration>%s</duration>%s%s</forward>" % (d.group(1), v.group(0) if v else "", st.group(0) if st else "")
+    return re.sub(r'<note\b[^>]*print-object="no"[^>]*>.*?</note>', cambia, xml, flags=re.S)
+
+
 def convertir(ruta_krn):
     bruto = open(ruta_krn, encoding="utf-8", errors="replace").read()
-    texto = solo_kern(bruto)
+    _con_invisibles()
+    texto = solo_kern(bruto) if os.environ.get("SIN_VOCES_POR_COMPAS") else voces_por_compas(solo_kern(bruto))
     s = converter.parse(texto, format="humdrum")
     partes = list(s.parts)
     if len(partes) != 2:
@@ -315,7 +489,7 @@ def a_mxl_base64(partitura, nombre):
     tmp = nombre + ".tmp.musicxml"
     partitura.write("musicxml", fp=tmp)
     xml = open(tmp, "rb").read(); os.remove(tmp)
-    return _a_b64(insertar_octavas(xml.decode("utf-8", "ignore"), getattr(partitura, "octavas_kern", [])))
+    return _a_b64(invisibles_a_forward(insertar_octavas(xml.decode("utf-8", "ignore"), getattr(partitura, "octavas_kern", []))))
 
 
 def _a_b64(xml):
@@ -437,7 +611,43 @@ def añadir_octavas(kd, obras_json, paquete_json, salida):
     print(f"{n} movimientos con líneas de octava")
 
 
+def reconvertir(kd, obras_json, paquete_json, salida):
+    """Vuelve a convertir los movimientos ya convertidos del paquete (p. ej. tras corregir el conversor) conservando la
+    numeración de compases que tienen (la del DCML, copiada con --etiquetas-de en su día). Solo se sustituye un
+    movimiento si tiene el mismo número de compases; imprime cuántos compases cambian de notas."""
+    obras = json.load(open(obras_json, encoding="utf-8"))
+    paquete = json.load(open(paquete_json))
+    movs = {}
+    for o in obras:
+        if o.get("pq") == "beethoven" and str(o["src"].get("partitura") or "").startswith("convertida"):
+            movs.setdefault(str(o["m"]), o)
+    def notas(medida):
+        return re.sub(r"\s+", "", "".join(re.findall(r"<note\b.*?</note>|<backup>.*?</backup>|<forward>.*?</forward>", medida, re.S)))
+    n = 0
+    for m, o in sorted(movs.items(), key=lambda kv: int(kv[0])):
+        f = archivo_kern(o["src"].get("archivo")); ruta = os.path.join(kd, f) if f else None
+        if not ruta or not os.path.exists(ruta) or m not in paquete:
+            print(f"{m}\tSIN kern"); continue
+        viejo = _leer_xml(paquete[m])
+        nuevo = _leer_xml(a_mxl_base64(convertir(ruta), f"/tmp/_k{m}"))
+        parte = lambda x: x[: x.find("</part>")]
+        mv = re.findall(r"<measure\b.*?</measure>", parte(viejo), re.S)
+        mn = re.findall(r"<measure\b.*?</measure>", parte(nuevo), re.S)
+        if len(mv) != len(mn):
+            print(f"{m}\t{o['t']}\tNO: {len(mv)} compases antes y {len(mn)} ahora"); continue
+        etq = [re.search(r'number="([^"]*)"', x).group(1) for x in mv]
+        nuevo = renumerar(nuevo, etq)
+        distintos = [etq[k] for k in range(len(mv)) if notas(mv[k]) != notas(mn[k])]
+        paquete[m] = _a_b64(nuevo); n += 1
+        print(f"{m}\t{o['t']}\t{f}\t{len(distintos)} de {len(mv)} compases cambian\t{' '.join(distintos[:12])}")
+    json.dump(paquete, open(salida, "w"))
+    print(f"{n} movimientos reconvertidos")
+
+
 def main():
+    if "--reconvertir" in sys.argv:
+        a = [x for x in sys.argv[1:] if x != "--reconvertir"]
+        return reconvertir(*a[:4])
     if "--octavas" in sys.argv:
         a = [x for x in sys.argv[1:] if x != "--octavas"]
         return añadir_octavas(*a[:4])
