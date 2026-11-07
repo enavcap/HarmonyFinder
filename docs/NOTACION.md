@@ -303,6 +303,24 @@ Diferencias que quedan: el sol5 del c. 2 es negra con puntillo en el DCML y negr
 cruza de pentagrama el fa#4 de la izquierda y el sol#4 de la derecha; la ligadura del mi5 blanca hacia el c. 3 pasa entre las
 plicas de las semicorcheas, también en la edición.
 
+#### Agrupamiento de las barras: la barra que cruza de pentagrama (v0.8.9)
+
+Cotejadas las barras de los cc. 1-8 con la edición, coinciden todas salvo donde una voz de la izquierda pasa al pentagrama de la
+derecha. Allí la edición conserva la barra con las notas que se quedan abajo, cruzando de pentagrama (c. 2: fa#4 con puntillo
+abajo y sol#4 arriba). Verovio la dibuja si las notas siguen en la misma voz y solo cambian de `<staff>` (comprobado con un
+compás mínimo). Por eso `N-CRUCE-2` ya no crea una voz nueva:
+
+- la nota conserva su voz y guarda su pentagrama de origen en `data-hf-casa`. `ordenarVoces`, `fusionarVocesIguales`,
+  `barrasAutomaticas`, `plicasPorVoz`, `plicasUnisono` y `ligadurasEntreCapas` agrupan por ese pentagrama;
+- en esos compases las voces no se renumeran. Si el número de voz coincide con uno de la otra mano, se cambia, porque en
+  MusicXML el número de voz es de toda la parte;
+- la plica de la nota apunta hacia su pentagrama de origen, así la barra queda entre los dos.
+
+Medición (antes → después): 60 fragmentos con 3+ voces, ligaduras de unión que chocan 3 → 1; casos fijos 6 → 5; muestra
+estándar, reconstruidas, 2 → 3; originales sin cambios. `plicaVoz` sube (1 → 6 y 0 → 3) por cómo mide la auditoría, que asigna
+cada nota al pentagrama donde se dibuja: una voz con notas en los dos pentagramas parece tener plicas en dos sentidos (Grieg,
+Op. 12 n.º 1, c. 21: el arpegio de la izquierda sube a la derecha con barra cruzada). No es un defecto a la vista.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
@@ -328,7 +346,7 @@ poder medirla) o **pendiente**.
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |
-| `N-CRUCE-2` | Notas sueltas al otro pentagrama | xml | **aplicada** | Reconstrucciones: en una voz que no es la exterior de su mano, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro pasa al otro pentagrama, con lo que le sigue en ese pulso y las notas a las que va ligada, si queda por debajo (o por encima) de todo lo que suena allí; los cruces de manos no se tocan (`CONFIG.notasAlOtroPentagrama`). |
+| `N-CRUCE-2` | Notas sueltas al otro pentagrama | xml | **aplicada** | Reconstrucciones: en una voz que no es la exterior de su mano, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro se dibuja en el otro pentagrama (con lo que le sigue en ese pulso y las notas a las que va ligada), si queda por debajo (o por encima) de todo lo que suena allí; los cruces de manos no se tocan. La nota sigue en su voz (`data-hf-casa` guarda su pentagrama de origen), apunta con la plica hacia él y la barra cruza de pentagrama, como en la edición (`CONFIG.notasAlOtroPentagrama`). |
 | `N-CRUCE-1` | Notas que cruzan de pentagrama | xml | **aplicada** | Reconstrucciones: una voz no exterior pasa al pentagrama de la otra mano en ese compás si su mano no puede tocarla (más de una décima con otra voz a la vez) y en la otra mano cabe; los cruces de manos de la fuente se conservan (`CONFIG.vocesPorRegistro`). Desde v0.8.9 no decide por líneas adicionales (ver «Condensar voces»). |
 
 ## Lo que no se arregla con opciones de Verovio

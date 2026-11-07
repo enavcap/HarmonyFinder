@@ -1758,7 +1758,7 @@ function fusionarVocesIguales(doc,m,hijo){
     if(c.tagName==='forward'){t+=d;continue}
     if(c.tagName!=='note') continue;
     const ch=!!hijo(c,'chord'); if(ch) t-=prevD;
-    ev.push({n:c,t,d,ch,st:hijo(c,'staff')?.textContent||'1',v:hijo(c,'voice')?.textContent||'1',silencio:!!hijo(c,'rest'),gracia:!!hijo(c,'grace')});
+    ev.push({n:c,t,d,ch,st:c.getAttribute('data-hf-casa')||hijo(c,'staff')?.textContent||'1',v:hijo(c,'voice')?.textContent||'1',silencio:!!hijo(c,'rest'),gracia:!!hijo(c,'grace')});
     t+=d; prevD=d;
   }
   const porSt=new Map(); for(const e of ev){if(!porSt.has(e.st))porSt.set(e.st,new Map());const m2=porSt.get(e.st);if(!m2.has(e.v))m2.set(e.v,[]);m2.get(e.v).push(e)}
@@ -1962,7 +1962,7 @@ function barrasAutomaticas(doc,hijo){
         const du=+(hijo(n,'duration')?.textContent||0), acorde=!!hijo(n,'chord'), grace=!!hijo(n,'grace');
         const ini=acorde?pos-prev:pos;
         if(!acorde&&!grace){prev=du;pos+=du}
-        const clave=(hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');
+        const clave=(n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');   // N-CRUCE-2: la barra cruza de pentagrama
         if(!porVoz.has(clave)) porVoz.set(clave,[]);
         porVoz.get(clave).push({n,ini,acorde,grace,sil:!!hijo(n,'rest'),nivel:NIVEL_BARRA[hijo(n,'type')?.textContent]||0});
       }
@@ -2010,7 +2010,7 @@ function ordenarVoces(xml,inst){
       fusionarVocesIguales(doc,m,hijo);
       const porPent=new Map();
       for(const n of [...m.children].filter(c=>c.tagName==='note')){
-        const st=hijo(n,'staff')?.textContent||'1', v=+(hijo(n,'voice')?.textContent||1), pi=hijo(n,'pitch');
+        const st=n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1', v=+(hijo(n,'voice')?.textContent||1), pi=hijo(n,'pitch');
         const alt=pi?(PASO[hijo(pi,'step')?.textContent]??0)+7*(+(hijo(pi,'octave')?.textContent||4)):null;
         if(!porPent.has(st)) porPent.set(st,[]); porPent.get(st).push({n,v,alt,silencio:!!hijo(n,'rest')});
       }
@@ -2026,7 +2026,8 @@ function ordenarVoces(xml,inst){
         // renumerar: la voz más aguda pasa a ser la 1 (Verovio orienta plicas y barras por número de voz)
         const base=Math.min(...voces), nueva=new Map();
         [...orden,...voces.filter(v=>!orden.includes(v)).sort((a,b)=>a-b)].forEach((v,k)=>nueva.set(v,base+k));
-        for(const x of notas){const vo=hijo(x.n,'voice'); if(vo) vo.textContent=String(nueva.get(x.v))}
+        // con notas dibujadas en el otro pentagrama (N-CRUCE-2) no se renumera: el número de voz es de la parte y chocaría con la otra mano
+        if(!m.querySelector('note[data-hf-casa]')) for(const x of notas){const vo=hijo(x.n,'voice'); if(vo) vo.textContent=String(nueva.get(x.v))}
         for(const {n,v,silencio} of notas){
           if(silencio){
             if(v!==alta){n.setAttribute('print-object','no');continue}
@@ -2035,7 +2036,8 @@ function ordenarVoces(xml,inst){
             const ds=doc.createElement('display-step'), dO=doc.createElement('display-octave'); ds.textContent=pos[0]; dO.textContent=pos[1]; r.append(ds,dO);
             continue;
           }
-          const dir=dirDe(v); if(!dir) continue;
+          // N-CRUCE-2: una nota dibujada en el otro pentagrama apunta hacia el suyo (la barra queda entre los dos, como en la edición)
+          const fuera=n.getAttribute('data-hf-casa'), dir=fuera?(fuera==='2'?'down':'up'):dirDe(v); if(!dir) continue;
           let stm=hijo(n,'stem');
           if(!stm){stm=doc.createElement('stem');const ref=[...n.children].find(c=>ANTES.includes(c.tagName));ref?n.insertBefore(stm,ref):n.append(stm)}
           stm.textContent=dir;

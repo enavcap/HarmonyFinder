@@ -23,6 +23,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Regla `N-LIG-2`: una ligadura que sale de una cabeza compartida ya no se recorta hasta pasar las notas de en medio, que la hacían empezar lejos de su nota (*Allemande*, c. 1: la del la3 con puntillo; c. 2: la del mi5 con puntillo). Las ligaduras largas prueban además arcos más profundos (hasta 2 espacios) y el lado contrario. En 60 fragmentos con 3+ voces, los choques de ligaduras de unión bajan de 6 a 3; los casos fijos y la muestra estándar no cambian.
 - `N-VOC-4`: dos acordes condensados seguidos dentro de un pulso van en la misma voz si está libre, para compartir la barra (*Allemande*, c. 2: las dos corcheas de la 2.ª parte).
 
+- Agrupamiento de las barras: las notas que `N-CRUCE-2` pasa al otro pentagrama siguen en su voz, apuntan con la plica hacia su pentagrama y la barra cruza de un pentagrama a otro, como en la edición (*Allemande*, c. 2: fa#4 con puntillo en la izquierda y sol#4 en la derecha bajo una barra). Antes cada parte llevaba su propio corchete.
+
 ### Changed
 - `herramientas/auditoria_gould.js`: nueva métrica `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una).
 
