@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-11-07
+
 ### Added
 - Especificación de grabado musical (`docs/ESPECIFICACION_GRABADO_MUSICAL.md`): fichas de todas las reglas del motor de notación (plicas, cabezas, barras, alteraciones, silencios, ligaduras, espaciado, elementos expresivos), cada una con su fundamento en el manual de MuseScore, la *Notation Reference* de LilyPond o las guías de grabado de DAISY (o marcada como decisión propia), su implementación y su prueba. Auditoría del sistema anterior en `docs/AUDITORIA_MOTOR_NOTACION.md`.
 - Integridad musical en la preparación de las partituras (`web/musica.js`): cada transformación del MusicXML declara qué propiedades puede cambiar y se comprueba antes y después de cada paso que las demás (notas, alturas, duraciones, posiciones, voces, acordes, ligaduras, compás, armadura, instrumentos…) no cambian, y que ninguna nota pasa a leerse mal. Si algo cambia sin declararlo, el paso se deshace y se registra un error `HF-INTEGRIDAD`.
@@ -294,7 +296,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...HEAD
+[0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5
