@@ -83,7 +83,7 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   const notaAcorde = (paso, oct, voz) => `<note><chord/><pitch><step>${paso}</step><octave>${oct}</octave></pitch><duration>2</duration><voice>${voz}</voice><type>half</type><staff>1</staff>${lig}</note>`;
   const tied = x => p.evaluate(x => { const y = Notacion.plicasPorVoz(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('note')].map(n => { const t = n.querySelector('tied'); return t ? (t.getAttribute('placement') || '-') + '/' + (t.getAttribute('orientation') || '-') : '·' }).join(' ') }, x);
   ok(await tied(env(nv('A', 4, 1, 1, lig) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig))) === 'above/over below/under', 'N-LIG-3: voz aguda por arriba, voz grave por abajo');
-  ok(await tied(env(nv('A', 4, 1, 1, lig) + notaAcorde('C', 5, 1) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig) + notaAcorde('F', 3, 2))) === '-/- above/over below/under -/-', 'N-LIG-3: en un acorde solo la nota exterior (la más aguda en la voz aguda, la más grave en la grave)');
+  ok(await tied(env(nv('A', 4, 1, 1, lig) + notaAcorde('C', 5, 1) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig) + notaAcorde('F', 3, 2))) === 'above/over above/over below/under below/under', 'N-LIG-3: en un acorde, todas las notas de la voz del lado de su plica (también las interiores)');
   await p.evaluate(() => { Notacion.config.ligadurasPorVoz = false; Notacion.config.plicasPorVoz = false });
   ok(await p.evaluate(x => Notacion.plicasPorVoz(x) === x, env(nv('A', 4, 1, 1, lig) + '<backup><duration>2</duration></backup>' + nv('D', 3, 2, 1, lig))), 'N-LIG-3 y N-PLICA-2 apagadas: el XML no cambia');
   await p.evaluate(() => { Notacion.config.ligadurasPorVoz = true; Notacion.config.plicasPorVoz = true });
@@ -127,7 +127,11 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   // una voz que entra mientras las otras se sostienen, sin atacar ninguna nota a la vez: la5 redonda, mi5 blanca y do#5 que entra una corchea después
   const brise = gran(nr(['A', 5], 16, 1) + atras + nr(['E', 5], 8, 2) + nr(null, 8, 2) + atras + nr(null, 2, 3) + nr(['C', 5], 6, 3) + nr(null, 8, 3) + atras + nr(['A', 2], 16, 5, 2));
   let rv = await voces(brise);
-  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces que entran escalonadas quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
+  ok(rv.capas['1'] === 3 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces que entran escalonadas no se parten en trozos ligados: cada una conserva su figura (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
+  await p.evaluate(() => { Notacion.config.trozosLigados = true });
+  rv = await voces(brise);
+  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1 con CONFIG.trozosLigados: quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)})`);
+  await p.evaluate(() => { Notacion.config.trozosLigados = false });
   // una línea real de semicorcheas entre dos notas largas: absorberla pediría 15 ligaduras; se deja en su capa (como la edición, Allemande cc. 6-7)
   const linea = ['B', 'A', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'A', 'B', 'A', 'G', 'F', 'G', 'A'].map((s, i) => nr([s, s === 'C' ? 5 : 4], 1, 2)).join('');
   rv = await voces(gran(nr(['E', 5], 16, 1) + atras + linea + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2)));
