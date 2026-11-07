@@ -483,6 +483,9 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
   está a más de una décima, y en la otra mano cabe (y allí no pasa de 3 líneas adicionales).
 - **Referencia.** Ed-806 (c. 1: la3-do#4-mi4 mientras la derecha toca la5 → mano izquierda; c. 5: sol#2 bajo sol#4; c. 4: un
   tenor la3-do#4 sobre si2 se queda abajo). El umbral (décima, 9 pasos diatónicos) es **Propia**.
+- **Casos especiales.** También pasa la voz de su mano más cercana a la otra si su mano tiene tres o más voces sonando a la
+  vez y la otra como mucho una en ese tramo, cabe (como mucho 2 líneas adicionales) y no se cruza con ella (Ed-806,
+  Sarabande, c. 5: el mi4 blanca con puntillo de la derecha va en la izquierda, sobre el sol3).
 - **Excepciones.** No se decide por líneas adicionales: los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4,
   cc. 38-39; Liszt, *Sposalizio*, c. 58).
 - **Casos especiales.** Al reescribir un compás, cada nota con altura lleva su alteración explícita (las que sobran las quita
@@ -501,8 +504,10 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 
 #### `N-VOC-1` — Tres o más voces en un pentagrama
 - **Descripción.** Reconstrucciones: mientras un pentagrama tenga más de dos voces con notas, una voz se intercala en una
-  vecina si no suenan a la vez, o se escribe como acordes de la vecina, partida en trozos ligados, si la vecina suena durante
-  todas sus notas.
+  vecina si no suenan a la vez. Las que suenan a la vez se quedan en su capa salvo que coincidan en ritmo (`N-VOC-6`): partir
+  una nota en trozos ligados para meterla en los acordes de otra voz (`CONFIG.trozosLigados`, desactivado desde la 0.8.12)
+  producía notas repetidas y ligadas que la edición escribe como una sola figura (Ed-806, Sarabande, c. 5: el la4 negra
+  aparte, no la4 corchea con puntillo + fusa + fusa ligadas; c. 6: el mi5 negra aparte, no dos corcheas ligadas).
 - **Referencia.** Ed-806 (c. 2: el arpegio sostenido, de 4 voces encimadas a 2 capas; cc. 6-7: una línea melódica intermedia
   se deja como voz propia); LP-voces («Identical rhythms»).
 - **Excepciones.** No se funden las voces de un *brisé* (`N-VOC-5`). Se rechaza si añade de media más de una ligadura por pulso

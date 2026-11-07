@@ -86,6 +86,9 @@
     homorritmia: true,
     // N-LIG-6: las ligaduras de unión entre dos capas se dibujan como ligaduras de MEI
     ligadurasEntreCapas: true,
+    // N-VOC-1: partir notas en trozos ligados para fundir una voz en los acordes de otra (desactivado: produce notas repetidas y
+    // ligadas que la edición escribe como una sola figura)
+    trozosLigados: false,
     // N-CLAVE-1: en el teclado, la mano izquierda se resiste más a dejar la clave de fa
     izquierdaEnFa: true,
   };
@@ -352,6 +355,14 @@
           if (V === exterior) continue;
           const vals = V.notas.flatMap(alturas);
           if (extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
+          // (b) su mano tiene tres o más voces sonando a la vez y la otra como mucho una en ese tramo: la voz más cercana a la otra
+          // mano pasa allí si cabe (como mucho 2 líneas adicionales) y no se cruza con ella (Sarabande, c. 5: el mi4 blanca con
+          // puntillo de la derecha va en la izquierda, sobre el sol3, como en la edición)
+          const cercana = s === '1' ? V === propias[propias.length - 1] : V === propias[0];
+          const juntas = V.notas.some(g => propias.filter(x => x !== V && x.notas.some(h => h.t < g.t + g.d && g.t < h.t + h.d)).length >= 2);
+          const enTramo = ajenas.filter(x => x.notas.some(h => V.notas.some(g => h.t < g.t + g.d && g.t < h.t + h.d)));
+          const sinCruce = enTramo.every(x => s === '1' ? Math.min(...vals) > Math.max(...x.notas.flatMap(alturas)) : Math.max(...vals) < Math.min(...x.notas.flatMap(alturas)));
+          if (cercana && juntas && enTramo.length <= 1 && sinCruce && Math.max(...vals.map(y => lineasAd(y, o))) <= 2) { movida = V; break }
         }
         if (!movida) break;
         const libre = String(Math.max(0, ...C.grupos.map(g => +g.voz || 0)) + 1);
@@ -488,7 +499,10 @@
             // las voces de un arpegio sostenido (style brisé: alguna ataca una nota a la vez que otra voz) se dejan en sus capas,
             // como la edición, y comparten la cabeza (N-VOC-5); no se convierten en acordes ligados
             if (brise.has(V) || brise.has(W)) continue;
-            const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : acordar(doc, V, W, C.grupos, C.div);
+            // partir una nota en trozos ligados para meterla en el acorde de otra voz (acordar) llena el compás de notas repetidas y
+            // ligadas que la edición escribe como una sola figura en su capa (Sarabande de la Suite inglesa n.º 1, c. 5: el la4 negra
+            // aparte, no la4 corchea con puntillo + fusa + fusa ligadas); solo con CONFIG.trozosLigados
+            const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : CONFIG.trozosLigados ? acordar(doc, V, W, C.grupos, C.div) : null;
             if (!r) continue;
             const coste = r.lig * 10 + (k === 0 || k === voces.length - 1 ? 5 : 0) + Math.abs(V.media - W.media) / 10;
             if (!mejor || coste < mejor.coste) mejor = { ...r, coste };

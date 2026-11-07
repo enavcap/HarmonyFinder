@@ -359,6 +359,14 @@ partituras (999 reconstrucciones) con la propiedad `sonido` intacta. Regresión 
 Couperin (*L'Art de toucher*, 8.º, cc. 10-13: parte de la voz interior grave pasa a la izquierda) y Medtner (0,6 %); referencias
 regeneradas tras revisarlas. Bartók (*Bagatelas*, n.º 1) vuelve a la referencia tras limitar el sesgo de la clave de fa.
 
+### Sin trozos ligados (v0.8.12)
+
+Sarabande de la Suite inglesa n.º 1, cc. 5-6: `N-VOC-1` metía el la4 negra de la voz media en la melodía partido en corchea con
+puntillo + fusa + fusa ligadas, y el mi5 negra en dos corcheas ligadas. La edición los escribe como una sola figura en su capa.
+Partir notas en trozos ligados (`acordar`) era la vía de la 0.8.8 para el *brisé*, que ya resuelve `N-VOC-5`; ahora está apagado
+(`CONFIG.trozosLigados`). Regresión visual: solo cambia Couperin (*L'Art de toucher*, 8.º, c. 12: la nota grave de la derecha,
+antes partida y ligada, queda como una figura).
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
