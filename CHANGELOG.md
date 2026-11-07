@@ -8,6 +8,12 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Regla `N-VOC-3`: los arpegios sostenidos (*style brisé*) se escriben como en la edición impresa. Cada nota sostenida aparece una sola vez, con su duración real, y comparte la cabeza con la semicorchea del arpegio (una cabeza y dos plicas). En la v0.8.8 la nota se repetía ligada en cada acorde (p. ej. la *Allemande* de la Suite inglesa n.º 1, c. 2: el mi5 cuatro veces; ahora, mi5 con puntillo y do#5 en corchea sobre mi5-do#5-la4, como en la edición). Verovio solo compartía la cabeza si figura y puntillo coincidían: ahora se junta también en el SVG, con su plica, puntillo y ligaduras, en todas las fuentes. En 60 fragmentos con 3+ voces, los unísonos dibujados con dos cabezas separadas bajan de 5 a 2 (9 sin las reglas) y las ligaduras de unión dibujadas, de 367 a 323. Se apaga con `Notacion.config.cabezaCompartida = false`.
+
+### Changed
+- `herramientas/auditoria_gould.js`: nueva métrica `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una).
+
 ## [0.8.8] - 2026-11-07
 
 ### Fixed

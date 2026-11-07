@@ -114,10 +114,10 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
     }
     return { igual: y === x, capas: Object.fromEntries(Object.entries(porSt).map(([k, v]) => [k, v.size])), suena };
   }, x);
-  // arpegio sostenido (style brisé): la5 redonda, mi5 blanca, do#5 que entra una corchea después y se sostiene
+  // una voz que entra mientras las otras se sostienen, sin atacar ninguna nota a la vez: la5 redonda, mi5 blanca y do#5 que entra una corchea después
   const brise = gran(nr(['A', 5], 16, 1) + atras + nr(['E', 5], 8, 2) + nr(null, 8, 2) + atras + nr(null, 2, 3) + nr(['C', 5], 6, 3) + nr(null, 8, 3) + atras + nr(['A', 2], 16, 5, 2));
   let rv = await voces(brise);
-  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces de un arpegio sostenido quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
+  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces que entran escalonadas quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
   // una línea real de semicorcheas entre dos notas largas: absorberla pediría 15 ligaduras; se deja en su capa (como la edición, Allemande cc. 6-7)
   const linea = ['B', 'A', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'A', 'B', 'A', 'G', 'F', 'G', 'A'].map((s, i) => nr([s, s === 'C' ? 5 : 4], 1, 2)).join('');
   rv = await voces(gran(nr(['E', 5], 16, 1) + atras + linea + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2)));
@@ -131,6 +131,19 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   // N-VOC-2: mi4 atacado a la vez en las dos manos: se queda el más largo
   rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 4, 2) + nr(null, 12, 2) + atras + nr(['E', 4], 8, 5, 2) + nr(null, 8, 5, 2) + atras + nr(['A', 3], 16, 6, 2)));
   ok(rv.suena['E4@2'] === 8 && !rv.suena['E4@1'], `N-VOC-2: un unísono entre manos se escribe una vez (${JSON.stringify(rv.suena)})`);
+  // N-VOC-3: arpegio sostenido como lo trae el DCML (semicorcheas mi5-do#5 en una voz y mi5 con puntillo en otra, que atacan a la
+  // vez): no se funde en acordes y la voz que sostiene lleva la plica contraria a la del arpegio
+  const arpegio = gran(nr(['A', 5], 16, 1) + atras + nr(null, 1, 2) + nr(['E', 5], 3, 2) + nr(null, 12, 2) + atras + nr(null, 1, 3) + nr(['E', 5], 1, 3) + nr(['C', 5], 1, 3) + nr(null, 1, 3) + nr(null, 12, 3) + atras + nr(['A', 2], 16, 5, 2));
+  rv = await voces(arpegio);
+  ok(rv.capas['1'] === 3, `N-VOC-1: las voces de un arpegio sostenido no se funden en acordes ligados (${rv.capas['1']} capas)`);
+  const plUn = await p.evaluate(x => { const y = Notacion.plicasUnisono(x.replace(/<staff>1<\/staff>/g, '<stem>down</stem><staff>1</staff>')); const d = new DOMParser().parseFromString(y, 'application/xml'); return [...d.querySelectorAll('note')].filter(n => n.querySelector('pitch') && n.querySelector('staff').textContent === '1').map(n => n.querySelector('voice').textContent + ':' + n.querySelector('stem').textContent).join(' ') }, arpegio);
+  ok(plUn === '1:down 2:up 3:down 3:down', `N-VOC-3: la voz que sostiene la nota compartida pasa a la plica contraria (${plUn})`);
+  // en la Allemande dibujada, el mi5 con puntillo y el do#5 en corchea del c. 2 (y el la3 y do#4 de la izquierda del c. 1)
+  // comparten la cabeza con las semicorcheas del arpegio
+  await p.evaluate(h => { __prueba.fijarSeleccion(h); __prueba.mostrar(h) }, { obra: 206, ini: 0, fin: 3, frag: true, tono: '', etq: '', compas: 0, parte: 1 });
+  await p.waitForFunction(() => { const c = document.querySelector('#partitura'); return c && c.querySelector('svg g.cifrados') }, null, { timeout: 60000 });
+  const compartidas = await p.evaluate(() => document.querySelectorAll('#partitura svg [data-n-voc3]').length);
+  ok(compartidas >= 2, `N-VOC-3: Allemande, cc. 0-3: ${compartidas} unísonos con puntillo distinto llevados a una cabeza (mi5 del c. 2, la3 del c. 1; los de figura igual ya los junta Verovio)`);
   await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false }));
   ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2 y N-CRUCE-1 apagadas: el XML no cambia');
   await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true }));

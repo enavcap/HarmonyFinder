@@ -11,6 +11,7 @@
 //   · alteracionChoque           alteraciones que pisan otra alteración o una cabeza de nota
 //   · notaNota                   cabezas de notas de voces distintas que se pisan sin ser unísono
 //   · capas3                    pentagramas-compás con 3 o más capas (voces) con notas (N-VOC-1)
+//   · unisonoSeparado           la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una (N-VOC-3)
 //   · plicaVoz / pentVoces       pentagramas con 2+ voces cuyas plicas no siguen la convención (aguda arriba, grave abajo) / total de esos pentagramas
 //   · unionChoque / expresionChoque  como lazoChoque, separando las ligaduras de unión (prolongación) de las de expresión
 //   · barraSilencio              barras que pasan por encima de un silencio de su misma voz
@@ -32,7 +33,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   const inter = (a, b) => { const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0), h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0); return w > 0 && h > 0 ? { w, h } : null };
   const encoge = (c, k) => ({ x0: c.x0 + k, x1: c.x1 - k, y0: c.y0 + k, y1: c.y1 - k });
   const out = { lineasAdic4: 0, lineasAdic6: 0, barraEmpinada: 0, barras: 0, plicaCorta: 0, plicaNoLlega: 0, plicas: 0, lazoChoque: 0, lazos: 0, plicaCruza: 0, alteracionChoque: 0, notaNota: 0, notas: 0, medidas: 0, sinClave: 0, sinCompas: 0, maxPendiente: 0, peores: [], barraSubida: 0, maxSubida: 0, peoresSubida: [],
-    plicaVoz: 0, pentVoces: 0, capas3: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
+    plicaVoz: 0, pentVoces: 0, capas3: 0, unisonoSeparado: 0, barraSilencio: 0, unionChoque: 0, uniones: 0, expresionChoque: 0, expresiones: 0 };
   const medidas = [...svg.querySelectorAll('g.measure')]; out.medidas = medidas.length;
   // clave en cada pentagrama y compás al principio del fragmento
   if (medidas[0]) {
@@ -70,7 +71,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
         const pos = (yc - Q.top) / Q.u;                       // 0 = línea superior, 4 = inferior
         const n = pos < -0.01 ? Math.floor(-pos + 0.01) : pos > 4.01 ? Math.floor(pos - 4 + 0.01) : 0;
         if (n >= 4) out.lineasAdic4++; if (n >= 6) out.lineasAdic6++;
-        items.push({ tipo: 'nota', il: capa, c }); out.notas++;
+        const us = cab.querySelector('use'); items.push({ tipo: 'nota', il: capa, c, glifo: us ? (us.getAttribute('xlink:href') || us.getAttribute('href')) : '' }); out.notas++;
         // plica de la nota (las de acordes no se miden): muy corta, o dirigida al pentagrama sin llegar a la línea central
         const sp = nt.closest('g.chord') ? null : nt.querySelector(':scope > g.stem');
         if (sp && !nt.closest('g.beam')) {
@@ -115,6 +116,13 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
       if (aguda.abajo > aguda.arriba || grave.arriba > grave.abajo) out.plicaVoz++;
     });
     const notas = items.filter(x => x.tipo === 'nota'), plicas = items.filter(x => x.tipo === 'plica'), alts = items.filter(x => x.tipo === 'alt'), barras = items.filter(x => x.tipo === 'barra');
+    // N-VOC-3: la misma nota en dos capas del mismo pentagrama dibujada en dos cabezas contiguas (a ~1 cabeza de distancia, a la
+    // misma altura) en lugar de una compartida; es el desplazamiento de Verovio en los unísonos de figura o puntillo distintos
+    for (let i = 0; i < notas.length; i++) for (let j = i + 1; j < notas.length; j++) {
+      const a = notas[i], b = notas[j]; if (a.il === b.il || Math.floor(a.il / 10) !== Math.floor(b.il / 10) || a.glifo !== b.glifo) continue;   // blanca y negra no comparten cabeza: van juntas, bien
+      const w = a.c.x1 - a.c.x0, dx = Math.abs(a.c.x0 - b.c.x0);
+      if (Math.abs(a.c.y0 - b.c.y0) < u * 0.1 && dx > w * 0.6 && dx < w * 1.3) out.unisonoSeparado++;
+    }
     // plica de una voz que atraviesa la cabeza de otra voz
     for (const p of plicas) for (const n of notas) {
       if (n.il === p.il) continue;
@@ -206,7 +214,7 @@ function medir([PEND_MAX, SUBIDA_MAX]) {
   }
   fs.writeFileSync(SALIDA, JSON.stringify({ res, errores }, null, 1));
   const ok = res.filter(r => !r.fallo && !r.sinPartitura);
-  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'capas3', 'barraSilencio'];
+  const CLAVES = ['sinClave', 'sinCompas', 'lineasAdic4', 'lineasAdic6', 'barraEmpinada', 'barraSubida', 'plicaCorta', 'plicaNoLlega', 'lazoChoque', 'unionChoque', 'expresionChoque', 'plicaCruza', 'alteracionChoque', 'notaNota', 'plicaVoz', 'pentVoces', 'capas3', 'unisonoSeparado', 'barraSilencio'];
   const resumen = f => { const g = ok.filter(f), o = { fragmentos: g.length, notas: g.reduce((s, r) => s + r.notas, 0), barras: g.reduce((s, r) => s + r.barras, 0), lazos: g.reduce((s, r) => s + r.lazos, 0), uniones: g.reduce((s, r) => s + r.uniones, 0) };
     for (const c of CLAVES) { o[c] = g.reduce((s, r) => s + r[c], 0); o['frag_' + c] = g.filter(r => r[c] > 0).length } return o };
   console.log('errores de página', errores.length, '· fallos', res.filter(r => r.fallo).length, '· sin partitura', res.filter(r => r.sinPartitura).length);

@@ -26,6 +26,8 @@
     slurMargin: 2, slurCurveFactor: 1.3, slurSymmetry: 0.4, slurEndpointFlexibility: 0.3, tieMinLength: 3,
     // N-ESP-1: aire alrededor de alteraciones y silencios
     leftMarginAccid: 2.2, rightMarginAccid: 0.8, leftMarginRest: 2, rightMarginRest: 1,
+    // N-VOC-3: extremos de cada ligadura de unión en el SVG (data-startid / data-endid), para moverlos con su nota
+    svgAdditionalAttribute: ['tie@startid', 'tie@endid'],
   };
 
   // ---------------------------------------------------------------------------------------------------------
@@ -59,6 +61,8 @@
     dosCapas: true,
     // N-VOC-2: un unísono entre las dos manos se escribe una sola vez
     unisonosUnaVez: true,
+    // N-VOC-3: dos voces que atacan la misma nota a la vez comparten la cabeza (plicas opuestas), como en la edición
+    cabezaCompartida: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -494,18 +498,26 @@
     const fuera = new Set([...V.todos, ...W.todos]);
     return { grupos: [...grupos.filter(g => !fuera.has(g)), ...nuevos], lig: ligNuevas };
   }
+  // ¿atacan dos voces la misma nota a la vez? (sin contar las notas que llegan ligadas)
+  const ataques = g => g.els.filter(e => hijo(e, 'pitch') && !ligadurasDe(e).stop).map(e => g.t + '|' + sonido(e));
+  const atacanUnisono = (V, W) => { const a = new Set(V.notas.flatMap(ataques)); return W.notas.some(g => ataques(g).some(k => a.has(k))) };
   function reducir(doc, C) {
     let cambios = 0;
     for (const s of [...new Set(C.grupos.map(g => g.staff))]) {
       for (let vuelta = 0; vuelta < 4; vuelta++) {
         const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length <= 2) break;
         voces.sort((a, b) => b.media - a.media);
+        // voces de un arpegio sostenido: las que atacan una nota a la vez que otra voz
+        const brise = new Set(); for (const A of voces) for (const B of voces) if (A !== B && atacanUnisono(A, B)) { brise.add(A); brise.add(B) }
         // candidatos: cada voz absorbida en una vecina (por altura); se elige la que añade menos ligaduras y, a igualdad,
         // la que absorbe una voz interior y la más cercana en altura
         let mejor = null;
         voces.forEach((V, k) => {
           for (const W of [voces[k - 1], voces[k + 1]]) {
             if (!W) continue;
+            // las voces de un arpegio sostenido (style brisé: alguna ataca una nota a la vez que otra voz) se dejan en sus capas,
+            // como la edición, y comparten la cabeza (N-VOC-3); no se convierten en acordes ligados
+            if (brise.has(V) || brise.has(W)) continue;
             const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : acordar(doc, V, W, C.grupos, C.div);
             if (!r) continue;
             const coste = r.lig * 10 + (k === 0 || k === voces.length - 1 ? 5 : 0) + Math.abs(V.media - W.media) / 10;
@@ -544,6 +556,80 @@
     return cambios;
   }
 
+  // N-VOC-3 (Gould: dos voces que comparten una nota la escriben con una sola cabeza y dos plicas, cada una con su duración)
+  // Es la escritura del style brisé en la edición de la Allemande (c. 2): mi5 y do#5 en semicorcheas con barra, plica abajo, y
+  // las mismas cabezas con plica arriba y su duración real (corchea con puntillo, corchea). Dos pasos:
+  //   · XML: si dos voces de un pentagrama atacan a la vez la misma nota con la plica en el mismo sentido, la voz que no es
+  //     exterior del pentagrama (o, si las dos lo son o ninguna, la de menos notas) pasa a la plica contraria en todo el compás;
+  //   · SVG: Verovio solo comparte la cabeza si las dos notas son iguales de figura y puntillo; si no, la desplaza a un lado.
+  //     Aquí se lleva una nota (cabeza, plica, corchete, puntillos y alteración) sobre la otra y se ajustan sus ligaduras.
+  function plicasUnisono(xml) {
+    if (!CONFIG.cabezaCompartida) return xml;
+    let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
+    if (doc.querySelector('parsererror')) return xml;
+    let cambios = 0;
+    for (const parte of doc.getElementsByTagName('part')) for (const C of leerParte(parte)) {
+      if (C.raro) continue;
+      for (const s of [...new Set(C.grupos.map(g => g.staff))]) {
+        const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length < 2) continue;
+        voces.sort((a, b) => b.media - a.media);
+        const exterior = V => V === voces[0] || V === voces[voces.length - 1];
+        const plica = V => { const e = V.notas.map(g => hijo(g.els[0], 'stem')).find(Boolean); return e ? e.textContent.trim() : null };
+        for (let i = 0; i < voces.length; i++) for (let j = i + 1; j < voces.length; j++) {
+          const A = voces[i], B = voces[j]; if (!atacanUnisono(A, B)) continue;
+          const pa = plica(A), pb = plica(B); if (!pa || pa !== pb) continue;
+          const mover = exterior(A) !== exterior(B) ? (exterior(A) ? B : A) : (A.notas.length <= B.notas.length ? A : B);
+          const otra = mover === A ? pa : pb, nueva = otra === 'up' ? 'down' : 'up';
+          for (const g of mover.notas) for (const e of g.els) { ponerHijo(doc, e, 'stem', nueva); cambios++ }
+        }
+      }
+    }
+    return cambios ? new XMLSerializer().serializeToString(doc) : xml;
+  }
+  // inicio: Map id de nota → instante de ataque (qstamp del timemap de Verovio)
+  function cabezasCompartidas(svg, inicio) {
+    if (!CONFIG.cabezaCompartida || !svg || !inicio) return 0;
+    let movidas = 0;
+    const caja = e => { try { return e.getBBox() } catch (_) { return null } };
+    for (const st of svg.querySelectorAll('g.measure > g.staff')) {
+      const capas = [...st.querySelectorAll(':scope > g.layer')]; if (capas.length < 2) continue;
+      const notas = [];
+      capas.forEach((c, k) => { for (const n of c.querySelectorAll('g.note')) {
+        if (!inicio.has(n.id) || n.closest('g.chord') || n.closest('g.graceGrp')) continue;
+        const cab = n.querySelector(':scope > g.notehead'), b = cab && caja(cab); if (!b || !b.width) continue;
+        const pl = n.querySelector(':scope > g.stem > path'), pb = pl && caja(pl);
+        notas.push({ n, k, t: inicio.get(n.id), x: b.x, y: b.y, w: b.width, viga: !!n.closest('g.beam'), plica: pb ? (pb.y + pb.height / 2 < b.y + b.height / 2 ? 'up' : 'down') : null, cab: (cab.querySelector('use') || {}).getAttribute?.('xlink:href') || (cab.querySelector('use') || {}).getAttribute?.('href') });
+      } });
+      const usadas = new Set();
+      for (const a of notas) for (const b of notas) {
+        if (a === b || a.k === b.k || usadas.has(a) || usadas.has(b) || a.t !== b.t || Math.abs(a.y - b.y) > 1) continue;
+        const dx0 = b.x - a.x; if (Math.abs(dx0) < 1 || Math.abs(dx0) > a.w * 2.2) continue;
+        if (!a.plica || !b.plica || a.plica === b.plica || a.cab !== b.cab) continue;  // misma cabeza y plicas opuestas
+        // se mueve la que no está bajo una barra; si ninguna lo está, la desplazada (la de la derecha)
+        const [fija, mov] = a.viga && !b.viga ? [a, b] : b.viga && !a.viga ? [b, a] : a.viga ? [null, null] : (a.x < b.x ? [a, b] : [b, a]);
+        if (!fija) continue;
+        const dx = fija.x - mov.x;
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('transform', `translate(${dx},0)`);
+        while (mov.n.firstChild) g.appendChild(mov.n.firstChild);
+        mov.n.appendChild(g);
+        // la alteración ya la lleva la nota fija: no se repite
+        if (fija.n.querySelector(':scope > g.accid')) for (const ac of g.querySelectorAll(':scope > g.accid')) ac.setAttribute('display', 'none');
+        // ligaduras de unión que salen de la nota movida o llegan a ella: se corre ese extremo
+        for (const ti of svg.querySelectorAll(`g.tie[data-startid="#${mov.n.id}"], g.tie[data-endid="#${mov.n.id}"]`)) {
+          const q = ti.querySelector('path'), n = ((q && q.getAttribute('d')) || '').match(/-?\d+(?:\.\d+)?/g); if (!n || n.length !== 14) continue;
+          const v = n.map(Number), x0 = v[0], x1 = v[6], ini = ti.getAttribute('data-startid') === '#' + mov.n.id;
+          const nx0 = ini ? x0 + dx : x0, nx1 = ini ? x1 : x1 + dx; if (!(nx1 - nx0 > 1)) continue;
+          for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = nx0 + (v[i] - x0) * (nx1 - nx0) / (x1 - x0);
+          const r = x => Math.round(x * 100) / 100;
+          q.setAttribute('d', `M${r(v[0])},${r(v[1])} C${r(v[2])},${r(v[3])} ${r(v[4])},${r(v[5])} ${r(v[6])},${r(v[7])} C${r(v[8])},${r(v[9])} ${r(v[10])},${r(v[11])} ${r(v[12])},${r(v[13])}`);
+        }
+        mov.n.setAttribute('data-n-voc3', '1'); usadas.add(a); usadas.add(b); movidas++;
+      }
+    }
+    return movidas;
+  }
+  regla('N-VOC-3', 'Unísonos entre capas: una cabeza y dos plicas', 'svg', 'aplicada', 'Dos voces que atacan a la vez la misma nota (style brisé) llevan plicas opuestas y comparten la cabeza, cada una con su figura y puntillo, como en la edición; Verovio solo la comparte si figura y puntillo coinciden (CONFIG.cabezaCompartida).');
+
   // Punto de entrada para las reconstrucciones: reparto entre manos, dos capas por pentagrama y unísonos entre manos
   function vocesReconstruidas(xml) {
     if (!CONFIG.vocesPorRegistro && !CONFIG.dosCapas && !CONFIG.unisonosUnaVez) return xml;
@@ -564,7 +650,7 @@
     return total ? new XMLSerializer().serializeToString(doc) : xml;
   }
   regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior que su mano no puede tocar (más de una décima con otra voz a la vez, y en la otra mano cabe) o que necesita 3+ líneas adicionales que en el otro pentagrama no necesita pasa al pentagrama de la otra mano en ese compás (CONFIG.vocesPorRegistro).');
-  regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'aplicada', 'Reconstrucciones: como mucho dos capas por pentagrama. Una voz interior se intercala en la vecina si no suenan a la vez o se escribe como acordes de la vecina, con ligaduras de unión donde se sostiene (style brisé); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso (CONFIG.dosCapas).');
+  regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez o se escribe como acordes de la vecina con ligaduras de unión; las voces de un style brisé (que atacan una nota a la vez que otra) se dejan en sus capas (N-VOC-3); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso (CONFIG.dosCapas).');
   regla('N-VOC-2', 'Unísonos entre voces', 'xml', 'aplicada', 'Reconstrucciones: la misma nota atacada a la vez en las dos manos se escribe una vez (la más larga, o la del pentagrama de su registro). Dentro de un pentagrama, una cabeza con dos plicas, como la dibuja Verovio (CONFIG.unisonosUnaVez).');
 
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
@@ -578,5 +664,5 @@
   regla('N-ALT-1', 'Alteraciones que chocan', 'svg', 'pendiente', 'En las reconstrucciones, alteraciones encimadas con otra alteración o con una cabeza (12 en 57 fragmentos). Los márgenes de Verovio no lo resuelven.');
   regla('N-OCT-1', 'Signo de octava frente a muchas líneas adicionales', 'xml', 'pendiente', 'Pasajes con 5 o más líneas adicionales sostenidos: cambiar de clave, pasar de pentagrama o 8va (Allemande, c. 5, mano izquierda con re5 en clave de fa). Hay que fijar el umbral: las octavas graves de Schumann (4 líneas) son legítimas.');
 
-  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz, despejarLigaduras, vocesReconstruidas };
+  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz, despejarLigaduras, vocesReconstruidas, plicasUnisono, cabezasCompartidas };
 })(typeof window !== 'undefined' ? window : globalThis);

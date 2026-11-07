@@ -1703,6 +1703,8 @@ async function xmlDe(o){
   else{ if(!Notacion.config.clavesDeLaEdicion) x=corregirClaves(x); if(o.convertida) x=Notacion.alteracionesRedundantes(x) }
   // N-PLICA-2: una dirección de plica por voz, igual para todas las fuentes (reconstruidas, convertidas y ediciones)
   x=Notacion.plicasPorVoz(x);
+  // N-VOC-3: dos voces que atacan la misma nota llevan plicas opuestas (para compartir la cabeza en el SVG)
+  if(o.reconstruida) x=Notacion.plicasUnisono(x);
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -2387,10 +2389,12 @@ async function mostrar(h){
         const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
+      // N-VOC-3: cabeza compartida en los unísonos entre capas (necesita el instante de cada nota: timemap)
+      cargado.tm=t.renderToTimemap({includeMeasures:true});
+      {const ini=new Map(); for(const ev of cargado.tm) for(const id of ev.on||[]) ini.set(id,ev.qstamp); Notacion.cabezasCompartidas(cont.querySelector('svg'),ini)}
       despejarSilencios(cont.querySelector('svg'));
       Notacion.despejarLigaduras(cont.querySelector('svg'));   // N-LIG-2
       despejarNumeros(cont.querySelector('svg'));
-      cargado.tm=t.renderToTimemap({includeMeasures:true});
       svg=cont.querySelector('svg');
       const r=anotar(svg,ac,occ,E,pos,intento===2);
       if(r>=0.9||intento===2) break;

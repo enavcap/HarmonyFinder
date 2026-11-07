@@ -42,6 +42,7 @@ reconstruida):
 | `unionChoque`, `expresionChoque` | como `lazoChoque`, separando las ligaduras de unión (prolongación) de las de expresión |
 | `barraSilencio` | barras que pasan por encima de un silencio de su misma voz |
 | `capas3` | pentagramas-compás con 3 o más capas (voces) con notas |
+| `unisonoSeparado` | la misma nota, con la misma cabeza, en dos capas y dibujada en dos cabezas contiguas en vez de una (`N-VOC-3`) |
 
 ```
 node herramientas/auditoria_gould.js 120 salida.json 777 todos        # muestra aleatoria reproducible
@@ -167,7 +168,7 @@ Scarlatti 56, C. P. E. Bach 54, Couperin 51…):
 | Compás | Reconstrucción | Edición |
 |---|---|---|
 | 1 | la3-do#4-mi4 (voz interior) en la mano derecha, en clave de sol, mientras la derecha toca la5 | En la mano izquierda, en clave de fa; el do#4 duplicado en las dos manos se escribe una vez |
-| 2, 25, 29, 30 | Un arpegio sostenido escrito como 3 voces (una por nota) | **Una voz**: el arpegio en semicorcheas, con una ligadura de cada nota al acorde (*style brisé*) |
+| 2, 25, 29, 30 | Un arpegio sostenido escrito como 3-4 voces (una por nota), con las cabezas de los unísonos una al lado de otra | Las mismas voces: el arpegio en semicorcheas con barra, y cada nota sostenida **comparte la cabeza** con su semicorchea, con la plica contraria y su duración real (corchea con puntillo, corchea), ligada al acorde (*style brisé*) |
 | 6, 7 | Tres voces, la intermedia una línea de semicorcheas | **Tres voces**: una línea melódica real no se convierte en acordes |
 | 0-2 | Mano izquierda en clave de sol | Clave de fa en toda la pieza |
 | 5 | sol#2 en el pentagrama de la derecha | En la mano izquierda |
@@ -177,10 +178,14 @@ Conclusiones aplicables a otras partituras:
 1. **Cada voz va con la mano que puede tocarla.** El criterio que distingue los casos de la edición no es la altura media (el
    tenor la3-do#4 bajo un si2 se queda en la izquierda, c. 4) sino la extensión: una mano no toca a la vez notas a más de una
    décima. → `N-CRUCE-1`.
-2. **Un arpegio sostenido es una sola voz** con ligaduras al acorde; **una línea melódica intermedia es una voz propia**. La
-   diferencia práctica es cuántas ligaduras haría falta añadir: el *brisé* necesita pocas y la línea, una por nota. → `N-VOC-1`.
-3. **Un unísono entre las manos se escribe una vez.** → `N-VOC-2`.
-4. **La mano izquierda no cambia de clave por un pasaje de tenor**, y la clave se decide con las voces ya repartidas. → `N-CLAVE-1`.
+2. **En un arpegio sostenido, cada nota se escribe una vez, con su duración real**, y comparte la cabeza con la semicorchea del
+   arpegio (una cabeza, dos plicas). Se reconoce porque dos voces atacan la misma nota a la vez. Esas voces no se convierten en
+   acordes; lo que falta es dibujar bien el unísono, porque Verovio solo comparte la cabeza si figura y puntillo coinciden. Una
+   blanca y una negra de la misma nota, en cambio, sí van una al lado de la otra. → `N-VOC-3`.
+3. **Una línea melódica intermedia es una voz propia** (cc. 6-7). Solo se funde en la vecina una voz que no comparte ataques y
+   cabe con pocas ligaduras. → `N-VOC-1`.
+4. **Un unísono entre las manos se escribe una vez.** → `N-VOC-2`.
+5. **La mano izquierda no cambia de clave por un pasaje de tenor**, y la clave se decide con las voces ya repartidas. → `N-CLAVE-1`.
 
 Medición (reglas apagadas → encendidas, `CFG='{"vocesPorRegistro":false,"dosCapas":false,"unisonosUnaVez":false}'`):
 
@@ -198,8 +203,32 @@ Las originales de la muestra estándar no cambian en ninguna métrica. Las 5 lí
 claves de Medtner en el c. 40 ya estaba antes. Las 13 capas que quedan son líneas reales o fusiones rechazadas por exceso de
 ligaduras.
 
-Limitación: la edición escribe el *brisé* con cada nota sostenida una sola vez y con su duración real (corchea con puntillo,
-corchea…), en capas que comparten la barra. Aquí la nota se repite ligada en cada acorde: es correcto, pero más cargado.
+#### `N-VOC-3`: el *brisé* como en la edición (v0.8.9)
+
+En la v0.8.8 `N-VOC-1` convertía el *brisé* en acordes ligados: era correcto, pero la nota sostenida se repetía ligada en cada
+acorde (c. 2: el mi5 cuatro veces). Las voces del DCML ya son las de la edición: la de semicorcheas y una por cada nota sostenida,
+con su duración. El defecto era de dibujo: Verovio dejaba la cabeza del mi5 con puntillo al lado de la del mi5 en semicorchea. Ahora
+`N-VOC-1` deja esas voces en sus capas, `plicasUnisono` les da plicas opuestas y `cabezasCompartidas` (sobre el SVG, con el
+instante de cada nota del *timemap* de Verovio) lleva una nota sobre la otra, con su plica, su corchete, su puntillo y sus
+ligaduras. Solo se mueve una nota que no está bajo una barra, con la misma cabeza y la plica contraria. Así la edición y la web
+coinciden en el c. 1 de la mano izquierda (la3 con puntillo y do#4 en corchea sobre las semicorcheas la3-do#4-mi4) y en el c. 2 de
+la derecha (mi5 con puntillo y do#5 en corchea sobre mi5-do#5-la4).
+
+La métrica `capas3` deja de servir para esto, porque cuenta capas y no lo que se ve. Se añade `unisonoSeparado`: la misma nota,
+con la misma cabeza, en dos capas y dibujada en dos cabezas contiguas.
+
+| 60 fragmentos con 3+ voces | Reglas apagadas | v0.8.8 | v0.8.9 |
+|---|---|---|---|
+| Unísonos con dos cabezas separadas (`unisonoSeparado`) | 9 | 5 | 2 |
+| Pentagramas-compás con 3+ capas (`capas3`) | 45 | 13 | 29 |
+| Ligaduras de unión dibujadas | 281 | 367 | 323 |
+| Ligaduras de unión que chocan | 9 | 5 | 7 |
+| Plicas que cruzan una cabeza de otra voz | 1 | 1 | 2 |
+
+En la muestra estándar, los unísonos separados pasan de 2 a 0 en las originales (la regla del SVG vale para todas las fuentes;
+p. ej. *Dichterliebe* 10, c. 18) y de 3 a 0 en las reconstrucciones. Las demás métricas de las originales no cambian. Los dos
+choques de ligadura de más salen de la Giga de la Suite francesa n.º 5 (c. 24), donde las capturas con y sin la regla son
+iguales a simple vista.
 
 ## Catálogo de reglas
 
@@ -217,8 +246,9 @@ poder medirla) o **pendiente**.
 | `N-SIL-1` | Silencios con varias voces | svg | existente | `ordenarVoces`, `despejarSilencios` (`web/index.html`). |
 | `N-LIG-1` | Ligaduras: distancia de seguridad | opciones | existente | `slurMargin`, `tieMinLength`… en `OPCIONES`. |
 | `N-BARRA-2` | Barras: pendiente máxima | svg | pendiente | **Replanteada**: el criterio es la subida en espacios, no el ángulo. Con `barraSubida` solo el 5 % de las barras sube más de 1,1 espacios y no se ve defecto en las capturas; sin evidencia, no se actúa (ver «Revisión de `N-BARRA-2`»). |
-| `N-VOC-1` | Tres o más voces en un pentagrama | xml | **aplicada** | Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez, o se escribe como acordes de la vecina con ligaduras de unión donde se sostiene (*style brisé*); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso, y entonces la voz queda en su capa (`CONFIG.dosCapas`, `vocesReconstruidas` en `notacion.js`). Ver «Voces de las reconstrucciones». |
+| `N-VOC-1` | Tres o más voces en un pentagrama | xml | **aplicada** | Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez, o se escribe como acordes de la vecina con ligaduras de unión; no se funden las voces de un *brisé* (las que atacan una nota a la vez que otra, ver `N-VOC-3`) y se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso, y entonces la voz queda en su capa (`CONFIG.dosCapas`, `vocesReconstruidas` en `notacion.js`). Ver «Voces de las reconstrucciones». |
 | `N-VOC-2` | Unísonos entre voces | xml | **aplicada** | Reconstrucciones: la misma nota atacada a la vez en las dos manos se escribe una vez (la más larga o, si duran igual, la del pentagrama de su registro). Dentro de un pentagrama se deja una cabeza con dos plicas, como la dibuja Verovio (`CONFIG.unisonosUnaVez`). |
+| `N-VOC-3` | Unísonos entre capas: una cabeza y dos plicas | xml + svg | **aplicada** | Dos voces que atacan la misma nota a la vez (*style brisé*) llevan plicas opuestas (`plicasUnisono`, reconstrucciones) y comparten la cabeza, cada una con su figura y puntillo (`cabezasCompartidas`, todas las fuentes); no se mueven notas bajo una barra ni cabezas distintas (blanca y negra) (`CONFIG.cabezaCompartida`). |
 | `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | **aplicada** | Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca (`CONFIG.ligadurasDespejadas`, `despejarLigaduras` en `notacion.js`). No toca las ligaduras de expresión. |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
@@ -264,5 +294,5 @@ después de cada regla (`CASOS=1`).
 - **Compás al inicio de un fragmento** (`N-INI-1`): activado. Se apaga con `Notacion.config.compasAlInicio = false`.
 - **Pendiente máxima de las barras** (`N-BARRA-2`): replanteada (ver «Revisión»); no actuar sin un caso concreto que contrastar con la edición.
 - **Muchas líneas adicionales** (`N-OCT-1`): cambio de clave, 8va o pasar de pentagrama; y a partir de cuántas líneas.
-- **Reparto de voces de las reconstrucciones** (`N-VOC-1`): aplicado. Queda abierto escribir el *brisé* como la edición (cada nota
-  sostenida una sola vez, con su duración, y una barra compartida entre capas), que Verovio no admite desde MusicXML.
+- **Reparto de voces de las reconstrucciones** (`N-VOC-1`, `N-VOC-3`): aplicado; el *brisé* se escribe como la edición, con la
+  cabeza compartida.
