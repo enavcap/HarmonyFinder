@@ -101,3 +101,26 @@ Huella SHA-1 del MusicXML preparado por `xmlDe` para las **2 060 partituras** de
 
 Con `N-BARRA-3` encendida cambian además las barras de 47 reconstrucciones (comprobado en tres de ellas que no cambia nada
 más que `<beam>`).
+
+## 7. Resultados finales
+
+**Integridad (I-6), todo el corpus en modo estricto:** 2 060 de 2 060 partituras íntegras (956 ediciones, 999
+reconstrucciones, 105 convertidas; 1 816 625 notas comprobadas). En 120 reconstrucciones `N-VOC-3` une voces de ritmo
+idéntico en acordes sin perder, duplicar ni mover ninguna nota.
+
+**Métricas (`auditoria_gould.js`, 120 fragmentos, semilla 777), v0.8.7 → nueva:** todas iguales en las ediciones
+(66 fragmentos, 5 522 notas). En las reconstrucciones (53 fragmentos), iguales salvo `lineasAdic4` 9 → 4 en un fragmento de
+Couperin (cambio de plicas de una voz intermedia). Un fragmento de C. P. E. Bach dibujaba 3 notas menos con `N-BARRA-3`:
+la barra se escribía también en las notas secundarias de un acorde y Verovio las dejaba de dibujar; corregido (la barra va
+solo en la primera nota del acorde) y fijado con una prueba.
+
+**Fragmentos con 3+ voces simultáneas (126, uno de cada tres de los 378 del corpus):** ediciones sin cambios. Reconstrucciones:
+plicas que cruzan una cabeza de otra voz 7 → 2, ligaduras de unión que chocan 18 → 14, cabezas encimadas 0 → 1, notas con 4+
+líneas adicionales 61 → 59. `plicaVoz` (pentagramas cuya voz aguda no lleva plica arriba o la grave abajo) 7 → 14: la métrica
+cuenta todos los pentagramas con 2+ voces, también aquellos donde las voces se alternan sin sonar a la vez, en los que ahora
+la plica sigue la posición de las notas (comportamiento de MuseScore y Verovio).
+
+**Regresión visual (23 fragmentos):** 21 idénticos a la v0.8.7 (todas las ediciones, convertidas y la mayoría de las
+reconstrucciones). Distintos: Allemande de la Suite inglesa n.º 1 (plicas de voces intermedias, silencios apartados en vez de
+ocultos) y Couperin, *L'Art de toucher*, 8.ª (ídem). Revisados a ojo: legibles, con la limitación citada en `N-PLICA-3`.
+En Medtner y Op. 31 n.º 1/iii hay silencios apartados (< 0,05 % de píxeles).

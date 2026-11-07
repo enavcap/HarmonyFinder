@@ -21,6 +21,7 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ### Fixed
 - `N-ALT-2` quitaba alteraciones necesarias en dos casos: tras una nota ligada desde el compás anterior (p. ej. Beethoven, Op. 53, iii, c. 239) y tras una nota alterada a la que la fuente no ponía alteración (Op. 31 n.º 2, iii, c. 170). Ahora el estado de las alteraciones sigue lo escrito, la alteración de una nota ligada desde el compás anterior no rige para el resto del compás y se conserva el becuadro de precaución que sigue a una nota ligada.
+- Barras automáticas de las reconstrucciones: la barra se escribe solo en la primera nota de cada acorde; si también la llevaban las demás, Verovio dejaba de dibujar notas del acorde.
 - Con un solo instrumento, un nombre de instrumento vacío (`<part-name/>`) también se oculta.
 - `herramientas/prueba_notacion.js`: condición de carrera al esperar la partitura de cada caso.
 

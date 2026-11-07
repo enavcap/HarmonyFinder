@@ -224,6 +224,11 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Implementación.** `plicas-por-voz`.
 - **Prueba.** `prueba_motor.js` («cuatro voces…», «la plica que la edición ya trae…»); `prueba_notacion.js` (tres voces).
 - **Estado.** aplicada. Antes (v0.8.7) las reconstrucciones usaban la cercanía a la voz aguda o grave, sin respaldo documental.
+  Medido sobre 126 fragmentos con 3+ voces simultáneas (83 reconstruidos), con `Notacion.config.vocesIntermedias`:
+  plicas que atraviesan una cabeza de otra voz 7 (v0.8.7) → **2 con «rango»** / 7 con «cercanía»; ligaduras de unión que
+  chocan 18 → 14 / 14. Limitación: LilyPond acompaña esta convención de un desplazamiento horizontal de la voz 3
+  (`\shiftOn`) que Verovio no hace, así que algunos compases quedan más apretados (Allemande de la Suite inglesa n.º 1,
+  c. 6, regresión visual).
 
 #### `N-PLICA-4` — Longitud de plica en acordes amplios, con barra y con cabeza desplazada
 - **Descripción.** Plicas alargadas para alcanzar la barra o la nota extrema del acorde; plica compartida en acordes de
@@ -260,7 +265,9 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
   Un silencio, una nota de adorno o una figura de negra o mayor cortan el grupo. Barras secundarias: se continúan entre
   notas del mismo nivel; una nota aislada de nivel 2+ lleva gancho (hacia delante al principio del grupo, hacia atrás en el
   resto).
-- **Casos especiales.** Acordes: la barra va en todas sus notas. Tresillos: se agrupan por pulso como las demás figuras.
+- **Casos especiales.** Acordes: la barra se escribe solo en la primera nota del acorde (convención de MusicXML; si las
+  demás notas también la llevan, Verovio deja de dibujar notas del acorde: Op. 53 de C. P. E. Bach, c. 91, al unir dos
+  corcheas con `N-BARRA-3`). Tresillos: se agrupan por pulso como las demás figuras.
 - **Excepciones.** No se tocan las figuras que ya traen `<beam>` (la edición o la reconstrucción las agrupó). Solo
   reconstrucciones: las ediciones traen sus barras.
 - **Implementación.** `barras-automaticas` (`barrasAutomaticas`, `estructuraMetrica`).
