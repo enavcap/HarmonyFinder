@@ -485,6 +485,8 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
   tenor la3-do#4 sobre si2 se queda abajo). El umbral (décima, 9 pasos diatónicos) es **Propia**.
 - **Excepciones.** No se decide por líneas adicionales: los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4,
   cc. 38-39; Liszt, *Sposalizio*, c. 58).
+- **Casos especiales.** Al reescribir un compás, cada nota con altura lleva su alteración explícita (las que sobran las quita
+  `N-ALT-2`): mover una nota a otro pentagrama no puede hacer que se lea mal (I-5). Vale para todas las reglas de voces.
 - **Implementación.** `voces-a-su-mano` (estructural), antes de `N-CLAVE-1`. **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
 
 #### `N-CRUCE-2` — Notas sueltas al otro pentagrama, con barra que cruza

@@ -303,6 +303,19 @@
         pos = Math.max(pos, g.t + g.d);
       }
     });
+    alteracionesExplicitas(doc, m);
+  }
+  // N-ALT-2 rige por pentagrama: al mover notas de pentagrama o juntar voces, una nota puede leerse con la alteración de otra
+  // (un do4 que llega a un pentagrama con un do#4 antes en el compás). En los compases reescritos cada nota con altura lleva su
+  // alteración explícita; las que sobran las quita después N-ALT-2. Las notas que llegan ligadas se leen por la ligadura.
+  const NOMBRE_ALT = { '-2': 'flat-flat', '-1': 'flat', 0: 'natural', 1: 'sharp', 2: 'double-sharp' };
+  function alteracionesExplicitas(doc, m) {
+    for (const e of m.children) {
+      if (e.tagName !== 'note' || hijo(e, 'accidental') || ligadurasDe(e).stop) continue;
+      const p = hijo(e, 'pitch'); if (!p) continue;
+      const nom = NOMBRE_ALT[Math.round(+txt(p, 'alter') || 0)]; if (!nom) continue;
+      ponerHijo(doc, e, 'accidental', nom);
+    }
   }
   // las notas de una voz rehecha pierden barras y plicas: barrasAutomaticas y ordenarVoces (index.html) las vuelven a poner
   const limpiar = g => { for (const e of g.els) for (const c of [...e.children]) if (c.tagName === 'beam' || c.tagName === 'stem') c.remove() };
@@ -424,7 +437,10 @@
         if (v) v.els.forEach((e, j) => {
           const i = sonW.indexOf(sonido(e));
           if (i < 0) { deV.push([e, j]); return }
-          if ((a === w.t) !== (a === v.t)) deV.push(null);              // un ataque contra una nota que se sostiene: no se puede
+          // un unísono solo se omite si las dos notas atacan aquí o las dos se sostienen; una nota que llega ligada (del compás
+          // anterior) no ataca: omitir el unísono de V perdería su ataque (Couperin, L'Art de toucher, 4.º preludio)
+          const wAtaca = a === w.t && !ligW[i].stop, vAtaca = a === v.t && !ligV[j].stop;
+          if (wAtaca !== vAtaca) deV.push(null);
         });
         if (deV.includes(null)) return null;
         // nota de W unísona con una de V que sigue sonando tras este trozo: la ligadura sale de W hacia el trozo siguiente de V
@@ -687,7 +703,7 @@
   const unisonosManosDoc = porCompas((doc, C) => CONFIG.unisonosUnaVez ? unisonosManos(C) : 0, true);
   // lo que cambia cada paso (Musica.PROPIEDADES): reparto, pentagrama y número de voz; los silencios de relleno de la
   // reconstrucción viajan con su voz o desaparecen al fundirla
-  const VOCES_MOD = ['voces', 'numeracionVoces', 'pentagramas', 'silencios', 'silenciosVisibles'];
+  const VOCES_MOD = ['voces', 'numeracionVoces', 'pentagramas', 'silencios', 'silenciosVisibles', 'alteracionesEscritas'];
   transformacion({ id: 'voces-a-su-mano', regla: 'N-CRUCE-1', tipo: 'estructural', fuentes: ['reconstruida'], modifica: VOCES_MOD, aplicar: repartirDoc });
   transformacion({ id: 'notas-al-otro-pentagrama', regla: 'N-CRUCE-2', tipo: 'estructural', fuentes: ['reconstruida'], modifica: VOCES_MOD, aplicar: subirNotasDoc });
   // N-VOC-1 parte notas en trozos ligados (acordar): cambian notas, duraciones, acordes, ligaduras y alteraciones escritas de
