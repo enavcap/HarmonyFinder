@@ -1,2 +1,2 @@
 // Generado por herramientas/sincronizar_version.py a partir de VERSION. No editar a mano.
-window.HF_VERSION='0.8.11';
+window.HF_VERSION='0.8.12';
