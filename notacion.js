@@ -26,6 +26,8 @@
     slurMargin: 2, slurCurveFactor: 1.3, slurSymmetry: 0.4, slurEndpointFlexibility: 0.3, tieMinLength: 3,
     // N-ESP-1: aire alrededor de alteraciones y silencios
     leftMarginAccid: 2.2, rightMarginAccid: 0.8, leftMarginRest: 2, rightMarginRest: 1,
+    // N-VOC-3: extremos de cada ligadura de unión en el SVG (data-startid / data-endid), para moverlos con su nota
+    svgAdditionalAttribute: ['tie@startid', 'tie@endid'],
   };
 
   // ---------------------------------------------------------------------------------------------------------
@@ -59,6 +61,16 @@
     dosCapas: true,
     // N-VOC-2: un unísono entre las dos manos se escribe una sola vez
     unisonosUnaVez: true,
+    // N-VOC-3: dos voces que atacan la misma nota a la vez comparten la cabeza (plicas opuestas), como en la edición
+    cabezaCompartida: true,
+    // N-VOC-4: con 3+ voces, las notas de dos voces vecinas que coinciden en ritmo van en un acorde de una plica
+    vocesCondensadas: true,
+    // N-VOC-4: dos voces con el mismo ritmo en todo el compás se escriben como acordes de una voz
+    homorritmia: true,
+    // N-LIG-4: las ligaduras de unión entre dos capas se dibujan como ligaduras de MEI
+    ligadurasEntreCapas: true,
+    // N-CRUCE-2: notas de una voz interior con 3+ líneas adicionales pasan al otro pentagrama si allí caben sin cruzarse
+    notasAlOtroPentagrama: true,
   };
   const hijo = (n, t) => [...n.children].find(c => c.tagName === t);
   const txt = (n, t) => { const h = n && hijo(n, t); return h ? h.textContent.trim() : '' };
@@ -174,7 +186,7 @@
             const acorde = !!hijo(el, 'chord'), gracia = !!hijo(el, 'grace');
             if (acorde) t -= ultimaDur;
             const pitch = hijo(el, 'pitch');
-            if (!hijo(el, 'rest')) notas.push({ el, staff: txt(el, 'staff') || '1', voz: txt(el, 'voice') || '1', t, fin: t + d, val: pitch ? valorPaso(pitch) : null, gracia });
+            if (!hijo(el, 'rest')) notas.push({ el, staff: el.getAttribute('data-hf-casa') || txt(el, 'staff') || '1', voz: txt(el, 'voice') || '1', t, fin: t + d, val: pitch ? valorPaso(pitch) : null, gracia });
             if (!gracia) { t += d; ultimaDur = d } else ultimaDur = 0;
           }
         }
@@ -190,6 +202,7 @@
           const coinciden = aguda.l.some(a => !a.gracia && grave.l.some(b => !b.gracia && a.t < b.fin && b.t < a.fin));
           if (!coinciden) continue;
           if (CONFIG.plicasPorVoz) for (const [r, sentido] of [[aguda, 'up'], [grave, 'down']]) for (const n of r.l) {
+            if (n.el.getAttribute('data-hf-casa')) continue;                 // N-CRUCE-2: apunta hacia su pentagrama (ordenarVoces)
             let s = hijo(n.el, 'stem');
             if (s) { if (s.textContent.trim() === sentido) continue; s.textContent = sentido }
             else { s = doc.createElement('stem'); s.textContent = sentido; const ref = [...n.el.children].find(c => ANTES_DE_PLICA.includes(c.tagName)); ref ? n.el.insertBefore(s, ref) : n.el.append(s) }
@@ -259,7 +272,16 @@
         const medio = (n[0] + n[6]) / 2, arriba = (n[3] + n[5]) / 2 < n[1] ? -1 : 1;                    // sentido en que se curva (y crece hacia abajo)
         // recorte: el comienzo pasa de largo las plicas y corchetes de la mitad izquierda; el final se detiene antes de los de la derecha
         let ini = n[0], fin = n[6];
-        for (const o of c0) { if ((o.x0 + o.x1) / 2 < medio) ini = Math.max(ini, o.x1 + sp * 0.15); else fin = Math.min(fin, o.x0 - sp * 0.15) }
+        // solo los obstáculos junto a los extremos (a menos de 1,5 espacios): una ligadura larga puede pasar junto a las notas de en medio,
+        // y recortarla por ellas la haría empezar lejos de su nota (Allemande, c. 1: la del la3 con puntillo saltaba las semicorcheas)
+        // Esto vale para las ligaduras que salen de una cabeza compartida (N-VOC-3); en las demás, recortar por lo de en medio sí libra choques.
+        const nota = id => id && svg.ownerDocument.getElementById(id.replace(/^#/, ''));
+        const compartida = [g.getAttribute('data-startid'), g.getAttribute('data-endid')].some(id => { const e = nota(id); return e && e.getAttribute('data-n-voc3') });
+        for (const o of c0) {
+          const izq = (o.x0 + o.x1) / 2 < medio;
+          if (izq && (!compartida || o.x0 < n[0] + sp * 1.5)) ini = Math.max(ini, o.x1 + sp * 0.15);
+          else if (!izq && (!compartida || o.x1 > n[6] - sp * 1.5)) fin = Math.min(fin, o.x0 - sp * 0.15);
+        }
         const variante = (x0, x1, dy) => {
           const k = (x1 - x0) / (n[6] - n[0]), v = n.slice();
           for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = x0 + (n[i] - n[0]) * k;
@@ -267,11 +289,16 @@
           return v;
         };
         const recorte = fin - ini >= sp * 1.2 && (ini > n[0] || fin < n[6]);
+        // arco por el lado contrario: los puntos de control se reflejan sobre la línea de los extremos
+        const volteada = v => { const w = v.slice(), base = (v[1] + v[7]) / 2; for (const i of [3, 5, 9, 11]) w[i] = 2 * base - v[i]; return w };
         const cand = [];
         if (recorte) cand.push([ini, fin, 0]);
         for (let k = 1; k <= 4; k++) cand.push([n[0], n[6], k * sp * 0.2]);
         if (recorte) for (let k = 1; k <= 4; k++) cand.push([ini, fin, k * sp * 0.2]);
-        const buena = cand.map(c => variante(...c)).find(v => !choques(v).length);
+        // ligaduras largas que pasan junto a notas de otra voz (cabezas compartidas, N-VOC-3): arcos más profundos, hasta 2 espacios
+        if (ancho > sp * 3) for (let k = 5; k <= 10; k++) cand.push([n[0], n[6], k * sp * 0.2]);
+        const vs = cand.map(c => variante(...c));
+        const buena = vs.find(v => !choques(v).length) || (ancho > sp * 3 ? [variante(n[0], n[6], 0), ...vs].map(volteada).find(v => !choques(v).length) : null);
         if (!buena) continue;
         const r = x => Math.round(x * 100) / 100;
         q.setAttribute('d', `M${r(buena[0])},${r(buena[1])} C${r(buena[2])},${r(buena[3])} ${r(buena[4])},${r(buena[5])} ${r(buena[6])},${r(buena[7])} C${r(buena[8])},${r(buena[9])} ${r(buena[10])},${r(buena[11])} ${r(buena[12])},${r(buena[13])}`);
@@ -345,18 +372,21 @@
         if (hijo(el, 'chord') && ult) { ult.els.push(el); continue }
         const pitch = hijo(el, 'pitch');
         ult = { t, d, staff: txt(el, 'staff') || '1', voz: txt(el, 'voice') || '1', els: [el], silencio: !pitch };
+        if (el.getAttribute('data-hf-casa')) ult.casa = el.getAttribute('data-hf-casa');
         grupos.push(ult); t += d;
       }
       out.push({ m, div, grupos, raro, cambiado: false });
     }
     return out;
   }
+  // pentagrama de origen de un grupo: el suyo, salvo las notas que N-CRUCE-2 dibuja en el otro pentagrama sin cambiarlas de voz
+  const casa = g => g.casa || g.staff;
   const alturas = g => g.els.map(e => { const p = hijo(e, 'pitch'); return p ? valorPaso(p) : null }).filter(v => v !== null);
   const sonido = e => { const p = hijo(e, 'pitch'); return p ? txt(p, 'step') + (Math.round(+txt(p, 'alter') || 0)) + txt(p, 'octave') : null };
   // voces con notas de un pentagrama: Map voz → {notas, todos, media}
   function vocesDe(grupos, staff) {
     const v = new Map();
-    for (const g of grupos) if (g.staff === staff) { if (!v.has(g.voz)) v.set(g.voz, { voz: g.voz, todos: [], notas: [] }); const x = v.get(g.voz); x.todos.push(g); if (!g.silencio) x.notas.push(g) }
+    for (const g of grupos) if (casa(g) === staff) { if (!v.has(g.voz)) v.set(g.voz, { voz: g.voz, todos: [], notas: [] }); const x = v.get(g.voz); x.todos.push(g); if (!g.silencio) x.notas.push(g) }
     for (const [k, x] of v) { if (!x.notas.length) { v.delete(k); continue } const a = x.notas.flatMap(alturas); x.media = a.reduce((s, y) => s + y, 0) / a.length }
     return v;
   }
@@ -366,10 +396,18 @@
     const atributos = [...m.children].filter(c => c.tagName === 'attributes');
     while (m.firstChild) m.removeChild(m.firstChild);
     atributos.forEach(a => m.append(a));
+    // con notas dibujadas en el otro pentagrama (N-CRUCE-2), una voz no puede compartir número con otra de la otra mano: en MusicXML
+    // el número de voz es de la parte, y Verovio las juntaría
+    if (grupos.some(g => g.casa && g.casa !== g.staff)) {
+      const usados = new Map(); let max = Math.max(0, ...grupos.map(g => +g.voz || 0));
+      for (const g of grupos) { const k = g.voz; if (!usados.has(k)) usados.set(k, casa(g)) }
+      const nuevo = new Map();
+      for (const g of grupos) if (usados.get(g.voz) !== casa(g)) { const k = casa(g) + '|' + g.voz; if (!nuevo.has(k)) nuevo.set(k, String(++max)); g.voz = nuevo.get(k) }
+    }
     const voces = new Map();
-    for (const g of grupos) { const k = g.staff + '|' + g.voz; if (!voces.has(k)) voces.set(k, []); voces.get(k).push(g) }
+    for (const g of grupos) { const k = casa(g) + '|' + g.voz; if (!voces.has(k)) voces.set(k, []); voces.get(k).push(g) }
     const claves = [...voces.keys()].sort((a, b) => { const [sa, va] = a.split('|'), [sb, vb] = b.split('|'); return +sa - +sb || +va - +vb });
-    const hueco = (tag, d, g) => { const e = doc.createElement(tag), du = doc.createElement('duration'); du.textContent = String(d); e.append(du); if (tag === 'forward') { const v = doc.createElement('voice'); v.textContent = g.voz; const s = doc.createElement('staff'); s.textContent = g.staff; e.append(v, s) } m.append(e) };
+    const hueco = (tag, d, g) => { const e = doc.createElement(tag), du = doc.createElement('duration'); du.textContent = String(d); e.append(du); if (tag === 'forward') { const v = doc.createElement('voice'); v.textContent = g.voz; const s = doc.createElement('staff'); s.textContent = casa(g); e.append(v, s) } m.append(e) };
     let pos = 0;
     claves.forEach((k, i) => {
       if (i > 0 && pos > 0) hueco('backup', pos, null);
@@ -378,6 +416,7 @@
         if (g.t > pos) hueco('forward', g.t - pos, g);
         g.els.forEach((e, j) => {
           ponerHijo(doc, e, 'voice', g.voz); ponerHijo(doc, e, 'staff', g.staff);
+          if (g.casa && g.casa !== g.staff) e.setAttribute('data-hf-casa', g.casa); else e.removeAttribute('data-hf-casa');
           const ch = hijo(e, 'chord'); if (j === 0 && ch) ch.remove(); if (j > 0 && !ch) e.insertBefore(doc.createElement('chord'), e.firstElementChild);
           m.append(e);
         });
@@ -393,11 +432,12 @@
   const lineasAd = (val, staff) => { const d = Math.abs(val - CENTRO[staff]); return d >= 6 ? Math.floor((d - 4) / 2) : 0 };
 
   // N-CRUCE-1. En un gran pentagrama (2 pentagramas en la parte), una voz que no es la exterior de su mano (la más aguda de la
-  // derecha, la más grave de la izquierda) pasa al otro pentagrama en ese compás si:
-  //   (a) su mano no puede tocarla: a la vez que alguna de sus notas, otra voz del mismo pentagrama está a más de una décima
-  //       (9 pasos diatónicos; Allemande, c. 1: la5 y la3 en la derecha), y en la otra mano esa extensión cabe; o
-  //   (b) en su pentagrama lleva de media 3 o más líneas adicionales y en el otro como mucho 1 (Allemande, c. 5: sol#2 en sol).
-  // Una voz de tenor que la mano izquierda alcanza (la3-do#4 bajo un si2) se queda abajo, como en la edición.
+  // derecha, la más grave de la izquierda) pasa al otro pentagrama en ese compás si su mano no puede tocarla: a la vez que alguna
+  // de sus notas, otra voz del mismo pentagrama está a más de una décima (9 pasos diatónicos; Allemande, c. 1: la5 y la3 en la
+  // derecha; c. 5: sol#2 bajo sol#4), en la otra mano esa extensión cabe y allí no pasa de 3 líneas adicionales.
+  // Una voz de tenor que la mano izquierda alcanza (la3-do#4 bajo un si2) se queda abajo, como en la edición. No se usan las
+  // líneas adicionales para decidir: los cruces de manos de la fuente (Medtner, Op. 26 n.º 4, cc. 38-39: la izquierda por encima
+  // de la derecha; Liszt, Sposalizio, c. 58) se escriben así a propósito y se conservan.
   const DECIMA = 9;
   function extension(V, otras) {
     let max = 0;
@@ -418,10 +458,7 @@
         for (const V of propias) {
           if (V === exterior) continue;
           const vals = V.notas.flatMap(alturas);
-          const propio = vals.reduce((x, y) => x + lineasAd(y, s), 0) / vals.length, ajeno = vals.reduce((x, y) => x + lineasAd(y, o), 0) / vals.length;
-          const a = extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3;
-          const b = propio >= 3 && ajeno <= 1;
-          if (a || b) { movida = V; break }
+          if (extension(V, propias.filter(x => x !== V)) > DECIMA && extension(V, ajenas) <= DECIMA && Math.max(...vals.map(y => lineasAd(y, o))) <= 3) { movida = V; break }
         }
         if (!movida) break;
         const libre = String(Math.max(0, ...C.grupos.map(g => +g.voz || 0)) + 1);
@@ -429,6 +466,47 @@
         cambios++;
       }
     }
+    return cambios;
+  }
+
+  // N-CRUCE-2. Notas sueltas de una voz interior que pasan al otro pentagrama. En la edición de la Allemande (c. 2) la línea aguda
+  // de la mano izquierda (sol#4, la4, si4, mi4, fa#4) se escribe en el pentagrama de la derecha, por debajo de sus notas, en vez de
+  // con 3-4 líneas adicionales en clave de fa; el fa#4 anterior (2 líneas) se queda abajo. Aquí, en una voz que no es la exterior
+  // de su mano (la más grave de la izquierda, la más aguda de la derecha), una nota que en su pentagrama lleva 3 o más líneas
+  // adicionales y en el otro como mucho una pasa al otro pentagrama, y con ella lo que le sigue en ese pulso (para no ir y venir
+  // dentro de un grupo) y las notas a las que va ligada. Solo si queda por debajo (o por encima) de todo lo que suena en el otro
+  // pentagrama en ese momento: los cruces de manos de la fuente (Medtner, Liszt) no se tocan. La nota sigue en su voz y solo cambia
+  // el pentagrama donde se dibuja (data-hf-casa guarda el de origen), así la barra une las notas de los dos pentagramas, como en
+  // la edición (c. 2: fa#4 abajo y sol#4 arriba).
+  function subirNotas(C) {
+    if (!CONFIG.notasAlOtroPentagrama) return 0;
+    let cambios = 0;
+    const pulso = C.div;                                                // una negra
+    for (const s of ['2', '1']) {
+      const o = s === '1' ? '2' : '1', arriba = s === '2';             // la izquierda sube; la derecha baja
+      const propias = [...vocesDe(C.grupos, s).values()]; if (propias.length < 2) continue;
+      propias.sort((a, b) => b.media - a.media);
+      const exterior = s === '1' ? propias[0] : propias[propias.length - 1];
+      for (const V of propias) {
+        if (V === exterior) continue;
+        const cabe = n => {
+          const a = alturas(n); if (Math.max(...a.map(v => lineasAd(v, o))) > 1) return false;
+          const otras = C.grupos.filter(g => g.staff === o && !g.silencio && g.t < n.t + n.d && n.t < g.t + g.d).flatMap(alturas);
+          return !otras.length || (arriba ? Math.max(...a) < Math.min(...otras) : Math.min(...a) > Math.max(...otras));
+        };
+        let movidas = 0, siguiendo = -1;
+        const notas = V.notas.slice().sort((a, b) => a.t - b.t);
+        for (let i = 0; i < notas.length; i++) {
+          const n = notas[i], q = Math.floor(n.t / pulso), lejos = Math.min(...alturas(n).map(v => lineasAd(v, s))) >= 3;
+          const ligada = i > 0 && notas[i - 1].staff === o && notas[i - 1].casa && notas[i - 1].t + notas[i - 1].d === n.t && n.els.some(e => ligadurasDe(e).stop);
+          if (!((lejos || siguiendo === q || ligada) && cabe(n))) { if (siguiendo !== q) siguiendo = -1; continue }
+          n.casa = casa(n); n.staff = o; siguiendo = q; movidas++;   // misma voz: Verovio dibuja la barra que cruza de pentagrama
+        }
+        cambios += movidas;
+      }
+    }
+    // las barras de las dos manos se rehacen (barrasAutomaticas): una barra que unía una nota que se ha movido quedaría abierta
+    if (cambios) for (const g of C.grupos) limpiar(g);
     return cambios;
   }
 
@@ -440,12 +518,12 @@
   //     unísono choca con un ataque, o si añade más de una ligadura por pulso de media (o más de dos en un mismo pulso).
   function intercalar(V, W, grupos) {
     const fuera = new Set(V.todos);
-    const restos = grupos.filter(g => !fuera.has(g) && !(g.staff === W.notas[0].staff && g.voz === W.voz && g.silencio && V.notas.some(v => g.t < v.t + v.d && v.t < g.t + g.d)));
+    const restos = grupos.filter(g => !fuera.has(g) && !(casa(g) === casa(W.notas[0]) && g.voz === W.voz && g.silencio && V.notas.some(v => g.t < v.t + v.d && v.t < g.t + g.d)));
     for (const g of V.notas) restos.push({ ...g, voz: W.voz });           // copia: el candidato puede no elegirse
     return restos;
   }
   function acordar(doc, V, W, grupos, div) {
-    const staff = W.notas[0].staff;
+    const staff = W.notas[0].staff, casaW = W.notas[0].casa;
     const cubre = v => { let t = v.t; for (const w of W.todos.filter(w => !w.silencio).sort((a, b) => a.t - b.t)) { if (w.t > t) break; if (w.t + w.d > t) t = w.t + w.d } return t >= v.t + v.d };
     if (!V.notas.every(cubre)) return null;
     const cortes = new Set(); for (const g of [...V.notas, ...W.todos]) { cortes.add(g.t); cortes.add(g.t + g.d) }
@@ -459,7 +537,7 @@
         // figuras de este trozo (si no cabe en una, varias ligadas)
         const fs = figurasDe(b - a, div); if (!fs) return null;
         const piezas = []; let t0 = a; for (const f of fs) { const d = Math.round(f[0] * div); piezas.push([t0, d, f]); t0 += d }
-        if (w.silencio) { if (v) return null; for (const [t1, d, f] of piezas) { const c = w.els[0].cloneNode(true); ponerFigura(doc, c, d, f); nuevos.push({ t: t1, d, staff, voz: W.voz, els: [c], silencio: true }) } continue }
+        if (w.silencio) { if (v) return null; for (const [t1, d, f] of piezas) { const c = w.els[0].cloneNode(true); ponerFigura(doc, c, d, f); nuevos.push({ t: t1, d, staff, casa: casaW, voz: W.voz, els: [c], silencio: true }) } continue }
         const sonW = w.els.map(sonido), ligV = v ? v.els.map(ligadurasDe) : [];
         // notas de V en este trozo: las que no son unísono de W; un unísono solo vale si W y V empiezan juntas o siguen las dos
         const deV = [];
@@ -483,7 +561,7 @@
             start: !ultimaPieza || b < v.t + v.d || ligV[j].start,
             primero: primeraPieza && a === v.t
           }));
-          nuevos.push({ t: t1, d, staff, voz: W.voz, els, silencio: false });
+          nuevos.push({ t: t1, d, staff, casa: casaW, voz: W.voz, els, silencio: false });
           // ligadura nueva: se parte una nota de W, o una nota de V sigue sonando en el trozo siguiente
           if (!ultimaPieza || a > w.t || b < fin || (deV.length && b < v.t + v.d)) { ligNuevas++; const q = Math.floor(t1 / div); porPulso.set(q, (porPulso.get(q) || 0) + 1) }
         });
@@ -494,18 +572,26 @@
     const fuera = new Set([...V.todos, ...W.todos]);
     return { grupos: [...grupos.filter(g => !fuera.has(g)), ...nuevos], lig: ligNuevas };
   }
+  // ¿atacan dos voces la misma nota a la vez? (sin contar las notas que llegan ligadas)
+  const ataques = g => g.els.filter(e => hijo(e, 'pitch') && !ligadurasDe(e).stop).map(e => g.t + '|' + sonido(e));
+  const atacanUnisono = (V, W) => { const a = new Set(V.notas.flatMap(ataques)); return W.notas.some(g => ataques(g).some(k => a.has(k))) };
   function reducir(doc, C) {
     let cambios = 0;
-    for (const s of [...new Set(C.grupos.map(g => g.staff))]) {
+    for (const s of [...new Set(C.grupos.map(casa))]) {
       for (let vuelta = 0; vuelta < 4; vuelta++) {
         const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length <= 2) break;
         voces.sort((a, b) => b.media - a.media);
+        // voces de un arpegio sostenido: las que atacan una nota a la vez que otra voz
+        const brise = new Set(); for (const A of voces) for (const B of voces) if (A !== B && atacanUnisono(A, B)) { brise.add(A); brise.add(B) }
         // candidatos: cada voz absorbida en una vecina (por altura); se elige la que añade menos ligaduras y, a igualdad,
         // la que absorbe una voz interior y la más cercana en altura
         let mejor = null;
         voces.forEach((V, k) => {
           for (const W of [voces[k - 1], voces[k + 1]]) {
             if (!W) continue;
+            // las voces de un arpegio sostenido (style brisé: alguna ataca una nota a la vez que otra voz) se dejan en sus capas,
+            // como la edición, y comparten la cabeza (N-VOC-3); no se convierten en acordes ligados
+            if (brise.has(V) || brise.has(W)) continue;
             const r = !solapan(V.notas, W.notas) ? { grupos: intercalar(V, W, C.grupos), lig: 0 } : acordar(doc, V, W, C.grupos, C.div);
             if (!r) continue;
             const coste = r.lig * 10 + (k === 0 || k === voces.length - 1 ? 5 : 0) + Math.abs(V.media - W.media) / 10;
@@ -513,14 +599,85 @@
           }
         });
         // último recurso: dos voces cualesquiera que no suenan nunca a la vez
-        if (!mejor) for (const V of voces) { for (const W of voces) if (V !== W && !solapan(V.notas, W.notas)) { mejor = { grupos: intercalar(V, W, C.grupos) }; break } if (mejor) break }
+        if (!mejor) for (const V of voces) { for (const W of voces) if (V !== W && !brise.has(V) && !brise.has(W) && !solapan(V.notas, W.notas)) { mejor = { grupos: intercalar(V, W, C.grupos) }; break } if (mejor) break }
         if (!mejor) break;
-        for (const g of mejor.grupos) if (g.staff === s) limpiar(g);
+        for (const g of mejor.grupos) if (casa(g) === s) limpiar(g);
         C.grupos = mejor.grupos; cambios++;
       }
     }
     return cambios;
   }
+
+  // N-VOC-4 (Gould: las voces que coinciden en ritmo comparten plica, como un acorde). En la edición de la Allemande (c. 3, 4.ª
+  // parte: do#5 y la4; c. 4: fa#4 y re#4) dos de tres voces que atacan a la vez con la misma figura van en un acorde de una plica, y
+  // la tercera sigue aparte. Con dos voces que coinciden solo en parte no se juntan (cc. 6-7: se lee el contrapunto); si coinciden
+  // en todo el compás, van en acordes (homorritmia). Aquí, con tres o más voces, en un pentagrama donde suenan a la vez
+  // tres o más voces, la nota de una voz interior que coincide en instante y duración con la de una voz vecina pasa al acorde de
+  // esta, si no es unísono (N-VOC-3) y entre las dos caben en una mano (una décima). También las notas que llegan ligadas: en la
+  // edición, las notas sostenidas de un arpegio (c. 1, izquierda: la3, do#4 y mi4; c. 2, derecha: mi5 y do#5) llegan ligadas a un
+  // mismo acorde. La ligadura queda entonces entre dos capas, y eso lo resuelve ligadurasEntreCapas.
+  // Dos voces con el mismo ritmo en todo el compás (mismos ataques, duraciones, silencios y ligaduras), sin cruzarse, sin unísonos y
+  // en una décima: se escriben como acordes de una voz (terceras y sextas paralelas escritas como dos voces).
+  function homorritmia(C, [W, V], s) {
+    if (!CONFIG.homorritmia) return 0;
+    const huella = X => X.todos.map(g => g.t + '/' + g.d + (g.silencio ? 'r' : '') + (g.silencio ? '' : '|' + g.els.map(e => { const l = ligadurasDe(e); return (l.stop ? 's' : '') + (l.start ? 'i' : '') }).sort()[0])).sort().join(' ');
+    if (huella(V) !== huella(W)) return 0;
+    for (const n of V.notas) {
+      const m = W.notas.find(g => g.t === n.t); if (!m) return 0;
+      const an = alturas(n), am = alturas(m);
+      if (Math.min(...am) <= Math.max(...an) || Math.max(...am, ...an) - Math.min(...am, ...an) > DECIMA) return 0;   // sin cruzarse ni unísonos, en una décima
+    }
+    for (const n of V.notas) { const m = W.notas.find(g => g.t === n.t); m.els = [...m.els, ...n.els] }
+    C.grupos = C.grupos.filter(g => !V.todos.includes(g));
+    for (const g of C.grupos) if (casa(g) === s) limpiar(g);
+    return 1;
+  }
+  function condensar(C) {
+    let cambios = 0;
+    for (const s of [...new Set(C.grupos.map(casa))]) {
+      const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length < 2) continue;
+      voces.sort((a, b) => b.media - a.media);
+      if (voces.length === 2) { cambios += homorritmia(C, voces, s); continue }
+      if (!CONFIG.vocesCondensadas) continue;
+      const hechos = [];
+      const suenan = t => voces.filter(V => V.notas.some(g => g.t <= t && t < g.t + g.d)).length;
+      for (let k = 1; k < voces.length - 1; k++) {
+        const V = voces[k];
+        for (const n of [...V.notas]) {
+          if (suenan(n.t) < 3) continue;
+          const an = alturas(n), sn = n.els.map(sonido);
+          let mejor = null;
+          for (const W of [voces[k - 1], voces[k + 1]]) {
+            const m = W.notas.find(g => g.t === n.t && g.d === n.d); if (!m || m.cond) continue;
+            const am = alturas(m); if (m.els.some(e => sn.includes(sonido(e)))) continue;          // unísono: N-VOC-3
+            const todas = [...an, ...am]; if (Math.max(...todas) - Math.min(...todas) > DECIMA) continue;
+            const arriba = W === voces[k - 1]; if (arriba ? Math.min(...am) <= Math.max(...an) : Math.max(...am) >= Math.min(...an)) continue;   // sin cruzarse
+            const dist = Math.min(...am.flatMap(a => an.map(b => Math.abs(a - b))));
+            if (!mejor || dist < mejor.dist) mejor = { m, dist };
+          }
+          if (!mejor) continue;
+          mejor.m.els = [...mejor.m.els, ...n.els]; mejor.m.cond = true; hechos.push(mejor.m);
+          C.grupos.splice(C.grupos.indexOf(n), 1); V.notas.splice(V.notas.indexOf(n), 1);
+          cambios++;
+        }
+      }
+      // dos acordes condensados seguidos en el mismo pulso, de voces distintas (Allemande, c. 2: las dos corcheas de la 2.ª parte):
+      // el segundo pasa a la voz del primero si está libre, para que vayan bajo una barra, como en la edición
+      hechos.sort((a, b) => a.t - b.t);
+      for (let i = 0; i + 1 < hechos.length; i++) {
+        const A = hechos[i], B = hechos[i + 1];
+        if (A.voz === B.voz || A.t + A.d !== B.t || Math.floor(A.t / C.div) !== Math.floor(B.t / C.div) || A.d > C.div / 2 || B.d > C.div / 2) continue;
+        const pisa = g => g !== B && casa(g) === s && g.voz === A.voz && g.t < B.t + B.d && B.t < g.t + g.d;
+        if (C.grupos.some(g => pisa(g) && !g.silencio)) continue;
+        C.grupos = C.grupos.filter(g => !pisa(g));                        // los silencios de relleno de esa voz donde entra el acorde
+        B.voz = A.voz; cambios++;
+      }
+      if (cambios) for (const g of C.grupos) if (casa(g) === s) limpiar(g);
+    }
+    for (const g of C.grupos) delete g.cond;
+    return cambios;
+  }
+  regla('N-VOC-4', 'Voces que coinciden en ritmo: un acorde con una plica', 'xml', 'aplicada', 'Reconstrucciones: con tres o más voces sonando en un pentagrama, la nota de una voz interior que coincide en instante y duración con la de una vecina pasa a su acorde, también si llega ligada (sin unísonos, sin cruzarse y en una décima; CONFIG.vocesCondensadas). Dos voces con el mismo ritmo en todo el compás van en acordes de una voz; si coinciden solo en parte, se dejan separadas (CONFIG.homorritmia).');
 
   // N-VOC-2. La misma nota (altura y grafía) atacada a la vez en las dos manos: se queda la más larga, o, si duran lo mismo,
   // la del pentagrama más cercano a su registro. Dentro de un mismo pentagrama no se toca: un unísono entre dos voces se
@@ -544,9 +701,144 @@
     return cambios;
   }
 
+  // N-VOC-3 (Gould: dos voces que comparten una nota la escriben con una sola cabeza y dos plicas, cada una con su duración)
+  // Es la escritura del style brisé en la edición de la Allemande (c. 2): mi5 y do#5 en semicorcheas con barra, plica abajo, y
+  // las mismas cabezas con plica arriba y su duración real (corchea con puntillo, corchea). Dos pasos:
+  //   · XML: si dos voces de un pentagrama atacan a la vez la misma nota con la plica en el mismo sentido, la voz que no es
+  //     exterior del pentagrama (o, si las dos lo son o ninguna, la de menos notas) pasa a la plica contraria en todo el compás;
+  //   · SVG: Verovio solo comparte la cabeza si las dos notas son iguales de figura y puntillo; si no, la desplaza a un lado.
+  //     Aquí se lleva una nota (cabeza, plica, corchete, puntillos y alteración) sobre la otra y se ajustan sus ligaduras.
+  function plicasUnisono(xml) {
+    if (!CONFIG.cabezaCompartida) return xml;
+    let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
+    if (doc.querySelector('parsererror')) return xml;
+    let cambios = 0;
+    for (const parte of doc.getElementsByTagName('part')) for (const C of leerParte(parte)) {
+      if (C.raro) continue;
+      for (const s of [...new Set(C.grupos.map(casa))]) {
+        const voces = [...vocesDe(C.grupos, s).values()]; if (voces.length < 2) continue;
+        voces.sort((a, b) => b.media - a.media);
+        const exterior = V => V === voces[0] || V === voces[voces.length - 1];
+        const plica = V => { const e = V.notas.map(g => hijo(g.els[0], 'stem')).find(Boolean); return e ? e.textContent.trim() : null };
+        for (let i = 0; i < voces.length; i++) for (let j = i + 1; j < voces.length; j++) {
+          const A = voces[i], B = voces[j]; if (!atacanUnisono(A, B)) continue;
+          const pa = plica(A), pb = plica(B); if (!pa || pa !== pb) continue;
+          const mover = exterior(A) !== exterior(B) ? (exterior(A) ? B : A) : (A.notas.length <= B.notas.length ? A : B);
+          const otra = mover === A ? pa : pb, nueva = otra === 'up' ? 'down' : 'up';
+          for (const g of mover.notas) for (const e of g.els) { if (e.getAttribute('data-hf-casa')) continue; ponerHijo(doc, e, 'stem', nueva); cambios++ }
+        }
+      }
+    }
+    return cambios ? new XMLSerializer().serializeToString(doc) : xml;
+  }
+  // inicio: Map id de nota → instante de ataque (qstamp del timemap de Verovio)
+  function cabezasCompartidas(svg, inicio) {
+    if (!CONFIG.cabezaCompartida || !svg || !inicio) return 0;
+    let movidas = 0;
+    const caja = e => { try { return e.getBBox() } catch (_) { return null } };
+    for (const st of svg.querySelectorAll('g.measure > g.staff')) {
+      const capas = [...st.querySelectorAll(':scope > g.layer')]; if (capas.length < 2) continue;
+      const notas = [];
+      capas.forEach((c, k) => { for (const n of c.querySelectorAll('g.note')) {
+        if (!inicio.has(n.id) || n.closest('g.chord') || n.closest('g.graceGrp')) continue;
+        const cab = n.querySelector(':scope > g.notehead'), b = cab && caja(cab); if (!b || !b.width) continue;
+        const pl = n.querySelector(':scope > g.stem > path'), pb = pl && caja(pl);
+        notas.push({ n, k, t: inicio.get(n.id), x: b.x, y: b.y, w: b.width, viga: !!n.closest('g.beam'), plica: pb ? (pb.y + pb.height / 2 < b.y + b.height / 2 ? 'up' : 'down') : null, cab: (cab.querySelector('use') || {}).getAttribute?.('xlink:href') || (cab.querySelector('use') || {}).getAttribute?.('href') });
+      } });
+      const usadas = new Set();
+      for (const a of notas) for (const b of notas) {
+        if (a === b || a.k === b.k || usadas.has(a) || usadas.has(b) || a.t !== b.t || Math.abs(a.y - b.y) > 1) continue;
+        const dx0 = b.x - a.x; if (Math.abs(dx0) < 1 || Math.abs(dx0) > a.w * 2.2) continue;
+        if (!a.plica || !b.plica || a.plica === b.plica || a.cab !== b.cab) continue;  // misma cabeza y plicas opuestas
+        // se mueve la que no está bajo una barra; si ninguna lo está, la desplazada (la de la derecha)
+        const [fija, mov] = a.viga && !b.viga ? [a, b] : b.viga && !a.viga ? [b, a] : a.viga ? [null, null] : (a.x < b.x ? [a, b] : [b, a]);
+        if (!fija) continue;
+        const dx = fija.x - mov.x;
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('transform', `translate(${dx},0)`);
+        while (mov.n.firstChild) g.appendChild(mov.n.firstChild);
+        mov.n.appendChild(g);
+        // la alteración ya la lleva la nota fija: no se repite
+        if (fija.n.querySelector(':scope > g.accid')) for (const ac of g.querySelectorAll(':scope > g.accid')) ac.setAttribute('display', 'none');
+        // ligaduras de unión que salen de la nota movida o llegan a ella: se corre ese extremo
+        for (const ti of svg.querySelectorAll(`g.tie[data-startid="#${mov.n.id}"], g.tie[data-endid="#${mov.n.id}"]`)) {
+          const q = ti.querySelector('path'), n = ((q && q.getAttribute('d')) || '').match(/-?\d+(?:\.\d+)?/g); if (!n || n.length !== 14) continue;
+          const v = n.map(Number), x0 = v[0], x1 = v[6], ini = ti.getAttribute('data-startid') === '#' + mov.n.id;
+          const nx0 = ini ? x0 + dx : x0, nx1 = ini ? x1 : x1 + dx; if (!(nx1 - nx0 > 1)) continue;
+          for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = nx0 + (v[i] - x0) * (nx1 - nx0) / (x1 - x0);
+          const r = x => Math.round(x * 100) / 100;
+          q.setAttribute('d', `M${r(v[0])},${r(v[1])} C${r(v[2])},${r(v[3])} ${r(v[4])},${r(v[5])} ${r(v[6])},${r(v[7])} C${r(v[8])},${r(v[9])} ${r(v[10])},${r(v[11])} ${r(v[12])},${r(v[13])}`);
+        }
+        mov.n.setAttribute('data-n-voc3', '1'); usadas.add(a); usadas.add(b); movidas++;
+      }
+    }
+    return movidas;
+  }
+  regla('N-VOC-3', 'Unísonos entre capas: una cabeza y dos plicas', 'svg', 'aplicada', 'Dos voces que atacan a la vez la misma nota (style brisé) llevan plicas opuestas y comparten la cabeza, cada una con su figura y puntillo, como en la edición; Verovio solo la comparte si figura y puntillo coinciden (CONFIG.cabezaCompartida).');
+
+  // N-LIG-4. Ligaduras de unión entre dos capas. Verovio solo une las de MusicXML dentro de la misma voz (las demás quedan abiertas
+  // o se enganchan a otra nota de la misma altura de su capa). Al condensar voces (N-VOC-4) una nota sostenida puede acabar en el
+  // acorde de otra voz, ligada desde su capa de origen (Allemande, c. 2: el do#5 en corchea llega al acorde de corcheas). Aquí se
+  // busca, por pentagrama y altura, la nota que recibe cada ligadura; si está en otra voz, se quita la ligadura de la notación
+  // (<tied>; <tie>, el sonido, se conserva) y se anota el par en las dos notas (id y data-hf-tie). ligadurasMEI la añade después
+  // como <tie> de MEI, que sí une notas de capas distintas.
+  function ligadurasEntreCapas(xml) {
+    if (!CONFIG.ligadurasEntreCapas) return xml;
+    let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
+    if (doc.querySelector('parsererror')) return xml;
+    let cambios = 0, k = 0;
+    for (const parte of doc.getElementsByTagName('part')) {
+      const notas = []; let base = 0, div = 1;
+      for (const m of [...parte.children].filter(c => c.tagName === 'measure')) {
+        let t = 0, ult = 0, fin = 0;
+        for (const el of m.children) {
+          if (el.tagName === 'attributes' && txt(el, 'divisions')) { const nd = +txt(el, 'divisions') || div; base = base * nd / div; div = nd }
+          const d = +txt(el, 'duration') || 0;
+          if (el.tagName === 'backup') { t -= d; continue }
+          if (el.tagName === 'forward') { t += d; fin = Math.max(fin, t); continue }
+          if (el.tagName !== 'note') continue;
+          const acorde = !!hijo(el, 'chord'), gracia = !!hijo(el, 'grace'); if (acorde) t -= ult;
+          if (hijo(el, 'pitch') && !gracia) notas.push({ el, t: base + t, d, staff: el.getAttribute('data-hf-casa') || txt(el, 'staff') || '1', voz: txt(el, 'voice') || '1', s: sonido(el), lig: ligadurasDe(el) });
+          if (!gracia) { t += d; ult = d } fin = Math.max(fin, t);
+        }
+        base += fin;
+      }
+      const llegan = new Map(); for (const n of notas) if (n.lig.stop) { const c = n.staff + '|' + n.s + '|' + n.t; if (!llegan.has(c)) llegan.set(c, []); llegan.get(c).push(n) }
+      for (const a of notas) {
+        if (!a.lig.start) continue;
+        const cand = llegan.get(a.staff + '|' + a.s + '|' + (a.t + a.d)); if (!cand || !cand.length) continue;
+        if (cand.some(b => b.voz === a.voz)) continue;                     // la recibe una nota de su voz: Verovio la dibuja
+        const b = cand[0];
+        for (const [n, tipo] of [[a.el, 'start'], [b.el, 'stop']]) { const nt = hijo(n, 'notations'); if (nt) { for (const ti of [...nt.children]) if (ti.tagName === 'tied' && ti.getAttribute('type') === tipo) ti.remove(); if (!nt.children.length) nt.remove() } }
+        for (const n of [a.el, b.el]) if (!n.getAttribute('id')) n.setAttribute('id', 'hf-lig' + (k++));
+        a.el.setAttribute('data-hf-tie', [a.el.getAttribute('data-hf-tie'), b.el.getAttribute('id')].filter(Boolean).join(' '));
+        cand.splice(cand.indexOf(b), 1); cambios++;
+      }
+    }
+    return cambios ? new XMLSerializer().serializeToString(doc) : xml;
+  }
+  // pares de ligaduras pendientes de un MusicXML (los anota ligadurasEntreCapas)
+  function ligadurasPendientes(xml) {
+    const out = [];
+    for (const m of (xml || '').matchAll(/<note\b[^>]*>/g)) {
+      const id = (m[0].match(/\sid="([^"]+)"/) || [])[1], fin = (m[0].match(/\sdata-hf-tie="([^"]+)"/) || [])[1];
+      if (id && fin) for (const b of fin.split(/\s+/)) out.push([id, b]);
+    }
+    return out;
+  }
+  // añade al MEI (de tk.getMEI()) las ligaduras pendientes, en el compás donde empieza cada una
+  function ligadurasMEI(mei, pares) {
+    for (const [a, b] of pares) {
+      const i = mei.indexOf(`xml:id="${a}"`), j = mei.indexOf(`xml:id="${b}"`); if (i < 0 || j < 0) continue;
+      const fin = mei.indexOf('</measure>', i); if (fin < 0) continue;
+      mei = mei.slice(0, fin) + `<tie startid="#${a}" endid="#${b}"/>` + mei.slice(fin);
+    }
+    return mei;
+  }
+  regla('N-LIG-4', 'Ligaduras de unión entre capas', 'xml', 'aplicada', 'Una ligadura de unión cuya nota de llegada está en otra voz (al condensar voces, N-VOC-4) se pasa a MEI al dibujar, porque Verovio solo une las de MusicXML dentro de una misma voz (CONFIG.ligadurasEntreCapas).');
+
   // Punto de entrada para las reconstrucciones: reparto entre manos, dos capas por pentagrama y unísonos entre manos
   function vocesReconstruidas(xml) {
-    if (!CONFIG.vocesPorRegistro && !CONFIG.dosCapas && !CONFIG.unisonosUnaVez) return xml;
+    if (!CONFIG.vocesPorRegistro && !CONFIG.dosCapas && !CONFIG.unisonosUnaVez && !CONFIG.vocesCondensadas && !CONFIG.homorritmia && !CONFIG.notasAlOtroPentagrama) return xml;
     let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml') } catch (e) { return xml }
     if (doc.querySelector('parsererror')) return xml;
     let total = 0;
@@ -556,15 +848,18 @@
         if (C.raro) continue;
         let n = 0;
         if (CONFIG.vocesPorRegistro && staves === 2) n += repartir(C);
+        if (staves === 2) n += subirNotas(C);
         if (CONFIG.dosCapas) n += reducir(doc, C);
+        if (CONFIG.vocesCondensadas || CONFIG.homorritmia) n += condensar(C);
         if (CONFIG.unisonosUnaVez && staves === 2) n += unisonosManos(C);
         if (n) { escribirCompas(doc, C); total += n }
       }
     }
     return total ? new XMLSerializer().serializeToString(doc) : xml;
   }
-  regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior que su mano no puede tocar (más de una décima con otra voz a la vez, y en la otra mano cabe) o que necesita 3+ líneas adicionales que en el otro pentagrama no necesita pasa al pentagrama de la otra mano en ese compás (CONFIG.vocesPorRegistro).');
-  regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'aplicada', 'Reconstrucciones: como mucho dos capas por pentagrama. Una voz interior se intercala en la vecina si no suenan a la vez o se escribe como acordes de la vecina, con ligaduras de unión donde se sostiene (style brisé); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso (CONFIG.dosCapas).');
+  regla('N-CRUCE-2', 'Notas sueltas al otro pentagrama', 'xml', 'aplicada', 'Reconstrucciones: en una voz interior, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro pasa al otro pentagrama, con lo que le sigue en el pulso, si queda por debajo (o por encima) de todo lo que suena allí (CONFIG.notasAlOtroPentagrama).');
+  regla('N-CRUCE-1', 'Notas que cruzan de pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano en ese compás si allí cabe; los cruces de manos de la fuente se conservan (CONFIG.vocesPorRegistro).');
+  regla('N-VOC-1', 'Tres o más voces en un pentagrama', 'xml', 'aplicada', 'Reconstrucciones: una voz interior se intercala en la vecina si no suenan a la vez o se escribe como acordes de la vecina con ligaduras de unión; las voces de un style brisé (que atacan una nota a la vez que otra) se dejan en sus capas (N-VOC-3); se rechaza si añade de media más de una ligadura por pulso o más de dos en un pulso (CONFIG.dosCapas).');
   regla('N-VOC-2', 'Unísonos entre voces', 'xml', 'aplicada', 'Reconstrucciones: la misma nota atacada a la vez en las dos manos se escribe una vez (la más larga, o la del pentagrama de su registro). Dentro de un pentagrama, una cabeza con dos plicas, como la dibuja Verovio (CONFIG.unisonosUnaVez).');
 
     // Reglas que ya aplica el proyecto en otros puntos (se mantienen allí; este catálogo las nombra para poder medirlas)
@@ -578,5 +873,5 @@
   regla('N-ALT-1', 'Alteraciones que chocan', 'svg', 'pendiente', 'En las reconstrucciones, alteraciones encimadas con otra alteración o con una cabeza (12 en 57 fragmentos). Los márgenes de Verovio no lo resuelven.');
   regla('N-OCT-1', 'Signo de octava frente a muchas líneas adicionales', 'xml', 'pendiente', 'Pasajes con 5 o más líneas adicionales sostenidos: cambiar de clave, pasar de pentagrama o 8va (Allemande, c. 5, mano izquierda con re5 en clave de fa). Hay que fijar el umbral: las octavas graves de Schumann (4 líneas) son legítimas.');
 
-  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz, despejarLigaduras, vocesReconstruidas };
+  global.Notacion = { opciones: OPCIONES, config: CONFIG, reglas: REGLAS, regla, compasInicio, alteracionesRedundantes, plicasPorVoz, despejarLigaduras, vocesReconstruidas, plicasUnisono, cabezasCompartidas, ligadurasEntreCapas, ligadurasPendientes, ligadurasMEI };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1708,6 +1708,8 @@ async function xmlDe(o){
   else{ if(!Notacion.config.clavesDeLaEdicion) x=corregirClaves(x); if(o.convertida) x=Notacion.alteracionesRedundantes(x) }
   // N-PLICA-2: una dirección de plica por voz, igual para todas las fuentes (reconstruidas, convertidas y ediciones)
   x=Notacion.plicasPorVoz(x);
+  // N-VOC-3: dos voces que atacan la misma nota llevan plicas opuestas (para compartir la cabeza en el SVG)
+  if(o.reconstruida) x=Notacion.ligadurasEntreCapas(Notacion.plicasUnisono(x));   // N-VOC-3, N-LIG-4
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -1761,7 +1763,7 @@ function fusionarVocesIguales(doc,m,hijo){
     if(c.tagName==='forward'){t+=d;continue}
     if(c.tagName!=='note') continue;
     const ch=!!hijo(c,'chord'); if(ch) t-=prevD;
-    ev.push({n:c,t,d,ch,st:hijo(c,'staff')?.textContent||'1',v:hijo(c,'voice')?.textContent||'1',silencio:!!hijo(c,'rest'),gracia:!!hijo(c,'grace')});
+    ev.push({n:c,t,d,ch,st:c.getAttribute('data-hf-casa')||hijo(c,'staff')?.textContent||'1',v:hijo(c,'voice')?.textContent||'1',silencio:!!hijo(c,'rest'),gracia:!!hijo(c,'grace')});
     t+=d; prevD=d;
   }
   const porSt=new Map(); for(const e of ev){if(!porSt.has(e.st))porSt.set(e.st,new Map());const m2=porSt.get(e.st);if(!m2.has(e.v))m2.set(e.v,[]);m2.get(e.v).push(e)}
@@ -1965,7 +1967,7 @@ function barrasAutomaticas(doc,hijo){
         const du=+(hijo(n,'duration')?.textContent||0), acorde=!!hijo(n,'chord'), grace=!!hijo(n,'grace');
         const ini=acorde?pos-prev:pos;
         if(!acorde&&!grace){prev=du;pos+=du}
-        const clave=(hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');
+        const clave=(n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1')+'/'+(hijo(n,'voice')?.textContent||'1');   // N-CRUCE-2: la barra cruza de pentagrama
         if(!porVoz.has(clave)) porVoz.set(clave,[]);
         porVoz.get(clave).push({n,ini,acorde,grace,sil:!!hijo(n,'rest'),nivel:NIVEL_BARRA[hijo(n,'type')?.textContent]||0});
       }
@@ -2013,7 +2015,7 @@ function ordenarVoces(xml,inst){
       fusionarVocesIguales(doc,m,hijo);
       const porPent=new Map();
       for(const n of [...m.children].filter(c=>c.tagName==='note')){
-        const st=hijo(n,'staff')?.textContent||'1', v=+(hijo(n,'voice')?.textContent||1), pi=hijo(n,'pitch');
+        const st=n.getAttribute('data-hf-casa')||hijo(n,'staff')?.textContent||'1', v=+(hijo(n,'voice')?.textContent||1), pi=hijo(n,'pitch');
         const alt=pi?(PASO[hijo(pi,'step')?.textContent]??0)+7*(+(hijo(pi,'octave')?.textContent||4)):null;
         if(!porPent.has(st)) porPent.set(st,[]); porPent.get(st).push({n,v,alt,silencio:!!hijo(n,'rest')});
       }
@@ -2029,7 +2031,8 @@ function ordenarVoces(xml,inst){
         // renumerar: la voz más aguda pasa a ser la 1 (Verovio orienta plicas y barras por número de voz)
         const base=Math.min(...voces), nueva=new Map();
         [...orden,...voces.filter(v=>!orden.includes(v)).sort((a,b)=>a-b)].forEach((v,k)=>nueva.set(v,base+k));
-        for(const x of notas){const vo=hijo(x.n,'voice'); if(vo) vo.textContent=String(nueva.get(x.v))}
+        // con notas dibujadas en el otro pentagrama (N-CRUCE-2) no se renumera: el número de voz es de la parte y chocaría con la otra mano
+        if(!m.querySelector('note[data-hf-casa]')) for(const x of notas){const vo=hijo(x.n,'voice'); if(vo) vo.textContent=String(nueva.get(x.v))}
         for(const {n,v,silencio} of notas){
           if(silencio){
             if(v!==alta){n.setAttribute('print-object','no');continue}
@@ -2038,7 +2041,8 @@ function ordenarVoces(xml,inst){
             const ds=doc.createElement('display-step'), dO=doc.createElement('display-octave'); ds.textContent=pos[0]; dO.textContent=pos[1]; r.append(ds,dO);
             continue;
           }
-          const dir=dirDe(v); if(!dir) continue;
+          // N-CRUCE-2: una nota dibujada en el otro pentagrama apunta hacia el suyo (la barra queda entre los dos, como en la edición)
+          const fuera=n.getAttribute('data-hf-casa'), dir=fuera?(fuera==='2'?'down':'up'):dirDe(v); if(!dir) continue;
           let stm=hijo(n,'stem');
           if(!stm){stm=doc.createElement('stem');const ref=[...n.children].find(c=>ANTES.includes(c.tagName));ref?n.insertBefore(stm,ref):n.append(stm)}
           stm.textContent=dir;
@@ -2378,7 +2382,11 @@ async function mostrar(h){
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,
         ...GRABADO});
-      t.select({measureRange:pos.sel}); t.loadData(xmlGrabar);
+      // N-LIG-4: ligaduras de unión entre capas (MusicXML no las admite en Verovio): se lee el MEI de la obra entera, se añaden
+      // como <tie> de MEI y se vuelve a cargar con la selección de compases
+      const ligPend=Notacion.ligadurasPendientes(xmlGrabar);
+      if(ligPend.length){t.select({}); t.loadData(xmlGrabar); const mei=Notacion.ligadurasMEI(t.getMEI(),ligPend); t.select({measureRange:pos.sel}); t.loadData(mei)}
+      else{t.select({measureRange:pos.sel}); t.loadData(xmlGrabar)}
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
@@ -2392,10 +2400,12 @@ async function mostrar(h){
         const mn=g.querySelector('g.mNum'), v=E.n[pos.p0+j]; if(!mn||v==null||+mn.textContent.trim()===v) return;
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
+      // N-VOC-3: cabeza compartida en los unísonos entre capas (necesita el instante de cada nota: timemap)
+      cargado.tm=t.renderToTimemap({includeMeasures:true});
+      {const ini=new Map(); for(const ev of cargado.tm) for(const id of ev.on||[]) ini.set(id,ev.qstamp); Notacion.cabezasCompartidas(cont.querySelector('svg'),ini)}
       despejarSilencios(cont.querySelector('svg'));
       Notacion.despejarLigaduras(cont.querySelector('svg'));   // N-LIG-2
       despejarNumeros(cont.querySelector('svg'));
-      cargado.tm=t.renderToTimemap({includeMeasures:true});
       svg=cont.querySelector('svg');
       const r=anotar(svg,ac,occ,E,pos,intento===2);
       if(r>=0.9||intento===2) break;
