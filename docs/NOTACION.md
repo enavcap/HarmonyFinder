@@ -202,7 +202,7 @@ Probado en la misma muestra, cambiando solo la opción (`OPC=…`):
   aplanar todas las barras. No se ha investigado la causa dentro de Verovio (hipótesis sin comprobar: el ajuste posterior a la
   longitud mínima de las plicas supera el tope). La vía que queda es recalcular barras y plicas en el SVG o en MEI (`@stem.len`).
 - `slurMargin` 3, `slurCurveFactor` 1,6, `slurSymmetry` 0,2: las ligaduras que chocan **suben** (7 → 12 en originales).
-- `leftMarginAccid` 3,2 / `rightMarginAccid` 1,2: las alteraciones que chocan pasan de 2 a 1 en originales y no cambian en
+- *(Nota de la v0.8.10: este experimento no midió nada: `leftMarginAccid` admite como máximo 2 y Verovio rechaza 3,2; el valor del proyecto, 2,2, tampoco se aplicaba. Corregido a 2: sin cambios en las métricas.)* `leftMarginAccid` 3,2 / `rightMarginAccid` 1,2: las alteraciones que chocan pasan de 2 a 1 en originales y no cambian en
   reconstrucciones (12); `leftMarginChord` 2: sin efecto. Es una mejora demasiado pequeña para cambiar el valor por defecto.
 - `ledgerLineExtension` 0,3: sin diferencia apreciable en las líneas adicionales de notas contiguas.
 

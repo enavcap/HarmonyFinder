@@ -406,7 +406,9 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 ### G. Espaciado
 
 #### `N-ESP-1` — Aire alrededor de alteraciones y silencios
-- **Implementación.** `OPCIONES` (`leftMarginAccid`…). **Estado.** aplicada.
+- **Implementación.** `OPCIONES` (`leftMarginAccid` 2, `rightMarginAccid` 0,8, `leftMarginRest` 2, `rightMarginRest` 1).
+  Hasta la v0.8.9 `leftMarginAccid` valía 2,2, fuera del rango de Verovio (0-2): lo rechazaba y usaba su valor por defecto
+  (1). `prueba_notacion.js` comprueba ahora el rango de todas las opciones. **Estado.** aplicada.
 
 #### `N-ESP-2` — Espaciado horizontal proporcional
 - **Descripción.** Más espacio para las duraciones largas, con la duración breve más frecuente como base.
@@ -509,7 +511,9 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Verovio decide las capas por número de voz**: por eso `N-VOC-4` renumera las voces de las reconstrucciones y `N-PLICA-2`
   escribe `<stem>` explícito en lugar de depender del orden del archivo.
 - **`beamMaxSlope` sin efecto medible** sobre la pendiente de las barras (1 a 20); solo 0 aplana todas (`NOTACION.md`).
-- **Márgenes de alteraciones** (`leftMarginAccid`…): apenas reducen los choques; `N-ALT-1` necesita otra vía.
+- **Márgenes de alteraciones** (`leftMarginAccid`…): su máximo es 2; con 2 (en vez del 1 efectivo hasta la v0.8.9) los choques
+  de alteraciones de la muestra estándar no cambian (1 y 1); `N-ALT-1` necesita otra vía.
+- **Opciones fuera de rango**: Verovio las rechaza con un aviso en la consola y sigue con el valor por defecto.
 - **Ligaduras**: Verovio no aparta las ligaduras de unión de plicas y corchetes de notas muy juntas; no hay opción
   equivalente → `N-LIG-2` en SVG.
 - **Silencios entre capas**: Verovio no siempre evita las notas de otra capa → `N-SIL-2` en SVG.

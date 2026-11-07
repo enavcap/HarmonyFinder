@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.10] - 2026-11-07
+
+### Fixed
+- Opción de grabado `leftMarginAccid` (aire a la izquierda de las alteraciones): valía 2,2, por encima del máximo que admite Verovio (2), que la rechazaba con un aviso en la consola y usaba su valor por defecto (1). Ahora vale 2: algo más de espacio delante de las alteraciones, que redistribuye ligeramente el espaciado de los compases; las métricas de la auditoría no cambian (alteraciones que chocan: 1 y 1 en la muestra estándar). `herramientas/prueba_notacion.js` comprueba que todas las opciones de Verovio existen y están dentro de su rango.
+
 ## [0.8.9] - 2026-11-07
 
 ### Added
@@ -306,7 +311,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.10...HEAD
+[0.8.10]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.9...v0.8.10
 [0.8.9]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
