@@ -8,6 +8,24 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que se publicaron como 0.8.8 y 0.8.9 desde otra rama (la rama de voces partía de la 0.8.7, igual que la del motor). Esas dos publicaciones sobrescribieron la 0.8.10 en GitHub Pages; esta versión reúne las dos líneas. Para no repetir identificadores del motor, las reglas `N-VOC-3`, `N-VOC-4` y `N-LIG-4` de aquella rama pasan a ser `N-VOC-5`, `N-VOC-6` y `N-LIG-6`.
+
+### Fixed
+- Partituras reconstruidas desde el DCML con varias voces por pentagrama, escritas como en una edición impresa (cotejada compás a compás la *Allemande* de la Suite inglesa n.º 1, BWV 806):
+  - `N-CRUCE-1`: una voz que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano. *Allemande*, c. 1: el arpegio la3-do#4-mi4 pasa a la mano izquierda; c. 5: el sol#2 ya no queda en clave de sol con seis líneas adicionales. Los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4; Liszt, *Sposalizio*).
+  - `N-CRUCE-2`: en una voz interior, las notas con 3 o más líneas adicionales que caben en el otro pentagrama se dibujan en él, en su voz, con la plica hacia su pentagrama y una barra que cruza (c. 2: sol#4-la4-si4-mi4-fa#4 en la derecha, unido al fa#4 de la izquierda).
+  - `N-VOC-1`: como mucho dos capas por pentagrama. Una voz se intercala en la vecina o se escribe como acordes ligados; las líneas melódicas reales se quedan en su capa, como en la edición (cc. 6-7).
+  - `N-VOC-5`: en los arpegios sostenidos (*style brisé*), cada nota sostenida se escribe una vez, con su duración real, y comparte la cabeza con la semicorchea del arpegio (una cabeza y dos plicas). Verovio solo la compartía si figura y puntillo coincidían (c. 2: mi5 con puntillo y do#5 en corchea sobre mi5-do#5-la4).
+  - `N-VOC-6`: las voces que coinciden en ritmo van en un acorde de una plica, también las notas que llegan ligadas (c. 1: la3, do#4 y mi4 en un acorde de negras; c. 3: do#5 y la4). Dos voces con el mismo ritmo en todo el compás van en acordes (2 129 pentagramas-compás de las reconstrucciones); las que coinciden solo en parte se dejan separadas.
+  - `N-VOC-2`: una nota atacada a la vez en las dos manos se escribe una sola vez.
+  - `N-LIG-6`: las ligaduras de unión que quedan entre dos capas se dibujan desde MEI (Verovio solo une las de MusicXML dentro de una voz; quedaban abiertas o enganchadas a otra nota).
+- `N-CLAVE-1`: la mano izquierda del teclado no pasa a clave de sol por un pasaje de tenor que cabe en fa con 2 líneas adicionales o menos (la *Allemande* empezaba en sol); una izquierda aguda de verdad sigue pasando a sol (Bartók, Bagatela n.º 1). La clave se elige después de repartir las voces. Se apaga con `Notacion.config.izquierdaEnFa = false`.
+- `N-LIG-2`: una ligadura que sale de una cabeza compartida ya no se recorta hasta pasar las notas de en medio, que la hacían empezar lejos de su nota. Las ligaduras largas prueban arcos de hasta 2 espacios y el lado contrario.
+- `N-BARRA-3`: una corchea que comparte cabeza con otra voz no se une por barra con el pulso vecino (c. 2: el do#5 lleva su corchete, como en la edición).
+
+### Added
+- `herramientas/auditoria_gould.js`: métricas `capas3` (pentagramas-compás con 3 o más capas) y `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas). Fichas de las reglas nuevas en `docs/ESPECIFICACION_GRABADO_MUSICAL.md` y la edición de referencia (Ed-806) en sus fuentes; pruebas en `herramientas/prueba_notacion.js` y cuatro casos fijos en `herramientas/notacion_casos.json`.
+
 ## [0.8.10] - 2026-11-07
 
 ### Fixed

@@ -21,6 +21,7 @@ Versión de la especificación: 1 (2026-11-06), escrita sobre la v0.8.7.
 | **LP** | *LilyPond Notation Reference* 2.24 (`lilypond.org/doc/v2.24/Documentation/notation-big-page`) | Reglas por defecto de grabado: voces, colisiones, barras automáticas, alteraciones, espaciado, dirección | 2026-11-06 |
 | **DAISY** | *DAISY Engraving Guidelines* (`daisy.org/…/daisy-engraving-guidelines/`, act. 10-06-2025) | Criterios de **corrección estructural** del MusicXML (elementos anclados a su nota, sin notas ni silencios ocultos superfluos, alteraciones entre voces) | 2026-11-06 |
 | **Gould** | Elaine Gould, *Behind Bars* (Faber, 2011) | Referencia temática histórica del proyecto. **Sin páginas verificadas**: no se usa como única fuente de ninguna regla nueva | — |
+| **Ed-806** | J. S. Bach, Suite inglesa n.º 1, BWV 806, edición impresa (IMSLP 917223), *Allemande* cotejada compás a compás con la reconstrucción del DCML | **Evidencia de grabado profesional** para las reglas de voces de las reconstrucciones (`N-CRUCE-1/2`, `N-VOC-1/2/5/6`, `N-LIG-6`): qué hace una edición con el reparto de voces del DCML | 2026-11-07 |
 | **Propia** | Decisión del proyecto | Umbrales numéricos, adaptaciones a ejemplos armónicos breves y a las limitaciones de Verovio | — |
 
 Páginas de MuseScore citadas (todas bajo `https://handbook.musescore.org/`):
@@ -247,12 +248,28 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Implementación.** Verovio. **Prueba.** auditoría `notaNota` (0 cabezas encimadas en la muestra).
 - **Estado.** verovio.
 
-#### `N-VOC-2` — Unísonos entre voces con duraciones distintas
-- **Descripción.** Mismo sonido en dos voces con distinta duración: cabeza compartida solo si MS-cabezas lo permite; si no,
-  dos cabezas separadas sin encimarse.
-- **Referencia.** MS-cabezas; LP-voces.
-- **Implementación.** Pendiente de comprobar si Verovio lo resuelve siempre (es el caso que más falla en otros grabadores).
-- **Estado.** pendiente, P3.
+#### `N-VOC-2` — Unísonos entre las dos manos
+- **Descripción.** Reconstrucciones: la misma nota (altura y grafía) atacada a la vez en las dos manos se escribe una vez: la
+  más larga o, si duran igual, la del pentagrama de su registro. Dentro de un pentagrama no se quita: una cabeza y dos plicas
+  (`N-VOC-5`).
+- **Referencia.** Ed-806 (c. 1: el do#4 duplicado en las dos manos se escribe una vez); MS-cabezas.
+- **Excepciones.** Notas que llegan ligadas (forman parte de otra nota).
+- **Implementación.** `unisono-entre-manos` (estructural; declara notas, duraciones, voces, pentagramas, acordes, ligaduras).
+- **Prueba.** `prueba_notacion.js` («un unísono entre manos se escribe una vez»). **Estado.** aplicada.
+
+#### `N-VOC-5` — Unísonos entre capas: una cabeza y dos plicas
+- **Descripción.** Dos voces que atacan a la vez la misma nota (el *style brisé*: un arpegio en semicorcheas y, en otras
+  voces, cada nota sostenida con su duración) llevan plicas opuestas y comparten la cabeza, cada una con su figura y puntillo.
+- **Referencia.** Ed-806 (cc. 1-2, 25, 29, 30: mi5 con puntillo y do#5 en corchea sobre las semicorcheas mi5-do#5-la4);
+  MS-cabezas (unísono con plicas opuestas); LP-voces («Collision resolution»).
+- **Comportamiento esperado.** Verovio solo comparte la cabeza si figura y puntillo coinciden; si no, desplaza una a un lado.
+  En el SVG se lleva la nota que no está bajo una barra sobre la otra (cabeza, plica, corchete, puntillos y alteración) y se
+  corren los extremos de sus ligaduras (`data-startid`/`data-endid`, opción `svgAdditionalAttribute`).
+- **Excepciones.** Cabezas distintas (blanca y negra) van una junto a otra (MS-cabezas, LP-voces); notas bajo una barra en
+  las dos capas no se mueven.
+- **Implementación.** Plicas: dentro de `plicas-por-voz`, tras `N-PLICA-2/3`, solo reconstrucciones (`plicasUnisonoDoc`).
+  Cabezas: `cabezasCompartidas` (`notacion_svg.js`), con el instante de cada nota del *timemap* de Verovio.
+- **Prueba.** `prueba_notacion.js` (plicas opuestas; Allemande, cc. 0-3); auditoría `unisonoSeparado`. **Estado.** aplicada.
 
 ### C. Barras y agrupaciones rítmicas
 
@@ -282,7 +299,7 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Comportamiento esperado.** 4/4: corcheas por medio compás (nunca a través de la mitad). 3/4: compás entero. 3/8 y 3/16:
   el pulso es el compás (tres corcheas juntas; antes quedaban sueltas, con corchete). Los grupos con semicorcheas o menos
   siguen cortándose por pulso; los tresillos no se unen.
-- **Casos especiales.** Dos grupos solo se unen si son contiguos (sin silencio ni hueco entre ellos).
+- **Casos especiales.** Dos grupos solo se unen si son contiguos (sin silencio ni hueco entre ellos). Una corchea que comparte cabeza con la nota de otra voz (`N-VOC-5`) no se une con el pulso vecino: en Ed-806 (c. 2) lleva su propio corchete.
 - **Excepciones.** 2/4 y 2/2 no cambian (2/2 ya agrupa por blanca). LP documenta además `beamHalfMeasure` para 3/4 (evitar
   empezar una barra a mitad de compás, citando a Gould): no se implementa (§ 7, pendiente).
 - **Implementación.** `estructuraMetrica` + unión de grupos en `barrasAutomaticas`; `Notacion.config.barrasPorCompas`.
@@ -389,8 +406,22 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Descripción.** Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos
   y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca.
 - **Referencia.** MS-ligaduras («Autoplace min. distance»); LP-ligaduras. Los pasos y topes son **Propia**.
+- **Casos especiales.** Una ligadura que sale de una cabeza compartida (`N-VOC-5`) solo se recorta por obstáculos a menos de
+  1,5 espacios de sus extremos: recortarla por lo de en medio la hacía empezar lejos de su nota (Ed-806, cc. 1-2). Las
+  ligaduras de más de 3 espacios prueban además arcos de hasta 2 espacios y el arco por el lado contrario.
 - **Implementación.** `despejarLigaduras` (SVG; Verovio no ofrece una opción equivalente); marca `data-n-lig2`.
 - **Prueba.** `prueba_notacion.js`; auditoría `unionChoque`. **Estado.** aplicada.
+
+#### `N-LIG-6` — Ligaduras de unión entre capas
+- **Descripción.** Una ligadura de unión cuya nota de llegada está en otra voz (al condensar voces, `N-VOC-6`) se dibuja igual
+  que las demás.
+- **Referencia.** Ed-806 (c. 2: el do#5 en corchea de una voz llega ligado al acorde de corcheas de otra).
+- **Comportamiento esperado.** Verovio solo une las de MusicXML dentro de una voz; las demás quedan abiertas o se enganchan a
+  otra nota de la misma altura de su capa. En MEI una ligadura une dos notas cualesquiera por su `xml:id`, y Verovio conserva
+  los `id` del MusicXML. Se quita la ligadura de `<tied>` (se conserva `<tie>`, lo que suena), se anota el par (`id`,
+  `data-hf-tie`) y al dibujar se añade como `<tie>` de MEI (`ligadurasPendientes`, `ligadurasMEI`, `index.html`).
+- **Implementación.** `ligaduras-entre-capas` (presentación: dónde se dibuja la ligadura; declara `ligadurasUnion`).
+- **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
 
 #### `N-LIG-4` — Ligaduras entre sistemas y en acordes
 - **Descripción.** Ligadura partida al cambiar de sistema; en acordes, una ligadura por nota con pareja.
@@ -436,14 +467,56 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Descripción.** Reconstrucciones: clave por tesitura e instrumento (programación dinámica que penaliza líneas adicionales
   y cambios breves). Ediciones: sus claves, también los cambios a mitad de compás.
 - **Referencia.** MS (claves propias de cada instrumento al crear la partitura). Los costes son **Propia**.
+- **Casos especiales.** En el pentagrama inferior del teclado, en los compases que caben en fa con 2 líneas adicionales o menos,
+  el cambio a clave de sol cuesta más (sesgo 2 en vez de 0,6): la izquierda no cambia de clave por un pasaje de tenor (Ed-806:
+  clave de fa en toda la *Allemande*); una izquierda aguda de verdad pasa a sol (Bartók, Bagatela n.º 1). `CONFIG.izquierdaEnFa`. La clave se elige después de
+  repartir las voces (`N-CRUCE-1/2`, `N-VOC-1/2/6`).
 - **Implementación.** `claves-por-tesitura`, `claves-corregidas`. **Prueba.** `prueba_motor.js`, `auditoria_claves.js`.
 - **Estado.** aplicada.
 
-#### `N-OCT-1`, `N-CRUCE-1` — Muchas líneas adicionales y notas que cruzan de pentagrama
+#### `N-OCT-1` — Muchas líneas adicionales
 - **Referencia.** DAISY G14 (alternancia de manos en la misma voz). **Estado.** pendiente, P2 (ver `NOTACION.md`).
 
+#### `N-CRUCE-1` — Una voz que su mano no alcanza pasa a la otra
+- **Descripción.** Reconstrucciones: una voz que no es la exterior de su mano (la más aguda de la derecha, la más grave de la
+  izquierda) pasa al pentagrama de la otra mano en ese compás si, a la vez que alguna de sus notas, otra voz de su pentagrama
+  está a más de una décima, y en la otra mano cabe (y allí no pasa de 3 líneas adicionales).
+- **Referencia.** Ed-806 (c. 1: la3-do#4-mi4 mientras la derecha toca la5 → mano izquierda; c. 5: sol#2 bajo sol#4; c. 4: un
+  tenor la3-do#4 sobre si2 se queda abajo). El umbral (décima, 9 pasos diatónicos) es **Propia**.
+- **Excepciones.** No se decide por líneas adicionales: los cruces de manos de la fuente se conservan (Medtner, Op. 26 n.º 4,
+  cc. 38-39; Liszt, *Sposalizio*, c. 58).
+- **Implementación.** `voces-a-su-mano` (estructural), antes de `N-CLAVE-1`. **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
+
+#### `N-CRUCE-2` — Notas sueltas al otro pentagrama, con barra que cruza
+- **Descripción.** En una voz interior, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro se dibuja
+  en el otro pentagrama, con lo que le sigue en ese pulso y las notas a las que va ligada, si queda por debajo (o por encima)
+  de todo lo que suena allí. Sigue en su voz (`data-hf-casa` guarda el pentagrama de origen), apunta con la plica hacia él y
+  la barra cruza de pentagrama.
+- **Referencia.** Ed-806 (c. 2: sol#4-la4-si4-mi4-fa#4 de la izquierda en el pentagrama de la derecha; el fa#4 con puntillo
+  queda abajo, unido al sol#4 por una barra que cruza); DAISY G14.
+- **Implementación.** `notas-al-otro-pentagrama` (estructural). `voces-por-altura` no renumera esos compases; las demás
+  reglas de voces, barras y plicas agrupan por el pentagrama de origen. **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
+
 #### `N-VOC-1` — Tres o más voces en un pentagrama
-- **Estado.** pendiente, P2: 0,17 % de los pentagramas-compás. `N-VOC-3` y `N-PLICA-3` ya resuelven parte.
+- **Descripción.** Reconstrucciones: mientras un pentagrama tenga más de dos voces con notas, una voz se intercala en una
+  vecina si no suenan a la vez, o se escribe como acordes de la vecina, partida en trozos ligados, si la vecina suena durante
+  todas sus notas.
+- **Referencia.** Ed-806 (c. 2: el arpegio sostenido, de 4 voces encimadas a 2 capas; cc. 6-7: una línea melódica intermedia
+  se deja como voz propia); LP-voces («Identical rhythms»).
+- **Excepciones.** No se funden las voces de un *brisé* (`N-VOC-5`). Se rechaza si añade de media más de una ligadura por pulso
+  o más de dos en un pulso (línea real; **Propia**), o si un trozo no se puede escribir con figuras.
+- **Implementación.** `dos-capas` (estructural; declara notas y duraciones porque parte notas en trozos ligados: lo que suena
+  no cambia). **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
+
+#### `N-VOC-6` — Voces que coinciden en ritmo: un acorde con una plica
+- **Descripción.** Con 3+ voces sonando en un pentagrama, la nota de una voz interior que coincide en instante y duración con la
+  de una vecina pasa a su acorde, también si llega ligada; dos acordes condensados seguidos en un pulso van en la misma voz (y
+  bajo una barra). Dos voces con el mismo ritmo en todo el compás van en acordes de una voz; si coinciden solo en parte se
+  dejan separadas.
+- **Referencia.** Ed-806 (c. 3: do#5 y la4 en un acorde; c. 4: fa#4 y re#4; cc. 1-2: notas sostenidas que llegan ligadas a un
+  acorde; cc. 6-7: dos voces que coinciden a ratos, separadas); LP-voces («Identical rhythms»).
+- **Excepciones.** Unísonos (`N-VOC-5`), voces que se cruzarían, notas a más de una décima.
+- **Implementación.** `voces-condensadas` (estructural). **Prueba.** `prueba_notacion.js`. **Estado.** aplicada.
 
 #### `N-VOC-3` — Voces de ritmo idéntico en acordes (estructural)
 - **Descripción.** En las reconstrucciones, con 3+ voces en un pentagrama, una voz cuyas notas coinciden todas en inicio y
@@ -514,6 +587,11 @@ Formato de cada regla: **Descripción** · **Referencia** · **Comportamiento es
 - **Márgenes de alteraciones** (`leftMarginAccid`…): su máximo es 2; con 2 (en vez del 1 efectivo hasta la v0.8.9) los choques
   de alteraciones de la muestra estándar no cambian (1 y 1); `N-ALT-1` necesita otra vía.
 - **Opciones fuera de rango**: Verovio las rechaza con un aviso en la consola y sigue con el valor por defecto.
+- **Unísonos entre capas**: Verovio solo comparte la cabeza si las dos notas son iguales de figura y puntillo → `N-VOC-5` en SVG.
+- **Ligaduras entre capas**: desde MusicXML Verovio solo une ligaduras dentro de una voz; en MEI, entre dos notas cualesquiera →
+  `N-LIG-6` las añade al MEI al dibujar. Verovio dibuja las ligaduras a partir de `<tied>`, no de `<tie>`.
+- **Barras que cruzan de pentagrama**: Verovio las dibuja si las notas siguen en la misma voz y solo cambian de `<staff>` →
+  `N-CRUCE-2`.
 - **Ligaduras**: Verovio no aparta las ligaduras de unión de plicas y corchetes de notas muy juntas; no hay opción
   equivalente → `N-LIG-2` en SVG.
 - **Silencios entre capas**: Verovio no siempre evita las notas de otra capa → `N-SIL-2` en SVG.

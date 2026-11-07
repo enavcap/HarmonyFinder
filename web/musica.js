@@ -47,6 +47,7 @@
     adornos: 'Adornos y calderones (<ornaments>, <fermata>)',
     armonias: 'Cifrados armónicos del archivo (<harmony>)',
     letra: 'Letra (<lyric>)',
+    sonido: 'Lo que suena: ataques de cada altura (sin las notas que llegan ligadas; dos ataques iguales a la vez cuentan como uno) y tramos en que suena cada altura (uniendo notas ligadas o seguidas). Ninguna transformación puede cambiarlo: es la garantía de las estructurales que parten notas en trozos ligados o quitan un unísono duplicado (N-VOC-1, N-VOC-2)',
     lecturaAlturas: 'Notas cuya altura escrita (armadura + alteraciones impresas del compás) no coincide con la sonora: una transformación puede reducirlas, nunca añadir',
   };
 
@@ -157,6 +158,7 @@
     for (const k of Object.keys(PROPIEDADES)) H[k] = new Map();
     const pon = (k, clave, n = 1) => H[k].set(clave, (H[k].get(clave) || 0) + n);
     for (const P of mod.partes) {
+      sonidoDe(P, H.sonido);
       pon('instrumentos', `${P.id}|pentagramas=${P.pentagramas}`);
       pon('compases', `${P.id}|${P.compases.length}`);
       for (const M of P.compases) {
@@ -198,6 +200,33 @@
     return H;
   }
 
+  // I-7. Lo que suena, por parte: instantes absolutos (en negras) desde el principio, con la duración nominal de cada compás
+  // (la de su indicación; en un compás incompleto, lo que dura su contenido). Los ataques se cuentan una vez aunque se repitan
+  // en dos voces o pentagramas, y los tramos de cada altura se unen: así partir una nota en trozos ligados o quitar la copia de
+  // un unísono no cambia la huella, y cualquier nota perdida, añadida, movida o alargada sí.
+  function sonidoDe(P, mapa) {
+    const ataques = new Set(), tramos = new Map(); let base = 0;
+    for (const M of P.compases) {
+      let fin = 0;
+      for (const E of M.eventos) {
+        fin = Math.max(fin, E.t + E.dur);
+        if (E.tipo !== 'nota' || E.gracia) continue;
+        const ini = redondo(base + E.t), fn = redondo(base + E.t + E.dur);
+        if (!E.ligaduras.includes('s:stop')) ataques.add(`${P.id}|a|${E.altura}|${ini}`);
+        if (!tramos.has(E.altura)) tramos.set(E.altura, []); tramos.get(E.altura).push([ini, fn]);
+      }
+      const [b, t] = (M.metrica || '').split('/').map(Number);
+      const nominal = b && t ? b * 4 / t : 0;
+      base += nominal && Math.abs(fin - nominal) < 1e-6 ? nominal : (fin || nominal);
+    }
+    for (const a of ataques) mapa.set(a, 1);
+    for (const [alt, l] of tramos) {
+      l.sort((x, y) => x[0] - y[0]);
+      let [s0, e0] = l[0];
+      for (const [s1, e1] of l.slice(1)) { if (s1 <= e0 + 1e-6) e0 = Math.max(e0, e1); else { mapa.set(`${P.id}|t|${alt}|${s0}-${e0}`, (mapa.get(`${P.id}|t|${alt}|${s0}-${e0}`) || 0) + 1); s0 = s1; e0 = e1 } }
+      mapa.set(`${P.id}|t|${alt}|${s0}-${e0}`, (mapa.get(`${P.id}|t|${alt}|${s0}-${e0}`) || 0) + 1);
+    }
+  }
   // I-5. Lectura de las alturas: lo que un músico leería en el compás (LilyPond, estilo de alteraciones «default»: una
   // alteración rige hasta el final del compás, en su octava y en su pentagrama; al empezar el compás rige la armadura) frente a
   // la altura real. Las notas ligadas desde antes (tie stop) se leen por la ligadura y no cuentan. Devuelve los id de las

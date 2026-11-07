@@ -55,7 +55,16 @@
         const medio = (n[0] + n[6]) / 2, arriba = (n[3] + n[5]) / 2 < n[1] ? -1 : 1;                    // sentido en que se curva (y crece hacia abajo)
         // recorte: el comienzo pasa de largo las plicas y corchetes de la mitad izquierda; el final se detiene antes de los de la derecha
         let ini = n[0], fin = n[6];
-        for (const o of c0) { if ((o.x0 + o.x1) / 2 < medio) ini = Math.max(ini, o.x1 + sp * 0.15); else fin = Math.min(fin, o.x0 - sp * 0.15) }
+        // solo los obstáculos junto a los extremos (a menos de 1,5 espacios): una ligadura larga puede pasar junto a las notas de en medio,
+        // y recortarla por ellas la haría empezar lejos de su nota (Allemande, c. 1: la del la3 con puntillo saltaba las semicorcheas)
+        // Esto vale para las ligaduras que salen de una cabeza compartida (N-VOC-3); en las demás, recortar por lo de en medio sí libra choques.
+        const nota = id => id && svg.ownerDocument.getElementById(id.replace(/^#/, ''));
+        const compartida = [g.getAttribute('data-startid'), g.getAttribute('data-endid')].some(id => { const e = nota(id); return e && e.getAttribute('data-n-voc3') });
+        for (const o of c0) {
+          const izq = (o.x0 + o.x1) / 2 < medio;
+          if (izq && (!compartida || o.x0 < n[0] + sp * 1.5)) ini = Math.max(ini, o.x1 + sp * 0.15);
+          else if (!izq && (!compartida || o.x1 > n[6] - sp * 1.5)) fin = Math.min(fin, o.x0 - sp * 0.15);
+        }
         const variante = (x0, x1, dy) => {
           const k = (x1 - x0) / (n[6] - n[0]), v = n.slice();
           for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = x0 + (n[i] - n[0]) * k;
@@ -63,11 +72,16 @@
           return v;
         };
         const recorte = fin - ini >= sp * 1.2 && (ini > n[0] || fin < n[6]);
+        // arco por el lado contrario: los puntos de control se reflejan sobre la línea de los extremos
+        const volteada = v => { const w = v.slice(), base = (v[1] + v[7]) / 2; for (const i of [3, 5, 9, 11]) w[i] = 2 * base - v[i]; return w };
         const cand = [];
         if (recorte) cand.push([ini, fin, 0]);
         for (let k = 1; k <= 4; k++) cand.push([n[0], n[6], k * sp * 0.2]);
         if (recorte) for (let k = 1; k <= 4; k++) cand.push([ini, fin, k * sp * 0.2]);
-        const buena = cand.map(c => variante(...c)).find(v => !choques(v).length);
+        // ligaduras largas que pasan junto a notas de otra voz (cabezas compartidas, N-VOC-3): arcos más profundos, hasta 2 espacios
+        if (ancho > sp * 3) for (let k = 5; k <= 10; k++) cand.push([n[0], n[6], k * sp * 0.2]);
+        const vs = cand.map(c => variante(...c));
+        const buena = vs.find(v => !choques(v).length) || (ancho > sp * 3 ? [variante(n[0], n[6], 0), ...vs].map(volteada).find(v => !choques(v).length) : null);
         if (!buena) continue;
         const r = x => Math.round(x * 100) / 100;
         q.setAttribute('d', `M${r(buena[0])},${r(buena[1])} C${r(buena[2])},${r(buena[3])} ${r(buena[4])},${r(buena[5])} ${r(buena[6])},${r(buena[7])} C${r(buena[8])},${r(buena[9])} ${r(buena[10])},${r(buena[11])} ${r(buena[12])},${r(buena[13])}`);
@@ -181,11 +195,60 @@
     svg.querySelectorAll('g.mNum').forEach(g => { if (!/^\s*\d+\s*$/.test(g.textContent)) g.remove() });
     svg.querySelectorAll('g.voltaBracket text, g.voltaBracket tspan').forEach(t => { if (!t.children.length && /^\s*\(\s*\d+\s*\)\s*$/.test(t.textContent)) t.textContent = t.textContent.replace(/[()]/g, '') });
   }
+  // N-VOC-5 (Gould: dos voces que comparten una nota la escriben con una sola cabeza y dos plicas, cada una con su duración).
+  // Verovio solo comparte la cabeza de un unísono entre capas si las dos notas son iguales de figura y puntillo; si no, desplaza
+  // una a un lado (Allemande, c. 2: mi5 en semicorchea y mi5 con puntillo). Aquí se lleva la nota que no está bajo una barra
+  // sobre la otra (cabeza, plica, corchete, puntillos y alteración) y se corren los extremos de sus ligaduras.
+  // inicio: Map id de nota → instante de ataque (qstamp del timemap de Verovio)
+  function cabezasCompartidas(svg, inicio) {
+    if (!Notacion.config.cabezaCompartida || !svg || !inicio) return 0;
+    let movidas = 0;
+    const caja = e => { try { return e.getBBox() } catch (_) { return null } };
+    for (const st of svg.querySelectorAll('g.measure > g.staff')) {
+      const capas = [...st.querySelectorAll(':scope > g.layer')]; if (capas.length < 2) continue;
+      const notas = [];
+      capas.forEach((c, k) => { for (const n of c.querySelectorAll('g.note')) {
+        if (!inicio.has(n.id) || n.closest('g.chord') || n.closest('g.graceGrp')) continue;
+        const cab = n.querySelector(':scope > g.notehead'), b = cab && caja(cab); if (!b || !b.width) continue;
+        const pl = n.querySelector(':scope > g.stem > path'), pb = pl && caja(pl);
+        notas.push({ n, k, t: inicio.get(n.id), x: b.x, y: b.y, w: b.width, viga: !!n.closest('g.beam'), plica: pb ? (pb.y + pb.height / 2 < b.y + b.height / 2 ? 'up' : 'down') : null, cab: (cab.querySelector('use') || {}).getAttribute?.('xlink:href') || (cab.querySelector('use') || {}).getAttribute?.('href') });
+      } });
+      const usadas = new Set();
+      for (const a of notas) for (const b of notas) {
+        if (a === b || a.k === b.k || usadas.has(a) || usadas.has(b) || a.t !== b.t || Math.abs(a.y - b.y) > 1) continue;
+        const dx0 = b.x - a.x; if (Math.abs(dx0) < 1 || Math.abs(dx0) > a.w * 2.2) continue;
+        if (!a.plica || !b.plica || a.plica === b.plica || a.cab !== b.cab) continue;  // misma cabeza y plicas opuestas
+        // se mueve la que no está bajo una barra; si ninguna lo está, la desplazada (la de la derecha)
+        const [fija, mov] = a.viga && !b.viga ? [a, b] : b.viga && !a.viga ? [b, a] : a.viga ? [null, null] : (a.x < b.x ? [a, b] : [b, a]);
+        if (!fija) continue;
+        const dx = fija.x - mov.x;
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('transform', `translate(${dx},0)`);
+        while (mov.n.firstChild) g.appendChild(mov.n.firstChild);
+        mov.n.appendChild(g);
+        // la alteración ya la lleva la nota fija: no se repite
+        if (fija.n.querySelector(':scope > g.accid')) for (const ac of g.querySelectorAll(':scope > g.accid')) ac.setAttribute('display', 'none');
+        // ligaduras de unión que salen de la nota movida o llegan a ella: se corre ese extremo
+        for (const ti of svg.querySelectorAll(`g.tie[data-startid="#${mov.n.id}"], g.tie[data-endid="#${mov.n.id}"]`)) {
+          const q = ti.querySelector('path'), n = ((q && q.getAttribute('d')) || '').match(/-?\d+(?:\.\d+)?/g); if (!n || n.length !== 14) continue;
+          const v = n.map(Number), x0 = v[0], x1 = v[6], ini = ti.getAttribute('data-startid') === '#' + mov.n.id;
+          const nx0 = ini ? x0 + dx : x0, nx1 = ini ? x1 : x1 + dx; if (!(nx1 - nx0 > 1)) continue;
+          for (const i of [0, 2, 4, 6, 8, 10, 12]) v[i] = nx0 + (v[i] - x0) * (nx1 - nx0) / (x1 - x0);
+          const r = x => Math.round(x * 100) / 100;
+          q.setAttribute('d', `M${r(v[0])},${r(v[1])} C${r(v[2])},${r(v[3])} ${r(v[4])},${r(v[5])} ${r(v[6])},${r(v[7])} C${r(v[8])},${r(v[9])} ${r(v[10])},${r(v[11])} ${r(v[12])},${r(v[13])}`);
+        }
+        mov.n.setAttribute('data-n-voc3', '1'); usadas.add(a); usadas.add(b); movidas++;
+      }
+    }
+    return movidas;
+  }
+
   // retoques de grabado tras renderizar (el orden importa: los números se colocan al final, sobre todo lo demás)
-  function aplicar(svg) {
-    const r = { silencios: despejarSilencios(svg), ligaduras: despejarLigaduras(svg) };
+  // inicio (opcional): Map id de nota → instante de ataque (timemap de Verovio), para las cabezas compartidas (N-VOC-5)
+  function aplicar(svg, inicio) {
+    const cabezas = cabezasCompartidas(svg, inicio);                    // antes que silencios y ligaduras: mueve notas
+    const r = { cabezas, silencios: despejarSilencios(svg), ligaduras: despejarLigaduras(svg) };
     despejarNumeros(svg);
     return r;
   }
-  Object.assign(Notacion, { despejarLigaduras, despejarSilencios, despejarNumeros, limpiarNumeros, svg: { aplicar, despejarLigaduras, despejarSilencios, despejarNumeros, limpiarNumeros } });
+  Object.assign(Notacion, { despejarLigaduras, despejarSilencios, despejarNumeros, limpiarNumeros, cabezasCompartidas, svg: { aplicar, despejarLigaduras, despejarSilencios, despejarNumeros, limpiarNumeros, cabezasCompartidas } });
 })(typeof window !== 'undefined' ? window : globalThis);

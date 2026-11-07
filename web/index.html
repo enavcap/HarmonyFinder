@@ -2029,7 +2029,11 @@ async function mostrar(h){
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,
         ...GRABADO});
-      t.select({measureRange:pos.sel}); t.loadData(xmlGrabar);
+      // N-LIG-6: ligaduras de unión entre capas (MusicXML no las admite en Verovio): se lee el MEI de la obra entera, se añaden
+      // como <tie> de MEI y se vuelve a cargar con la selección de compases
+      const ligPend=Notacion.ligadurasPendientes(xmlGrabar);
+      if(ligPend.length){t.select({}); t.loadData(xmlGrabar); const mei=Notacion.ligadurasMEI(t.getMEI(),ligPend); t.select({measureRange:pos.sel}); t.loadData(mei)}
+      else{t.select({measureRange:pos.sel}); t.loadData(xmlGrabar)}
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);
@@ -2041,8 +2045,9 @@ async function mostrar(h){
         const hoja=[...mn.querySelectorAll('*')].reverse().find(x=>!x.children.length&&/\d/.test(x.textContent)); if(hoja) hoja.textContent=String(v);
       });
       // retoques de grabado sobre el SVG: silencios (N-SIL-2), ligaduras (N-LIG-2) y números de compás (N-NUM-2)
-      Notacion.svg.aplicar(cont.querySelector('svg'));
+      // y cabezas compartidas en los unísonos entre capas (N-VOC-5), que necesitan el instante de cada nota (timemap)
       cargado.tm=t.renderToTimemap({includeMeasures:true});
+      {const ini=new Map(); for(const ev of cargado.tm) for(const id of ev.on||[]) ini.set(id,ev.qstamp); Notacion.svg.aplicar(cont.querySelector('svg'),ini)}
       svg=cont.querySelector('svg');
       const r=anotar(svg,ac,occ,E,pos,intento===2);
       if(r>=0.9||intento===2) break;

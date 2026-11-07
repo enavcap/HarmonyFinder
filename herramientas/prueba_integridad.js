@@ -5,7 +5,8 @@
 //   · comparación global: notas, alturas, octavas, alteraciones sonoras, duraciones, posiciones métricas, pentagramas,
 //     ligaduras de prolongación y de expresión, compases, compás, armadura, octavas e instrumentos deben coincidir; voces y
 //     acordes también, salvo en las reconstrucciones (N-VOC-3, transformación estructural declarada)
-//   · número de notas y de voces antes y después (resumen)
+//   · número de notas y de voces antes y después (resumen); el de notas solo puede cambiar en las fuentes con una transformación
+//     que lo declara (reconstrucciones: N-VOC-1, N-VOC-2), y entonces lo que suena (propiedad «sonido», I-7) debe ser idéntico
 // uso (con la web servida en http://localhost:8767/):
 //   node herramientas/prueba_integridad.js [límite] [filtro de compositor]     variables: VEROVIO_JS, URL_WEB, CHROME, CFG
 const { chromium } = require('playwright'); const fs = require('fs');
@@ -32,7 +33,10 @@ const VEROVIO = process.env.VEROVIO_JS || 'verovio-toolkit-wasm.js', URL = proce
         const x = Notacion.preparar(x0, { fuente: f, inst: o.src.inst || [], anacrusa });
         const r0 = Musica.resumen(x0), r1 = Musica.resumen(x); F.notas += r0.notas;
         const dif = Musica.comparar(Musica.huella(x0), Musica.huella(x), libres(f));
-        if (dif.length || r0.notas !== r1.notas) out.fallos.push({ id: o.id, f, t: o.c + ' · ' + o.t, dif: dif.slice(0, 5).map(d => d.detalle), notas: [r0.notas, r1.notas] });
+        // el número de notas solo puede cambiar si alguna transformación de esa fuente lo declara (N-VOC-1 parte notas en trozos
+        // ligados, N-VOC-2 quita la copia de un unísono): entonces garantiza lo mismo la propiedad «sonido», que nadie puede cambiar
+        const cuenta = !libres(f).includes('notas') && r0.notas !== r1.notas;
+        if (dif.length || cuenta) out.fallos.push({ id: o.id, f, t: o.c + ' · ' + o.t, dif: dif.slice(0, 5).map(d => d.detalle), notas: [r0.notas, r1.notas] });
         else { F.correctas++; if (r1.voces < r0.voces) F.fusionadas++ }
       } catch (e) { out.fallos.push({ id: o.id, f, t: o.c + ' · ' + o.t, error: String(e.message || e).slice(0, 300) }) }
     }
