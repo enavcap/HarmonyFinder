@@ -1704,7 +1704,7 @@ async function xmlDe(o){
   // N-PLICA-2: una dirección de plica por voz, igual para todas las fuentes (reconstruidas, convertidas y ediciones)
   x=Notacion.plicasPorVoz(x);
   // N-VOC-3: dos voces que atacan la misma nota llevan plicas opuestas (para compartir la cabeza en el SVG)
-  if(o.reconstruida) x=Notacion.plicasUnisono(x);
+  if(o.reconstruida) x=Notacion.ligadurasEntreCapas(Notacion.plicasUnisono(x));   // N-VOC-3, N-LIG-4
   // anacrusa: el análisis la numera 0 y algunas partituras la numeran 1; se alinea la partitura con el análisis
   if((await acordesDe(o.id)).some(c=>c.compas===0)) x=alinearAnacrusa(x);
   xmlCache.set(o.m,x); return x;
@@ -2375,7 +2375,11 @@ async function mostrar(h){
     for(let intento=0;intento<3;intento++){
       t.setOptions({pageWidth:Math.round(anchoPag),scale:38,adjustPageHeight:true,header:'none',footer:'none',breaks:'none',svgViewBox:true,mnumInterval:1,
         ...GRABADO});
-      t.select({measureRange:pos.sel}); t.loadData(xmlGrabar);
+      // N-LIG-4: ligaduras de unión entre capas (MusicXML no las admite en Verovio): se lee el MEI de la obra entera, se añaden
+      // como <tie> de MEI y se vuelve a cargar con la selección de compases
+      const ligPend=Notacion.ligadurasPendientes(xmlGrabar);
+      if(ligPend.length){t.select({}); t.loadData(xmlGrabar); const mei=Notacion.ligadurasMEI(t.getMEI(),ligPend); t.select({measureRange:pos.sel}); t.loadData(mei)}
+      else{t.select({measureRange:pos.sel}); t.loadData(xmlGrabar)}
       if(seleccion!==h) return;
       if(t.getPageCount()<1){cont.innerHTML=`<div class="vacio">${trd('No encuentro esos compases en la partitura.','Those bars are not in the score.')}</div>`;pintarTira(h,dentro);return}
       cont.innerHTML=t.renderToSVG(1).replace(/font-family="Times,\s*serif"/g,`font-family="${FUENTE.replace(/"/g,"'")}"`);

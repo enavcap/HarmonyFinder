@@ -155,9 +155,21 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   ok(await acordes(dos) === 'F4/v1 A4/v1', `N-VOC-4: dos voces con el mismo ritmo en todo el compás van en acordes de una voz (${await acordes(dos)})`);
   const contra = gran(nr(['D', 5], 8, 1) + nr(['C', 5], 4, 1) + nr(['B', 4], 4, 1) + atras + nr(['F', 4], 8, 2) + nr(['A', 4], 8, 2) + atras + nr(['A', 2], 16, 5, 2));
   ok(await acordes(contra) === '', 'N-VOC-4: dos voces que coinciden solo en parte se dejan separadas (contrapunto)');
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false, vocesCondensadas: false, homorritmia: false }));
+  // N-CRUCE-2: en la voz aguda de la izquierda (sobre un la3, al alcance de la mano), mi4 (2 líneas en fa) se queda; la4 (3 líneas) y
+  // si4 suben a la derecha, bajo su mi5
+  rv = await voces(gran(nr(['E', 5], 16, 1) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['E', 4], 4, 6, 2) + nr(['A', 4], 4, 6, 2) + nr(['B', 4], 8, 6, 2)));
+  ok(rv.suena['E4@2'] === 4 && rv.suena['A4@1'] === 4 && rv.suena['B4@1'] === 8, `N-CRUCE-2: las notas de la izquierda con 3+ líneas adicionales pasan a la derecha (${JSON.stringify(rv.suena)})`);
+  // si la derecha toca más grave que esas notas (cruce de manos), no se tocan
+  rv = await voces(gran(nr(['G', 4], 16, 1) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['E', 4], 4, 6, 2) + nr(['A', 4], 4, 6, 2) + nr(['B', 4], 8, 6, 2)));
+  ok(rv.suena['A4@2'] === 4 && rv.suena['B4@2'] === 8, `N-CRUCE-2: no deshace un cruce de manos (${JSON.stringify(rv.suena)})`);
+  // N-LIG-4: ligadura de unión de la voz 1 a la voz 2 (mismo pentagrama y altura): se quita de <tied>, se conserva <tie> y se anota el par
+  const nl = (voz, tipo, extra) => `<note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><tie type="${tipo}"/><voice>${voz}</voice><type>half</type><staff>1</staff><notations><tied type="${tipo}"/></notations></note>`;
+  const ligx = env(nl(1, 'start') + '<backup><duration>2</duration></backup><forward><duration>2</duration><voice>2</voice><staff>1</staff></forward>' + nl(2, 'stop'));
+  const l4 = await p.evaluate(x => { const y = Notacion.ligadurasEntreCapas(x); const d = new DOMParser().parseFromString(y, 'application/xml'); return { pares: Notacion.ligadurasPendientes(y).length, tied: d.querySelectorAll('tied').length, tie: d.querySelectorAll('tie').length, mei: Notacion.ligadurasMEI('<measure><note xml:id="hf-lig0"/><note xml:id="hf-lig1"/></measure>', Notacion.ligadurasPendientes(y)) } }, ligx);
+  ok(l4.pares === 1 && l4.tied === 0 && l4.tie === 2 && /<tie startid="#hf-lig0" endid="#hf-lig1"\/><\/measure>/.test(l4.mei), `N-LIG-4: una ligadura entre dos voces pasa a MEI (${JSON.stringify(l4)})`);
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false, vocesCondensadas: false, homorritmia: false, notasAlOtroPentagrama: false }));
   ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2, N-VOC-4 y N-CRUCE-1 apagadas: el XML no cambia');
-  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true, vocesCondensadas: true, homorritmia: true }));
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true, vocesCondensadas: true, homorritmia: true, notasAlOtroPentagrama: true }));
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();

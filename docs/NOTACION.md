@@ -263,6 +263,27 @@ igual». Esa comprobación visual estaba mal hecha: el script de capturas no apl
 dibujaba dos veces la versión nueva. Queda solo el criterio de la extensión de la mano, que cubre también el sol#2 de la
 Allemande, c. 5, porque suena a la vez que el sol#4 de la derecha.
 
+#### Cc. 1-2 como en la edición: notas ligadas al acorde y la línea aguda de la izquierda arriba (v0.8.9)
+
+Transcripción de la edición frente a la web, después de `N-VOC-3`:
+
+- **c. 1, mano izquierda, 2.ª parte:** la3, do#4 y mi4 vienen de tres voces del DCML, llegan ligados y la edición los escribe en
+  **un acorde de negras**. `N-VOC-4` no tocaba notas ligadas; ahora sí las condensa.
+- **c. 2, mano derecha, 2.ª parte:** mi5 y do#5 llegan ligados a un acorde de corcheas (lo mismo).
+- **c. 2, mano izquierda:** la edición escribe sol#4, la4 y las semicorcheas la4-si4-mi4-fa#4 **en el pentagrama de la
+  derecha**, por debajo de sus notas y con plica abajo, y deja abajo mi4 y fa#4 (2 líneas adicionales). → `N-CRUCE-2`.
+
+Al condensar, una ligadura puede quedar entre dos capas (el do#5 en corchea de una voz llega al acorde de otra). Verovio solo une
+las de MusicXML dentro de una voz: sin arreglo, quedan abiertas o se enganchan a otra nota de la misma altura de su capa (se probó
+con un compás mínimo). En MEI una ligadura une dos notas cualesquiera por su `xml:id`, y Verovio conserva los `id` del MusicXML;
+de ahí `N-LIG-4`.
+
+Medición de `N-CRUCE-2` (apagada → encendida, 60 fragmentos con 3+ voces): notas con ≥ 4 líneas adicionales 19 → 17; plicas que
+no llegan a la línea central 2 → 0; `capas3` 24 → 27 (las notas que suben forman capa propia en el otro pentagrama). Muestra
+estándar: cambian 3 reconstrucciones y ninguna original; choques de ligadura 4 → 2. En captura: Couperin, 5.ª, c. 10, ya no pasa
+a clave de fa la mano derecha; Bach, Suite inglesa n.º 2, Allemande, c. 1, la línea aguda de la izquierda sube a la derecha. Queda
+una diferencia que viene de los datos: el DCML escribe el sol5 del c. 2 como negra con puntillo y la edición como negra.
+
 ## Catálogo de reglas
 
 Estado: **aplicada** (código en `notacion.js`), **existente** (ya la aplica el proyecto en otro punto, se nombra aquí para
@@ -284,9 +305,11 @@ poder medirla) o **pendiente**.
 | `N-VOC-3` | Unísonos entre capas: una cabeza y dos plicas | xml + svg | **aplicada** | Dos voces que atacan la misma nota a la vez (*style brisé*) llevan plicas opuestas (`plicasUnisono`, reconstrucciones) y comparten la cabeza, cada una con su figura y puntillo (`cabezasCompartidas`, todas las fuentes); no se mueven notas bajo una barra ni cabezas distintas (blanca y negra) (`CONFIG.cabezaCompartida`). |
 | `N-VOC-4` | Voces que coinciden en ritmo: un acorde con una plica | xml | **aplicada** | Reconstrucciones: con 3+ voces sonando, la nota de una voz interior que coincide en instante y duración con la de una vecina pasa a su acorde (sin unísonos ni ligaduras, sin cruzarse, en una décima; `CONFIG.vocesCondensadas`). Dos voces con el mismo ritmo en todo el compás (ataques, duraciones, silencios y ligaduras) van en acordes de una voz; si coinciden solo en parte, se dejan separadas (`CONFIG.homorritmia`). |
 | `N-LIG-2` | Ligaduras que atraviesan notas, plicas o barras | svg | **aplicada** | Una ligadura de unión cuyo interior cruza una cabeza, plica, corchete o barra se acorta por los extremos y/o se hace más profunda (hasta 0,8 espacios) hasta librarlos; si ninguna variante lo logra, no se toca (`CONFIG.ligadurasDespejadas`, `despejarLigaduras` en `notacion.js`). No toca las ligaduras de expresión. |
+| `N-LIG-4` | Ligaduras de unión entre capas | xml + MEI | **aplicada** | Una ligadura de unión cuya nota de llegada está en otra voz (tras condensar, `N-VOC-4`) se quita de `<tied>` (se conserva `<tie>`, el sonido), se anota el par (`id`, `data-hf-tie`) y al dibujar se añade como `<tie>` de MEI, porque Verovio solo une las de MusicXML dentro de una voz (`ligadurasEntreCapas`, `ligadurasMEI`; `CONFIG.ligadurasEntreCapas`). |
 | `N-ALT-1` | Alteraciones que chocan | svg | pendiente | 12 casos en reconstrucciones. |
 | `N-ALT-2` | Alteraciones: una vez por compás | xml | **aplicada** | Una alteración rige para las notas de la misma altura del resto del compás en ese pentagrama (sea cual sea la voz); las repetidas de las reconstrucciones del DCML y de las ediciones convertidas desde Humdrum (Sapp), donde la conversión las escribe en cada nota, se quitan (`CONFIG.alteracionesUnaVez`). No toca precauciones, editoriales ni notas ligadas; las demás ediciones (OpenScore…) conservan las suyas. |
 | `N-OCT-1` | 8va frente a muchas líneas adicionales | xml | pendiente | Hay que fijar el umbral. |
+| `N-CRUCE-2` | Notas sueltas al otro pentagrama | xml | **aplicada** | Reconstrucciones: en una voz que no es la exterior de su mano, una nota con 3+ líneas adicionales en su pentagrama y como mucho 1 en el otro pasa al otro pentagrama, con lo que le sigue en ese pulso y las notas a las que va ligada, si queda por debajo (o por encima) de todo lo que suena allí; los cruces de manos no se tocan (`CONFIG.notasAlOtroPentagrama`). |
 | `N-CRUCE-1` | Notas que cruzan de pentagrama | xml | **aplicada** | Reconstrucciones: una voz no exterior pasa al pentagrama de la otra mano en ese compás si su mano no puede tocarla (más de una décima con otra voz a la vez) y en la otra mano cabe; los cruces de manos de la fuente se conservan (`CONFIG.vocesPorRegistro`). Desde v0.8.9 no decide por líneas adicionales (ver «Condensar voces»). |
 
 ## Lo que no se arregla con opciones de Verovio

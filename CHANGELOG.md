@@ -14,6 +14,12 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Regla `N-VOC-4`: las voces que coinciden en ritmo se condensan en acordes de una plica, como en la edición de la *Allemande* (c. 3: do#5 y la4 en la 4.ª parte; c. 4: fa#4 y re#4). Con tres o más voces se condensa nota a nota. Con dos voces, solo si el ritmo coincide en todo el compás (terceras o sextas paralelas escritas como dos voces: 2 129 pentagramas-compás de las reconstrucciones, p. ej. la Sarabande de la Suite inglesa n.º 4 o Grieg, Op. 62 n.º 6). Las que coinciden solo en parte se dejan separadas para que se lea el contrapunto. Se apaga con `Notacion.config.vocesCondensadas = false` y `Notacion.config.homorritmia = false`.
 - Regla `N-CRUCE-1`: ya no mueve voces de mano por las líneas adicionales que llevan con la clave por defecto. Eso deshacía cruces de manos escritos a propósito: en Medtner, Op. 26 n.º 4, cc. 38-39, la mano izquierda, que toca por encima de la derecha, subía a su pentagrama, y en Liszt, *Sposalizio*, cc. 58-60, la izquierda pasaba a clave de fa con acordes de 3-4 líneas adicionales. Ahora solo decide la extensión de la mano.
 
+- La *Allemande* de la Suite inglesa n.º 1, cc. 1-2, se escribe como la edición impresa:
+  - `N-VOC-4` condensa también las notas que llegan ligadas. En el c. 1 de la mano izquierda, la3, do#4 y mi4 van en un acorde de negras, y en el c. 2 de la derecha, mi5 y do#5 en un acorde de corcheas.
+  - Regla `N-LIG-4`: las ligaduras que quedan entre dos capas se dibujan como ligaduras de MEI, porque Verovio solo une las de MusicXML dentro de una voz y las demás quedaban abiertas o enganchadas a otra nota. Se apaga con `Notacion.config.ligadurasEntreCapas = false`.
+  - Regla `N-CRUCE-2`: en una voz interior, las notas con 3 o más líneas adicionales que caben en el otro pentagrama pasan a él (con lo que les sigue en el pulso), si no se cruzan con lo que suena allí. En el c. 2, la línea sol#4-la4-si4-mi4-fa#4 de la izquierda pasa a la derecha, como en la edición. Los cruces de manos de la fuente no se tocan. Se apaga con `Notacion.config.notasAlOtroPentagrama = false`.
+- `barrasAutomaticas` y N-VOC-1: una voz que pertenece a un *brisé* no se intercala con otra (la plica del arpegio quedaba hacia arriba), y las barras se rehacen cuando una nota cambia de pentagrama.
+
 ### Changed
 - `herramientas/auditoria_gould.js`: nueva métrica `unisonoSeparado` (la misma nota en dos capas dibujada con dos cabezas contiguas en vez de una).
 
