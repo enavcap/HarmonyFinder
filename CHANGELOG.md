@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-11-07
+
 ### Fixed
 - Partituras reconstruidas desde el DCML con varias voces por pentagrama, según cómo las escribe una edición profesional (cotejado compás a compás con una edición impresa de la *Allemande* de la Suite inglesa n.º 1 de Bach):
   - Regla `N-CRUCE-1`: una voz que su mano no puede tocar (más de una décima con otra voz a la vez) pasa al pentagrama de la otra mano. En la *Allemande*, c. 1, el arpegio la3-do#4-mi4 pasa a la mano izquierda, y en el c. 5 el sol#2 ya no queda en clave de sol con seis líneas adicionales. Se apaga con `Notacion.config.vocesPorRegistro = false`.
@@ -285,7 +287,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.8...HEAD
+[0.8.8]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.4...v0.8.5
