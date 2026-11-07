@@ -87,6 +87,8 @@ const AT = (div = 1, tiempo = '4/4', clave = '<clef><sign>G</sign><line>2</line>
   ok(await grupos('6/8', corch(6)) === '[=][=]', '6/8: dos grupos de tres corcheas (pulso de negra con puntillo)');
   ok(await grupos('3/8', corch(3)) === '[=]', '3/8: las tres corcheas en un grupo (antes quedaban sueltas, con corchete)');
   ok(await grupos('2/4', corch(4)) === '[][]', '2/4: corcheas por pulso');
+  { const x = (await T('barras-automaticas', partitura([compas(1, nota('C', 5, { dur: 1, tipo: 'eighth' }) + nota('E', 5, { dur: 1, tipo: 'eighth', acorde: 1 }) + nota('D', 5, { dur: 1, tipo: 'eighth' }) + nota('F', 5, { dur: 1, tipo: 'eighth', acorde: 1 }), AT(2, '2/4'))]))).xml;
+    ok(await notas(x, "n.querySelectorAll('beam').length") === '1 0 1 0', 'en un acorde la barra va solo en la primera nota (si las demás la llevan, Verovio deja de dibujar notas)') }
   ok(await grupos('4/4', [['C', 1, 'eighth'], ['R', 1, 'eighth'], ...corch(6)]) === '..[][==]', '4/4: un silencio corta el grupo (y la corchea suelta no lleva barra)')
   ok(await grupos('4/4', [...Array(6).fill(['C', 2, 'eighth', { tresillo: 1 }]), ...Array(4).fill(['C', 3, 'eighth'])], 6) === '[=][=][==]', 'tresillos: se agrupan por pulso y no se unen por medio compás')
   await ev(() => { Notacion.config.barrasPorCompas = false });

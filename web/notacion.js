@@ -510,7 +510,9 @@
                 const a = ant && ant.nivel >= l, s = sig && sig.nivel >= l;
                 const estado = a && s ? 'continue' : a ? 'end' : s ? 'begin' : (i === 0 ? 'forward hook' : 'backward hook');
                 if (!a && !s && !(x.nivel > 1 && l > 1)) continue;           // el nivel 1 aislado no existe (grupo de ≥2)
-                for (const nt of [x.n, ...x.acorde_n]) {
+                // la barra se escribe en la primera nota del acorde (convención de MusicXML; Verovio deja de dibujar notas del
+                // acorde si las demás también la llevan)
+                for (const nt of [x.n]) {
                   const be = doc.createElement('beam'); be.setAttribute('number', String(l)); be.textContent = estado;
                   const ref = [...nt.children].find(c => c.tagName === 'notations' || c.tagName === 'lyric' || c.tagName === 'play' || c.tagName === 'listen');
                   ref ? nt.insertBefore(be, ref) : nt.append(be); cambios++;
