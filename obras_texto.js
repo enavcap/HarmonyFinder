@@ -12,9 +12,10 @@
 
 // palabras de relleno de un título o de lo escrito: no identifican la obra
 const RELLENO_TITULO=new Set(['no','n','º','nr','num','numero','in','en','de','del','la','el','los','las','y','e','a','o']);
-// español → palabras que pueden figurar en el título (en inglés o en el idioma del título)
+// formas equivalentes → palabras que pueden figurar en el título (en inglés o en el idioma del título)
 const ALIAS={
-  inglesa:['english'],ingles:['english'],francesa:['french'],frances:['french'],
+  inglesa:['english'],ingles:['english'],inglesas:['english'],english:['inglesa'],
+  francesa:['french'],frances:['french'],francesas:['french'],french:['francesa'],suites:['suite'],
   preludio:['prelude'],fuga:['fugue'],invencion:['invention'],sinfonia:['sinfonia','symphony'],
   concierto:['concerto','concert'],variaciones:['variations'],cuarteto:['quartet','cuarteto'],cuerda:['string','cuerda'],
   quartet:['cuarteto'],string:['cuerda'],strings:['cuerda'],
@@ -80,6 +81,25 @@ function buscarObra(pal,usado,indice,{comp=''}={}){
   return null;
 }
 
+// Busca una familia de obras sin número («suite francesa»), que puede nombrar varias obras.
+// Solo se acepta una frase suficientemente específica y un conjunto homogéneo de coincidencias.
+function buscarFamiliaObras(pal,usado,indice,{comp=''}={}){
+  const cand=comp?indice.filter(o=>o.c===comp):indice;
+  for(let L=Math.min(8,pal.length);L>=2;L--){
+    const halladas=[];
+    for(let i=0;i+L<=pal.length;i++){
+      if(usado.slice(i,i+L).some(Boolean)||esRelleno(pal[i])||esRelleno(pal[i+L-1])||esCifra(pal[i+L])) continue;
+      const sig=palabrasEscritas(pal.slice(i,i+L).filter(p=>!esRelleno(p)));
+      if(sig.some(esCifra)||sig.length<2||(!sig.some(p=>ALIAS[p])&&sig.length<3)) continue;
+      const obras=cand.filter(o=>sig.every(p=>encaja(p,o.pal)));
+      if(obras.length>1) halladas.push({obras,i,L,etiqueta:sig.join(' ')});
+    }
+    if(halladas.length===1) return halladas[0];
+    if(halladas.length>1) return null;
+  }
+  return null;
+}
+
 // ---- movimientos de una obra: «allemande», «courante 2», «segundo movimiento», «n.º 5 Gute Nacht»
 // Se buscan solo entre los movimientos de la obra ya identificada (o elegida), nunca en todo el corpus.
 const MARCAS=new Set(['movimiento','movement','mov','mvt']);
@@ -125,7 +145,7 @@ function buscarMovimiento(pal,usado,movs){
   return null;
 }
 
-const API={indexar,buscarObra,palabrasTitulo,palabrasEscritas,indexarMovimientos,buscarMovimiento};
+const API={indexar,buscarObra,buscarFamiliaObras,palabrasTitulo,palabrasEscritas,indexarMovimientos,buscarMovimiento};
 if(typeof module!=='undefined'&&module.exports) module.exports=API;
 else raiz.ObrasTexto=API;
 })(typeof globalThis!=='undefined'?globalThis:this);
