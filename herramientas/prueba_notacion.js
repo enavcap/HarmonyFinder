@@ -95,6 +95,45 @@ let fallos = 0; const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLA'), m); 
   [cam, dd] = await ligSvg(cruza, plicaX);
   ok(cam === 0 && dd === cruza, 'N-LIG-2 apagada: la ligadura no cambia');
   await p.evaluate(() => { Notacion.config.ligadurasDespejadas = true });
+
+  // N-CRUCE-1, N-VOC-1, N-VOC-2 (reconstrucciones): divisiones 4 (semicorchea = 1), compás de 4/4
+  const FIG = { 16: ['whole', 0], 12: ['half', 1], 8: ['half', 0], 6: ['quarter', 1], 4: ['quarter', 0], 3: ['eighth', 1], 2: ['eighth', 0], 1: ['16th', 0] };
+  const nr = (alt, dur, voz, staff = 1) => { const [ti, pu] = FIG[dur]; const cab = alt ? `<pitch><step>${alt[0]}</step><octave>${alt[1]}</octave></pitch>` : '<rest/>'; return `<note>${cab}<duration>${dur}</duration><voice>${voz}</voice><type>${ti}</type>${'<dot/>'.repeat(pu)}<staff>${staff}</staff></note>` };
+  const atras = '<backup><duration>16</duration></backup>';
+  const gran = m => `<score-partwise><part-list><score-part id="P1"/></part-list><part id="P1"><measure number="1"><attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time><staves>2</staves></attributes>${m}</measure></part></score-partwise>`;
+  // resumen del resultado: voces con notas por pentagrama y tiempo que suena cada altura (las notas ligadas suman)
+  const voces = x => p.evaluate(x => {
+    const y = Notacion.vocesReconstruidas(x), d = new DOMParser().parseFromString(y, 'application/xml'), porSt = {}, suena = {}; let t = 0, ult = 0;
+    for (const e of d.querySelector('measure').children) {
+      const du = +(e.querySelector(':scope > duration') || { textContent: 0 }).textContent;
+      if (e.tagName === 'backup') { t -= du; continue } if (e.tagName === 'forward') { t += du; continue } if (e.tagName !== 'note') continue;
+      const ch = !!e.querySelector(':scope > chord'); if (ch) t -= ult;
+      const pi = e.querySelector(':scope > pitch'), st = e.querySelector(':scope > staff').textContent;
+      if (pi) { (porSt[st] = porSt[st] || new Set()).add(e.querySelector(':scope > voice').textContent); const k = pi.querySelector('step').textContent + pi.querySelector('octave').textContent + '@' + st; suena[k] = (suena[k] || 0) + du }
+      t += du; ult = du;
+    }
+    return { igual: y === x, capas: Object.fromEntries(Object.entries(porSt).map(([k, v]) => [k, v.size])), suena };
+  }, x);
+  // arpegio sostenido (style brisé): la5 redonda, mi5 blanca, do#5 que entra una corchea después y se sostiene
+  const brise = gran(nr(['A', 5], 16, 1) + atras + nr(['E', 5], 8, 2) + nr(null, 8, 2) + atras + nr(null, 2, 3) + nr(['C', 5], 6, 3) + nr(null, 8, 3) + atras + nr(['A', 2], 16, 5, 2));
+  let rv = await voces(brise);
+  ok(rv.capas['1'] === 2 && rv.suena['A5@1'] === 16 && rv.suena['E5@1'] === 8 && rv.suena['C5@1'] === 6, `N-VOC-1: tres voces de un arpegio sostenido quedan en dos capas con la misma duración sonora (${JSON.stringify(rv.capas)} · ${JSON.stringify(rv.suena)})`);
+  // una línea real de semicorcheas entre dos notas largas: absorberla pediría 15 ligaduras; se deja en su capa (como la edición, Allemande cc. 6-7)
+  const linea = ['B', 'A', 'G', 'A', 'B', 'C', 'B', 'A', 'G', 'A', 'B', 'A', 'G', 'F', 'G', 'A'].map((s, i) => nr([s, s === 'C' ? 5 : 4], 1, 2)).join('');
+  rv = await voces(gran(nr(['E', 5], 16, 1) + atras + linea + atras + nr(['E', 4], 16, 3) + atras + nr(['A', 2], 16, 5, 2)));
+  ok(rv.capas['1'] === 3, `N-VOC-1: una línea melódica real no se convierte en acordes ligados (${rv.capas['1']} capas)`);
+  // N-CRUCE-1: la3 a la vez que la5 en la mano derecha (dos octavas) pasa a la izquierda, donde cabe sobre el do3
+  rv = await voces(gran(nr(['A', 5], 16, 1) + atras + nr(['A', 3], 16, 2) + atras + nr(['C', 3], 16, 5, 2)));
+  ok(rv.suena['A3@2'] === 16 && !rv.suena['A3@1'], `N-CRUCE-1: una voz que su mano no alcanza pasa al pentagrama de la otra (${JSON.stringify(rv.suena)})`);
+  // un tenor que la mano izquierda alcanza (la3 sobre si2) se queda abajo
+  rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 16, 2) + atras + nr(['A', 3], 16, 5, 2) + atras + nr(['B', 2], 16, 6, 2)));
+  ok(rv.igual, 'N-CRUCE-1: voces que cada mano alcanza: sin cambios');
+  // N-VOC-2: mi4 atacado a la vez en las dos manos: se queda el más largo
+  rv = await voces(gran(nr(['A', 4], 16, 1) + atras + nr(['E', 4], 4, 2) + nr(null, 12, 2) + atras + nr(['E', 4], 8, 5, 2) + nr(null, 8, 5, 2) + atras + nr(['A', 3], 16, 6, 2)));
+  ok(rv.suena['E4@2'] === 8 && !rv.suena['E4@1'], `N-VOC-2: un unísono entre manos se escribe una vez (${JSON.stringify(rv.suena)})`);
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: false, dosCapas: false, unisonosUnaVez: false }));
+  ok((await voces(brise)).igual, 'N-VOC-1, N-VOC-2 y N-CRUCE-1 apagadas: el XML no cambia');
+  await p.evaluate(() => Object.assign(Notacion.config, { vocesPorRegistro: true, dosCapas: true, unisonosUnaVez: true }));
   await b.close();
   console.log(fallos ? `${fallos} fallo(s)` : 'todo correcto'); process.exitCode = fallos ? 1 : 0;
 })();
