@@ -8,6 +8,15 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-08
+
+### Added
+- Licencia del código (`LICENSE`): uso gratuito, todos los derechos reservados; no se permite copiar, modificar ni redistribuir sin permiso. Los datos y bibliotecas de terceros mantienen sus licencias.
+- Ficha de obra: muestra el año de composición disponible y consulta en Wikipedia una descripción general de la obra (no del movimiento), con enlace a la fuente.
+
+### Changed
+- Ficha: el criterio técnico ya no aparece junto a los datos del procedimiento.
+
 ## [0.8.14] - 2026-11-08
 
 ### Fixed
@@ -360,7 +369,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...v0.9.0
 [0.8.14]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.13...v0.8.14
 [0.8.13]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...v0.8.13
 [0.8.12]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.11...v0.8.12

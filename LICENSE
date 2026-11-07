@@ -1,0 +1,65 @@
+Harmony Finder — Licencia de uso (código disponible, todos los derechos reservados)
+Harmony Finder — Use License (source-available, all rights reserved)
+
+Copyright (c) 2026 enavcap. Todos los derechos reservados. / All rights reserved.
+
+ESPAÑOL
+
+1. Alcance. Esta licencia se aplica al código fuente original de Harmony Finder
+   (scripts Python, JavaScript, HTML, CSS y documentación de este repositorio y
+   de su web publicada), en adelante «el Software».
+
+2. Uso permitido. Se concede permiso gratuito, no exclusivo e intransferible
+   para ejecutar y usar la web publicada de Harmony Finder, y para leer el
+   código fuente con fines personales, educativos o de estudio.
+
+3. Usos no permitidos. Sin autorización previa y por escrito del titular, no
+   se permite:
+   a) copiar, reproducir o redistribuir el Software o partes de él;
+   b) modificarlo, adaptarlo o crear obras derivadas;
+   c) publicarlo, alojarlo o ponerlo a disposición de terceros (incluidos
+      forks públicos, espejos y servicios web);
+   d) venderlo, sublicenciarlo o usarlo con fines comerciales;
+   e) usarlo para entrenar modelos de inteligencia artificial o para extraer
+      masivamente su contenido de forma automatizada.
+
+4. Sin garantía. El Software se ofrece «tal cual», sin garantías de ningún
+   tipo. El titular no responde de daños derivados de su uso.
+
+5. Terceros. Esta licencia NO se aplica a los datos, partituras, fuentes ni
+   bibliotecas de terceros incluidos o utilizados por el proyecto (When in
+   Rome, DCML, Taking Form, BPSD, OpenScore, music21, Bravura, Academico,
+   Verovio, etc.), que conservan sus propias licencias y condiciones; véase la
+   sección «Licencias y créditos» de README.md.
+
+6. Terminación. Cualquier incumplimiento pone fin automáticamente a los
+   permisos concedidos.
+
+ENGLISH
+
+1. Scope. This license covers the original source code of Harmony Finder
+   (Python, JavaScript, HTML, CSS and documentation in this repository and its
+   published website), the "Software".
+
+2. Permitted use. Free, non-exclusive, non-transferable permission to run and
+   use the published Harmony Finder website, and to read the source code for
+   personal, educational or study purposes.
+
+3. Not permitted without prior written permission from the copyright holder:
+   (a) copying, reproducing or redistributing the Software or parts of it;
+   (b) modifying or adapting it, or creating derivative works;
+   (c) publishing, hosting or making it available to third parties (including
+       public forks, mirrors and web services);
+   (d) selling, sublicensing or using it commercially;
+   (e) using it to train AI models or to bulk-scrape its content.
+
+4. No warranty. The Software is provided "as is", without warranty of any
+   kind. The holder is not liable for any damages arising from its use.
+
+5. Third parties. This license does NOT apply to third-party data, scores,
+   fonts or libraries included in or used by the project (When in Rome, DCML,
+   Taking Form, BPSD, OpenScore, music21, Bravura, Academico, Verovio, etc.),
+   which remain under their own licenses; see "Licencias y créditos" in
+   README.md.
+
+6. Termination. Any breach automatically terminates the permissions granted.
