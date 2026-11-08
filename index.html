@@ -2488,6 +2488,7 @@ function svgExportable(escala=3){
   c.setAttribute('width',Math.round(vb[2]*escala)); c.setAttribute('height',Math.round(vb[3]*escala));
   const fondo=document.createElementNS(NS,'rect');
   fondo.setAttribute('x',vb[0]);fondo.setAttribute('y',vb[1]);fondo.setAttribute('width',vb[2]);fondo.setAttribute('height',vb[3]);fondo.setAttribute('fill','#fff');
+  fondo.setAttribute('style','stroke:none');
   c.insertBefore(fondo,c.firstChild);
   if(fuenteB64Lista){const st=document.createElementNS(NS,'style');st.textContent=`@font-face{font-family:'Academico';src:url(data:font/woff2;base64,${fuenteB64Lista}) format('woff2')}`;c.insertBefore(st,c.firstChild)}
   return {texto:'<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(c),w:vb[2]*escala,h:vb[3]*escala};
