@@ -8,6 +8,11 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-08
+
+### Changed
+- Navegación: el buzón de feedback ya solo se abre desde el enlace del pie de página.
+
 ## [0.9.0] - 2026-11-08
 
 ### Added
@@ -369,7 +374,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...v0.9.0
 [0.8.14]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.13...v0.8.14
 [0.8.13]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.12...v0.8.13

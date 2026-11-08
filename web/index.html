@@ -351,7 +351,7 @@ footer .autor{display:flex;align-items:center;justify-content:space-between;gap:
 <header>
   <div class="marca"><div style="display:flex;align-items:center;gap:12px"><h1><svg class="logo" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="19" stroke="currentColor" stroke-width="5"/><path d="M40 40 L57 57" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><ellipse cx="22.5" cy="33.5" rx="5.6" ry="4.1" transform="rotate(-22 22.5 33.5)" fill="currentColor"/><path d="M27.4 32 V13.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M27.4 13.5 C28 18.5 34.5 19.5 34 26.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>Harmony Finder</h1><span class="alfa" title="Versión en pruebas" data-en-title="Test version" data-en="alpha">alfa</span></div>
   <p class="lema" data-en="Real examples of harmonic devices in the repertoire">Ejemplos reales de procedimientos armónicos en el repertorio</p></div>
-  <nav class="pestanas" aria-label="Secciones de la web" data-en-aria-label="Site sections"><a href="#" id="tabBuscar" aria-current="page" data-en="Search">Buscador</a><a href="#proyecto" id="tabProyecto" data-en="The project">El proyecto</a><a href="#buzon" id="tabBuzon" data-en="Feedback">Buzón</a></nav>
+  <nav class="pestanas" aria-label="Secciones de la web" data-en-aria-label="Site sections"><a href="#" id="tabBuscar" aria-current="page" data-en="Search">Buscador</a><a href="#proyecto" id="tabProyecto" data-en="The project">El proyecto</a></nav>
   <button class="btn der" id="verColecciones" type="button" hidden data-en="Collections">Colecciones</button>
   <button class="btn" id="idioma" type="button" lang="en" aria-label="Change language to English" data-en="Español" data-en-aria-label="Cambiar el idioma a español">English</button>
 </header>
@@ -2910,7 +2910,7 @@ function pintarProyecto(){
   <h3>Partituras</h3>
   <p>Las partituras vienen de OpenScore, del corpus de music21 o se reconstruyen a partir de las tablas de notas del DCML, y se graban en el navegador con Verovio. Al reconstruirlas pueden aparecer pequeñas imperfecciones de notación.</p>
   <h3>Estado y licencia</h3>
-  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla: puedes comunicarlo en el <a href="#buzon">buzón de errores y sugerencias</a>. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Licencias de las fuentes: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>Es una <strong>versión alfa</strong>: el contenido y la interfaz pueden cambiar, y cualquier error que se detecte ayuda a mejorarla: puedes comunicarlo mediante el enlace del pie de página. La web puede usarse en español o en inglés y las búsquedas dan exactamente los mismos resultados en los dos idiomas. Licencias de las fuentes: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Por la licencia de los análisis del DCML, los datos solo pueden usarse sin fines comerciales, citando la fuente y compartiendo igual. El código está en <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder es un proyecto de <strong>Ezequiel Navarrete</strong>.</p>`;
   const en=`
   <h2>The project</h2>
@@ -2934,7 +2934,7 @@ function pintarProyecto(){
   <h3>Scores</h3>
   <p>Scores come from OpenScore, the music21 corpus, or are rebuilt from the DCML note tables, and are engraved in the browser with Verovio. Rebuilt scores may show small notation imperfections.</p>
   <h3>Status and licence</h3>
-  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it: you can report it in the <a href="#buzon">feedback form</a>. The site can be used in Spanish or English, and searches give exactly the same results in both. Source licences: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
+  <p>This is an <strong>alpha version</strong>: content and interface may change, and any error you spot helps improve it: you can report it using the link in the page footer. The site can be used in Spanish or English, and searches give exactly the same results in both. Source licences: When in Rome, CC BY-SA 4.0; DCML, CC BY-NC-SA 4.0; Taking Form, MIT; BPSD, CC BY 4.0; Mozart Expositional Punctuation Corpus, CC0. Because of the licence of the DCML analyses, the data may only be used non-commercially, with attribution and share-alike. The code is on <a href="https://github.com/enavcap/HarmonyFinder" target="_blank" rel="noopener">GitHub</a>.</p>
   <p class="firma">Harmony Finder is a project by <strong>Ezequiel Navarrete</strong>.</p>`;
   $('#proyecto').innerHTML=EN?en:es;
 }
@@ -3043,7 +3043,7 @@ function ruta(){
   if(bz&&!$('#buzon').innerHTML) pintarBuzon();
   else if(bz) $('#bzTec')&&($('#bzTec').textContent=bzTecnico());
   $('#proyecto').hidden=!pr; $('#buzon').hidden=!bz; document.querySelector('main').hidden=pr||bz; if(pr||bz) $('#colecciones').hidden=true;
-  $('#tabProyecto').setAttribute('aria-current',pr?'page':'false'); $('#tabBuzon').setAttribute('aria-current',bz?'page':'false'); $('#tabBuscar').setAttribute('aria-current',pr||bz?'false':'page');
+  $('#tabProyecto').setAttribute('aria-current',pr?'page':'false'); $('#tabBuscar').setAttribute('aria-current',pr||bz?'false':'page');
   if(pr||bz) window.scrollTo(0,0);
 }
 // al ir al buzón desde el buscador se guarda lo que había abierto
