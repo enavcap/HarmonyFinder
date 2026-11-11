@@ -8,9 +8,17 @@ Para cada acorde anotado, a partir de la partitura (alturas reales):
   tiple        clases de altura de la voz más aguda durante la primera parte del acorde
   bajo         clase de altura de la nota más grave al ataque (o la primera que suene)
   calderon     1 si alguna nota con calderón empieza dentro del acorde
-  respiro      1 si la voz más aguda descansa (silencio) o se detiene (nota tenida hasta el final
-               del acorde, que dura al menos una parte) — la melodía se para en la llegada
+  reposo       1 si la melodía se detiene en la llegada: en la voz superior escrita (pentagrama 1,
+               voz 1) de la primera parte que suena en la llegada, la nota que llega dura al menos el
+               doble que el movimiento de esa voz justo antes, o la voz calla (silencio) tras ella,
+               antes de que acabe el acorde
+  marca        1 si la partitura marca un final: calderón, barra doble/final/de repetición, silencio
+               de todas las voces o final de la obra (hasta una parte después del acorde)
+
+Una cadencia es un punto de reposo de la forma, no cualquier V–I: además del cifrado, la partitura
+tiene que mostrar que la música se detiene (ver `_cierre`).
 """
+import bisect, statistics
 from fractions import Fraction
 from . import unisonos
 
@@ -27,19 +35,66 @@ def _peso(q, metro):
         return 2
     return 1
 
+class _Voz:
+    """Voz superior escrita de una parte: notas [(inicio, fin)] ordenadas y los inicios de sus silencios."""
+    def __init__(self, eventos):
+        eventos = sorted(eventos, key=lambda x: (x[0], x[2] is None))
+        self.notas = [(a, b) for a, b, m in eventos if m is not None]
+        self.inicios = [a for a, _ in self.notas]
+        self.pausas = sorted(a for a, _, m in eventos if m is None)
+
+    def llegada(self, s, pulso):
+        """Índice de la nota de llegada (la que empieza en la primera parte del acorde, o la que suena
+        desde antes: retardo, síncopa) o None si la voz no participa en la llegada."""
+        k = bisect.bisect_left(self.inicios, s)
+        if k < len(self.notas) and self.notas[k][0] < s + pulso:
+            return k
+        if k > 0 and self.notas[k - 1][1] > s:
+            return k - 1
+        return None
+
+    def reposo(self, k, s, e, pulso):
+        i = bisect.bisect_left(self.pausas, s)
+        if i < len(self.pausas) and self.pausas[i] < e + pulso:
+            return True                               # tras la llegada la voz calla: respiración de final de frase
+        notas, inicios = self.notas, self.inicios
+        # cuánto dura la nota de llegada: hasta la nota siguiente de la voz (o el final del acorde)
+        larga = (notas[k + 1][0] if k + 1 < len(notas) else max(e, notas[k][1])) - notas[k][0]
+        antes = [notas[i + 1][0] - notas[i][0] for i in range(bisect.bisect_left(inicios, s - 4 * pulso), k)]
+        if not antes:
+            return larga >= pulso
+        return larga >= 2 * statistics.median(antes)
+
+def _reposo(voces, s, e, pulso):
+    """La melodía se detiene en la llegada (ver la cabecera): se mira la primera parte que suena."""
+    for v in voces:
+        k = v.llegada(s, pulso)
+        if k is not None:
+            return v.reposo(k, s, e, pulso)
+    return False
+
 def rasgos(datos, acordes):
     """Lista de dicts de rasgos (o None) para los acordes anotados [(compás, parte)] en orden."""
     try:
-        cald = set()
-        notas, compases = unisonos.leer(datos, midi=True, calderones=cald)
+        cald, barras, tiple = set(), set(), []
+        notas, compases = unisonos.leer(datos, midi=True, calderones=cald, barras=barras, tiple=tiple)
     except Exception:
         return [None] * len(acordes)
     notas.sort()
+    voces = [_Voz(t) for t in tiple if any(m is not None for _, _, m in t)]
     ini = unisonos.posiciones(compases, acordes)
     fin_obra = max((b for _, b, _ in notas), default=Fraction(0))
+    barras.add(fin_obra)
+    # silencios de todas las voces: [(inicio, fin)] disjuntos y en orden
+    silencios, sonando = [], Fraction(0)
+    for a, b, _ in notas:
+        if a > sonando:
+            silencios.append((sonando, a))
+        sonando = max(sonando, b)
+    fin_silencio = [b for _, b in silencios]
+    barras = sorted(barras)
     # compás que contiene cada instante (para el peso métrico)
     starts = [c[1] for c in compases]
-    import bisect
     out = []
     for i, s in enumerate(ini):
         if s is None:
@@ -56,27 +111,20 @@ def rasgos(datos, acordes):
         # tiple: nota más aguda en cada tramo de la primera parte del acorde
         lim = min(e, s + max(pulso, (e - s) / 2))
         cortes = sorted({s, lim} | {a for a, _, _ in dentro if s < a < lim} | {b for _, b, _ in dentro if s < b < lim})
-        tiple, alto = [], []
+        tp = []
         for x, y in zip(cortes, cortes[1:]):
             suenan = [m for a, b, m in dentro if a <= x and b >= y]
             if suenan:
-                tiple.append(max(suenan) % 12); alto.append(max(suenan))
+                tp.append(max(suenan) % 12)
         al_ataque = [m for a, b, m in dentro if a <= s < b] or [m for a, b, m in dentro]
-        # respiro: la voz aguda calla en algún momento del acorde, o su última nota se sostiene ≥1 parte
-        cortes2 = sorted({s, e} | {a for a, _, _ in dentro} | {b for _, b, _ in dentro})
-        top = []
-        for x, y in zip(cortes2, cortes2[1:]):
-            suenan = [(m, a) for a, b, m in dentro if a <= x and b >= y]
-            top.append((x, y, max(suenan)[0] if suenan else None))
-        hueco = any(m is None for _, _, m in top)
-        if not hueco and alto:
-            techo = max(alto) - 7                         # por debajo, otra voz: la melodía calla
-            hueco = any(m is not None and m < techo for _, _, m in top)
-        ult = [a for a, b, m in notas if s <= a < e and m >= (max(alto) - 2 if alto else 0)]
-        sostiene = bool(alto) and (e - (max(ult) if ult else s)) >= pulso
+        cald_i = any(s <= c < e for c in cald)
+        kb = bisect.bisect_right(barras, s)                   # primera barra después del ataque
+        ks = bisect.bisect_right(fin_silencio, s)             # primer silencio que acaba después del ataque
+        marca = cald_i or (kb < len(barras) and barras[kb] <= e + pulso) \
+            or (ks < len(silencios) and silencios[ks][0] < e + pulso)
         out.append({"ini": s, "dur": e - s, "peso": _peso(s - c0, metro), "pulso": pulso,
-                    "tiple": tiple, "bajo": min(al_ataque) % 12 if al_ataque else None,
-                    "calderon": int(any(s <= c < e for c in cald)), "respiro": int(hueco or sostiene)})
+                    "tiple": tp, "bajo": min(al_ataque) % 12 if al_ataque else None,
+                    "calderon": int(cald_i), "reposo": int(_reposo(voces, s, e, pulso)), "marca": int(marca)})
     return out
 
 
@@ -125,6 +173,50 @@ def _llegada(a, b):
     fuerte = rb["peso"] >= 2 and (rb["peso"] > ra["peso"] or ra["dur"] >= 2 * ra["pulso"])
     return fuerte and rb["dur"] >= ra["dur"]
 
+def _armonia(ac, i, paso):
+    """(inicio, fin) del acorde i junto con sus repeticiones seguidas (mismo cifrado y tono) en la
+    dirección `paso` (+1 hacia delante, -1 hacia atrás), y el índice siguiente en esa dirección."""
+    j = i
+    while 0 <= j + paso < len(ac) and ac[j + paso].get("r") and ac[j + paso]["cifrado"] == ac[i]["cifrado"] \
+          and ac[j + paso]["tono"] == ac[i]["tono"]:
+        j += paso
+    a, b = (ac[i], ac[j]) if paso > 0 else (ac[j], ac[i])
+    return a["r"]["ini"], b["r"]["ini"] + b["r"]["dur"], j + paso
+
+def _freno(ac, i, n=4, factor=1.5):
+    """El ritmo armónico se frena en la llegada: el acorde (con sus repeticiones) dura al menos `factor`
+    veces la duración media de las `n` armonías anteriores. En mitad de frase la armonía sigue al mismo paso."""
+    s, e, _ = _armonia(ac, i, 1)
+    durs, j = [], i - 1
+    while j >= 0 and len(durs) < n and ac[j].get("r"):
+        a, b, j = _armonia(ac, j, -1)
+        durs.append(b - a)
+    return not durs or (e - s) >= factor * sum(durs) / len(durs)
+
+def _con_calderones(ac):
+    """La pieza marca sus finales de frase con calderones (corales, recitativos…)."""
+    return any(x.get("r") and x["r"]["calderon"] for x in ac)
+
+def _cierre(ac, i, cald=None, fuerte=True):
+    """El acorde i es un punto de reposo de la forma, no un acorde de paso dentro de la frase.
+    · Si la pieza marca sus finales de frase con calderones (corales), solo cuenta el calderón: en un
+      coral cada acorde dura lo mismo que la nota del tiple, y la melodía «se para» en cada uno.
+    · Si no, basta una marca de la partitura (calderón, barra doble o de repetición, silencio de todas
+      las voces, final de la obra) o que la música se detenga. Con `fuerte` (semicadencia, imperfecta,
+      rota, plagal, frigia) tienen que pararse a la vez la melodía (`reposo`) y el ritmo armónico
+      (`_freno`). Sin `fuerte` (auténtica perfecta: V–I con la tónica en el tiple, ya es una llegada
+      clara) basta una de las dos: la melodía detenida o la armonía claramente detenida (el doble)."""
+    r = ac[i]["r"]
+    if cald is None:
+        cald = _con_calderones(ac)
+    if cald:
+        return bool(r["calderon"])
+    if r["marca"]:
+        return True
+    if fuerte:
+        return bool(r["reposo"]) and _freno(ac, i)
+    return bool(r["reposo"]) or _freno(ac, i, factor=2)
+
 def _tiple_tonica(b):
     """La voz más aguda está en la tónica al llegar (o llega a ella por grado conjunto desde una apoyatura)."""
     t, tp = _tonica(b["tono"]), b["r"]["tiple"]
@@ -138,19 +230,21 @@ def _autenticas(ac):
             yield i + 1, a, b
 
 def cadencia_autentica_perfecta(ac):
-    """V–I en estado fundamental al final de frase (parte fuerte, preparada por un predominante), con la tónica en el tiple."""
+    """V–I en estado fundamental al final de frase (parte fuerte, preparada por un predominante), con la tónica en el tiple y la melodía o la armonía detenidas."""
+    cald = _con_calderones(ac)
     return [(j, f'{a["cifrado"]} → {b["cifrado"]} · tiple en el 1.º grado', 2)
-            for j, a, b in _autenticas(ac) if _tiple_tonica(b)]
+            for j, a, b in _autenticas(ac) if _tiple_tonica(b) and _cierre(ac, j, cald, fuerte=False)]
 
 def cadencia_autentica_imperfecta(ac):
-    """V–I en estado fundamental al final de frase, con la 3.ª o la 5.ª del acorde en el tiple."""
+    """V–I en estado fundamental al final de frase, con la 3.ª o la 5.ª del acorde en el tiple, la melodía detenida y el ritmo armónico frenado."""
+    cald = _con_calderones(ac)
     return [(j, f'{a["cifrado"]} → {b["cifrado"]} · tiple en el {_grado_tiple(b)} grado', 2)
-            for j, a, b in _autenticas(ac) if not _tiple_tonica(b) and b["r"]["tiple"]]
+            for j, a, b in _autenticas(ac) if not _tiple_tonica(b) and b["r"]["tiple"] and _cierre(ac, j, cald)]
 
 def semicadencia(ac):
-    """Llegada a V en estado fundamental al final de frase: desde un predominante o desde I, en parte fuerte, con la melodía detenida, sin prolongar un V anterior ni seguir en V."""
+    """Llegada a V en estado fundamental al final de frase: desde un predominante o desde I, en parte fuerte, con la melodía detenida y el ritmo armónico frenado, sin prolongar un V anterior ni seguir en V."""
     es_v = lambda x: x is not None and (buscar._es_V(x) or x["cifrado"].startswith("Cad64"))
-    out = []
+    out, cald = [], _con_calderones(ac)
     for i in range(1, len(ac)):
         a, b = ac[i - 1], ac[i]
         n = ac[i + 1] if i + 1 < len(ac) else b.get("_sig")      # tras el corte de un unísono, lo que sigue en la obra
@@ -158,42 +252,29 @@ def semicadencia(ac):
             continue                                      # V – V/V – V o V – I – V: prolongación del V, no llegada
         v = (buscar._es_V(b) and b["inversion"] == 0) or b["cifrado"].startswith("Cad64")
         prep = _predominante(a) or (a["grado"] == 1 and not a["secundaria"] and not a["cifrado"].startswith("Cad64"))
-        if v and prep and a["tono"] == b["tono"] and _llegada(a, b) and b["r"]["respiro"] \
-           and not es_v(n):
+        if v and prep and a["tono"] == b["tono"] and _llegada(a, b) and not es_v(n) and _cierre(ac, i, cald):
             out.append((i, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
-def _con_calderones(ac):
-    """La pieza marca sus finales de frase con calderones (corales, recitativos…)."""
-    return any(x.get("r") and x["r"]["calderon"] for x in ac)
-
-def _fin_de_frase(ac, b, cald=None):
-    """El acorde de llegada cierra una frase: con calderón si la pieza los usa para eso; si no, con la
-    melodía detenida (respiro). En un coral cada acorde dura lo mismo que la nota del tiple, así que el
-    respiro solo no distingue un V–vi de paso de uno cadencial."""
-    if cald is None:
-        cald = _con_calderones(ac)
-    return bool(b["r"]["calderon"]) if cald else bool(b["r"]["respiro"])
-
 def cadencia_rota(ac):
-    """V en estado fundamental → VI al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida o calderón)."""
+    """V en estado fundamental → VI al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida y el ritmo armónico frenado, o calderón)."""
     out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if a["tono"] == b["tono"] and buscar._es_V(a) and a["inversion"] == 0 and b["grado"] == 6 \
            and not b["secundaria"] and b["inversion"] == 0 and b["alteracion"] in (0, -1) and _llegada(a, b) \
-           and "[no3]" not in b["cifrado"] and _fin_de_frase(ac, b, cald):     # [no3]: apoyatura, el vi aún no ha llegado
+           and "[no3]" not in b["cifrado"] and _cierre(ac, i + 1, cald):     # [no3]: apoyatura, el vi aún no ha llegado
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
 def cadencia_frigia(ac):
-    """iv6 → V en menor al final de frase, con el bajo descendiendo por semitono (6.º → 5.º grado, comprobado en la partitura)."""
-    out = []
+    """iv6 → V en menor al final de frase, con el bajo descendiendo por semitono (6.º → 5.º grado, comprobado en la partitura), la melodía detenida y el ritmo armónico frenado."""
+    out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if not (a["tono"] == b["tono"] and a["modo"] == "minor" and a["grado"] == 4 and a["inversion"] == 1
                 and a["calidad"] == "minor" and not a["secundaria"] and buscar._es_V(b) and b["inversion"] == 0
-                and _llegada(a, b)):
+                and _llegada(a, b) and _cierre(ac, i + 1, cald)):
             continue
         t = _tonica(b["tono"])
         if a["r"]["bajo"] is not None and b["r"]["bajo"] is not None and \
@@ -203,20 +284,20 @@ def cadencia_frigia(ac):
     return out
 
 def cadencia_plagal(ac):
-    """IV → I en estado fundamental al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida o calderón)."""
+    """IV → I en estado fundamental al final de frase (en parte fuerte, sin acortar la llegada, con la melodía detenida y el ritmo armónico frenado, o calderón)."""
     out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if a["tono"] == b["tono"] and a["grado"] == 4 and not a["secundaria"] and a["inversion"] == 0 \
-           and buscar._es_I(b) and b["inversion"] == 0 and _llegada(a, b) and _fin_de_frase(ac, b, cald):
+           and buscar._es_I(b) and b["inversion"] == 0 and _llegada(a, b) and _cierre(ac, i + 1, cald):
             out.append((i + 1, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
 def sexta_cuarta_cadencial(ac):
-    """6/4 cadencial: I en segunda inversión → V(7) → I, con el I de llegada al final de frase.
-    El 6/4 está acentuado (en una parte al menos tan fuerte como el V que lo resuelve, o más largo que él)
-    y el 5.º grado está en el bajo. Un I64 de paso, de bordadura o arpegiado, sin cadencia detrás, no cuenta."""
-    out = []
+    """6/4 cadencial: I en segunda inversión → V(7) → I, con el I de llegada al final de frase (con la
+    melodía o la armonía detenidas, como en la auténtica perfecta). El 6/4 está acentuado (en una parte
+    al menos tan fuerte como el V que lo resuelve, o más largo que él) y el 5.º grado está en el bajo. Un I64 de paso, de bordadura o arpegiado, sin cadencia detrás, no cuenta."""
+    out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 2):
         a = ac[i]
         if a["secundaria"] or not buscar._es_64_cadencial(a):
@@ -227,7 +308,8 @@ def sexta_cuarta_cadencial(ac):
         if j == i + 1 or j >= len(ac):
             continue
         v, b = ac[j - 1], ac[j]
-        if b["tono"] != a["tono"] or not buscar._es_I(b) or b["inversion"] != 0 or not _llegada(v, b):
+        if b["tono"] != a["tono"] or not buscar._es_I(b) or b["inversion"] != 0 or not _llegada(v, b) \
+           or not _cierre(ac, j, cald, fuerte=False):
             continue
         ra, rv = a.get("r"), ac[i + 1].get("r")
         if ra and rv:
