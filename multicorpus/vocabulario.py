@@ -102,6 +102,20 @@ CONCEPTOS = {
         ["alemana", "sexta aumentada", "64 cadencial", "sexta y cuarta cadencial", "cuarta y sexta", "i64", "64",
          "resolviendo en 64", "cadencial"],
         ["german", "augmented sixth", "cadential six-four", "cadential 64", "six-four"]),
+    "supertonica_elevada": T(
+        "supertónica elevada", "raised supertonic",
+        "acorde sobre el 2.º grado elevado (#ii, #iiº7…), en mayor o menor; no incluye las secundarias",
+        "chord on the raised 2nd degree (#ii, #iiº7…), in major or minor; applied chords excluded",
+        ["supertonica elevada", "supertonica alterada", "segundo grado elevado", "segundo elevado", "ii elevado",
+         "#iio7", "#iio"],
+        ["raised supertonic", "raised second degree", "raised ii", "sharp two", "#iio7", "#iio"]),
+    "superdominante_elevada": T(
+        "superdominante elevada", "raised submediant",
+        "acorde sobre el 6.º grado elevado (#vi, #viº7…) en mayor; no incluye las secundarias",
+        "chord on the raised 6th degree (#vi, #viº7…) in major; applied chords excluded",
+        ["superdominante elevada", "superdominante alterada", "sexto grado elevado", "sexto elevado", "vi elevado",
+         "#vio7", "#vio"],
+        ["raised submediant", "raised sixth degree", "raised vi", "sharp six", "#vio7", "#vio"]),
     "dominante_secundaria": T(
         "dominante secundaria", "secondary dominant", "V/x", "V/x",
         ["dominante secundaria", "dominantes secundarias", "dominante auxiliar", "v/", "tonicizacion"],

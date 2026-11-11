@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Added
+- Acordes alterados: dos procedimientos nuevos, **supertónica elevada** (#ii, #iiº7…, en mayor o menor) y **superdominante elevada** (#vi, #viº7…, solo en mayor: en menor el #vi es el 6.º grado ascendente de la escala, no una alteración). Se buscan según el cifrado del análisis, sin contar las dominantes secundarias (#iiº7/V…), y aparecen en el menú «Acordes alterados». El buscador los reconoce en español e inglés (*raised supertonic*, *raised submediant*) y por cifrado (`#iio7`, `#vio7`). Primer cálculo: 138 pasajes en 33 obras y 25 pasajes en 10 obras. Pruebas en `multicorpus/tests/test_alterados_elevados.py`.
+
 ## [0.9.2] - 2026-11-08
 
 ### Fixed
