@@ -8,6 +8,8 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-11
+
 ### Added
 - Acordes alterados: dos procedimientos nuevos, **supertónica elevada** (#ii, #iiº7…, en mayor o menor) y **superdominante elevada** (#vi, #viº7…, solo en mayor: en menor el #vi es el 6.º grado ascendente de la escala, no una alteración). Se buscan según el cifrado del análisis, sin contar las dominantes secundarias (#iiº7/V…), y aparecen en el menú «Acordes alterados». El buscador los reconoce en español e inglés (*raised supertonic*, *raised submediant*) y por cifrado (`#iio7`, `#vio7`). Primer cálculo: 138 pasajes en 33 obras y 25 pasajes en 10 obras. Pruebas en `multicorpus/tests/test_alterados_elevados.py`.
 
@@ -382,7 +384,8 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...v0.9.0
