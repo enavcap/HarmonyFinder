@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Changed
+- Cadencias: solo se dan como cadencia los puntos de reposo de la frase, no los V–I (o llegadas a V, V–VI, IV–I…) que aparecen en mitad de ella. Además del cifrado, la partitura tiene que mostrar que la música se detiene: la melodía se para (nota larga respecto a su movimiento previo, o silencio tras la llegada) y, salvo en la auténtica perfecta y el 6/4 cadencial, el ritmo armónico se frena; o bien hay una marca de final (calderón, doble barra o de repetición, silencio de todas las voces, final de la obra). Comparado con las cadencias que anotan los analistas del DCML, la proporción de resultados que son cadencias reales sube del 34 % al 51 % en la semicadencia, del 32 % al 46 % en la imperfecta y del 87 % al 89 % en la perfecta, y los resultados lejos de cualquier cadencia anotada se reducen a un tercio o menos.
+
 ## [0.10.1] - 2026-11-11
 
 ### Fixed
