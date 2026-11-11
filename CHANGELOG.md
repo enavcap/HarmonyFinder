@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Cifrados desplazados un compás en tres análisis cuya numeración no coincidía con la partitura: el análisis contaba la anacrusa como c. 1 y la partitura como c. 0. Son los dos análisis de la Mazurka Op. 50 n.º 1 de Chopin (DCML y Tymoczko) y *Hör’ ich das Liedchen klingen* (*Dichterliebe* n.º 10) de Schumann. Por ejemplo, el #iiº4/2 del c. 3 de la mazurca aparecía sobre la octava de re del c. 4. La corrección se anota en `multicorpus/desfases_compases.json` y la aplica el adaptador de When in Rome (`python -m multicorpus.importar renormalizar wir` la lleva al catálogo). Las coincidencias de esos análisis se han recalculado: cambian algunas cadencias y aparecen tres 6/4 cadenciales. Los desfases se detectan comparando las notas de cada compás con los acordes del análisis (`herramientas/desfase_compases.py`): en todo el corpus (2395 análisis) solo estos tres encajan claramente mejor desplazados.
+
 ## [0.10.0] - 2026-11-11
 
 ### Added
