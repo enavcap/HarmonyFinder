@@ -8,6 +8,16 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-11
+
+### Fixed
+- Cifrados desplazados un compás en tres análisis cuya numeración no coincidía con la partitura: el análisis contaba la anacrusa como c. 1 y la partitura como c. 0. Son los dos análisis de la Mazurka Op. 50 n.º 1 de Chopin (DCML y Tymoczko) y *Hör’ ich das Liedchen klingen* (*Dichterliebe* n.º 10) de Schumann. Por ejemplo, el #iiº4/2 del c. 3 de la mazurca aparecía sobre la octava de re del c. 4. La corrección se anota en `multicorpus/desfases_compases.json` y la aplica el adaptador de When in Rome (`python -m multicorpus.importar renormalizar wir` la lleva al catálogo). Las coincidencias de esos análisis se han recalculado: cambian algunas cadencias y aparecen tres 6/4 cadenciales. Los desfases se detectan comparando las notas de cada compás con los acordes del análisis (`herramientas/desfase_compases.py`): en todo el corpus (2395 análisis) solo estos tres encajan claramente mejor desplazados.
+
+## [0.10.0] - 2026-11-11
+
+### Added
+- Acordes alterados: dos procedimientos nuevos, **supertónica elevada** (#ii, #iiº7…, en mayor o menor) y **superdominante elevada** (#vi, #viº7…, solo en mayor: en menor el #vi es el 6.º grado ascendente de la escala, no una alteración). Se buscan según el cifrado del análisis, sin contar las dominantes secundarias (#iiº7/V…), y aparecen en el menú «Acordes alterados». El buscador los reconoce en español e inglés (*raised supertonic*, *raised submediant*) y por cifrado (`#iio7`, `#vio7`). Primer cálculo: 138 pasajes en 33 obras y 25 pasajes en 10 obras. Pruebas en `multicorpus/tests/test_alterados_elevados.py`.
+
 ## [0.9.2] - 2026-11-08
 
 ### Fixed
@@ -379,7 +389,9 @@ Integra en el motor de la 0.8.10 las reglas de voces de las reconstrucciones que
 - Portada con nombre, autor y enlace a la versión en línea.
 - Publicación en GitHub Pages: la raíz abre la aplicación (`web/`) y script `herramientas/publicar_pages.sh`.
 
-[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/enavcap/HarmonyFinder/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/enavcap/HarmonyFinder/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/enavcap/HarmonyFinder/compare/v0.8.14...v0.9.0

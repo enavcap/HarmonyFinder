@@ -1,0 +1,9 @@
+{
+  "_nota": "Análisis cuya numeración de compases va desplazada respecto a la partitura. Cada entrada: ruta del análisis relativa al corpus → [desfase que se suma al número de compás, motivo]. Se detectan comparando, compás a compás, las notas de la partitura con los acordes del análisis (herramientas/desfase_compases.py). Se aplican al leer el análisis (adaptadores/wir.py); el archivo original no se toca.",
+  "Keyboard_Other/Chopin,_Frédéric/Mazurkas/BI145-1/analysis.txt": [-1,
+    "El análisis cuenta la anacrusa como c. 1 y la partitura (Humdrum, Craig Sapp) como c. 0: el #iiº7 del c. 3 caía sobre la anacrusa del c. 4. Coincidencia de notas: 68 % sin desfase, 99 % con él."],
+  "Keyboard_Other/Chopin,_Frédéric/Mazurkas/BI145-1/analysis_DT.txt": [-1,
+    "Mismo desfase que analysis.txt (anacrusa contada como c. 1). Coincidencia de notas: 70 % sin desfase, 99 % con él."],
+  "OpenScore-LiederCorpus/Schumann,_Robert/Dichterliebe,_Op.48/10_Hör’_ich_das_Liedchen_klingen/analysis.txt": [-1,
+    "El análisis cuenta la anacrusa como c. 1 y la partitura como c. 0. Coincidencia de notas: 66 % sin desfase, 95 % con él."]
+}
