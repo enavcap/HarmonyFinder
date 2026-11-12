@@ -126,6 +126,24 @@ def test_doble_barra_marca_el_final_de_seccion():
     assert ac[4]["r"]["marca"]
     assert [h[0] for h in cadencias.cadencia_autentica_perfecta(ac)] == [4, 7]
 
+def test_v_que_resuelve_en_la_cadencia_no_es_semicadencia():
+    # | i iv6 | V (redonda) | I (blanca) silencio |: la frase no se para en el V sino en el I que lo sigue
+    # (Monteverdi, Volgea l'anima mia, c. 54-56): es una cadencia auténtica, no una semicadencia
+    s = partitura([[(I_8, 2), (ii6, 1), (IV, 1)], [(V, 4)], [(I_3, 2), ([], 2)], [(IV, 2), (V7, 2)], [(I_8, 4)]])
+    ac = _con_rasgos([_ac("I", 1, 1), _ac("ii6", 1, 3), _ac("IV", 1, 4), _ac("V", 2, 1), _ac("I", 3, 1),
+                      _ac("IV", 4, 1), _ac("V7", 4, 3), _ac("I", 5, 1)], s)
+    assert ac[3]["r"]["reposo"]                         # el V solo también parecería una llegada
+    assert not cadencias.semicadencia(ac)
+    assert [h[0] for h in cadencias.cadencia_autentica_imperfecta(ac)] == [4]
+
+def test_semicadencia_cortada_con_silencio_aunque_siga_i():
+    # | I IV | V (blanca) silencio | I …: la frase se corta en el V (silencio de todas las voces)
+    s = partitura([[(I_8, 2), (IV, 2)], [(V, 2), ([], 2)], [(I_8, 2), (IV, 2)], [(V7, 2), (I_8, 2)]])
+    ac = _con_rasgos([_ac("I", 1, 1), _ac("IV", 1, 3), _ac("V", 2, 1), _ac("I", 3, 1), _ac("IV", 3, 3),
+                      _ac("V7", 4, 1), _ac("I", 4, 3)], s)
+    assert ac[2]["r"]["marca"]
+    assert [h[0] for h in cadencias.semicadencia(ac)] == [2]
+
 def test_semicadencia_en_marcha_no_es_cadencia():
     # | I IV | V (la melodía sigue en corcheas) I | ...: llegar a V en parte fuerte no basta
     Vm = [([43, 55, 62, 71], 0.5), ([43, 55, 62, 74], 0.5), ([43, 55, 62, 71], 0.5), ([43, 55, 62, 67], 0.5)]

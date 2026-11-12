@@ -222,12 +222,26 @@ def _tiple_tonica(b):
     t, tp = _tonica(b["tono"]), b["r"]["tiple"]
     return tp[:1] == [t] or (len(tp) > 1 and tp[1] == t and (tp[0] - t) % 12 in (1, 2, 10, 11))
 
+def _es_autentica(ac, i):
+    """V (en i) → I en estado fundamental, preparado por un predominante y con llegada en parte fuerte."""
+    if i + 1 >= len(ac):
+        return False
+    a, b = ac[i], ac[i + 1]
+    return a["tono"] == b["tono"] and buscar._es_V(a) and a["inversion"] == 0 and buscar._es_I(b) \
+        and b["inversion"] == 0 and _antecedente(ac, i) and _llegada(a, b)
+
 def _autenticas(ac):
     for i in range(len(ac) - 1):
-        a, b = ac[i], ac[i + 1]
-        if a["tono"] == b["tono"] and buscar._es_V(a) and a["inversion"] == 0 and buscar._es_I(b) \
-           and b["inversion"] == 0 and _antecedente(ac, i) and _llegada(a, b):
-            yield i + 1, a, b
+        if _es_autentica(ac, i):
+            yield i + 1, ac[i], ac[i + 1]
+
+def _resuelve_en_cadencia(ac, i, cald):
+    """El V en i resuelve enseguida en un I que cierra la frase (cadencia auténtica): el V es el penúltimo
+    acorde de esa cadencia, no una llegada a la dominante. Salvo que el V tenga su propia marca de final
+    (silencio de todas las voces, barra, calderón): entonces la frase se cortó en el V y el I empieza otra."""
+    if not _es_autentica(ac, i) or ac[i]["r"]["marca"]:
+        return False
+    return _cierre(ac, i + 1, cald, fuerte=False)
 
 def cadencia_autentica_perfecta(ac):
     """V–I en estado fundamental al final de frase (parte fuerte, preparada por un predominante), con la tónica en el tiple y la melodía o la armonía detenidas."""
@@ -242,7 +256,7 @@ def cadencia_autentica_imperfecta(ac):
             for j, a, b in _autenticas(ac) if not _tiple_tonica(b) and b["r"]["tiple"] and _cierre(ac, j, cald)]
 
 def semicadencia(ac):
-    """Llegada a V en estado fundamental al final de frase: desde un predominante o desde I, en parte fuerte, con la melodía detenida y el ritmo armónico frenado, sin prolongar un V anterior ni seguir en V."""
+    """Llegada a V en estado fundamental al final de frase: desde un predominante o desde I, en parte fuerte, con la melodía detenida y el ritmo armónico frenado, sin prolongar un V anterior, ni seguir en V, ni resolver enseguida en un I que cierra la frase."""
     es_v = lambda x: x is not None and (buscar._es_V(x) or x["cifrado"].startswith("Cad64"))
     out, cald = [], _con_calderones(ac)
     for i in range(1, len(ac)):
@@ -252,7 +266,8 @@ def semicadencia(ac):
             continue                                      # V – V/V – V o V – I – V: prolongación del V, no llegada
         v = (buscar._es_V(b) and b["inversion"] == 0) or b["cifrado"].startswith("Cad64")
         prep = _predominante(a) or (a["grado"] == 1 and not a["secundaria"] and not a["cifrado"].startswith("Cad64"))
-        if v and prep and a["tono"] == b["tono"] and _llegada(a, b) and not es_v(n) and _cierre(ac, i, cald):
+        if v and prep and a["tono"] == b["tono"] and _llegada(a, b) and not es_v(n) and _cierre(ac, i, cald) \
+           and not _resuelve_en_cadencia(ac, i, cald):
             out.append((i, f'{a["cifrado"]} → {b["cifrado"]}', 2))
     return out
 
@@ -268,13 +283,13 @@ def cadencia_rota(ac):
     return out
 
 def cadencia_frigia(ac):
-    """iv6 → V en menor al final de frase, con el bajo descendiendo por semitono (6.º → 5.º grado, comprobado en la partitura), la melodía detenida y el ritmo armónico frenado."""
+    """iv6 → V en menor al final de frase, con el bajo descendiendo por semitono (6.º → 5.º grado, comprobado en la partitura), la melodía detenida y el ritmo armónico frenado, sin resolver enseguida en un I que cierra la frase."""
     out, cald = [], _con_calderones(ac)
     for i in range(len(ac) - 1):
         a, b = ac[i], ac[i + 1]
         if not (a["tono"] == b["tono"] and a["modo"] == "minor" and a["grado"] == 4 and a["inversion"] == 1
                 and a["calidad"] == "minor" and not a["secundaria"] and buscar._es_V(b) and b["inversion"] == 0
-                and _llegada(a, b) and _cierre(ac, i + 1, cald)):
+                and _llegada(a, b) and _cierre(ac, i + 1, cald) and not _resuelve_en_cadencia(ac, i + 1, cald)):
             continue
         t = _tonica(b["tono"])
         if a["r"]["bajo"] is not None and b["r"]["bajo"] is not None and \

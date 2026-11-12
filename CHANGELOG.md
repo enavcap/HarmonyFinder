@@ -8,6 +8,9 @@ La versión vigente está en el archivo [`VERSION`](VERSION), que es la única f
 
 ## [Unreleased]
 
+### Fixed
+- Semicadencia y cadencia frigia: un V que resuelve enseguida en un I que cierra la frase ya no se da como semicadencia; es el penúltimo acorde de una cadencia auténtica (p. ej. Monteverdi, *Volgea l'anima mia*, c. 55-56: iv6 → V → I). Si el propio V tiene una marca de final (silencio de todas las voces, barra, calderón), sigue siendo semicadencia.
+
 ## [0.11.0] - 2026-11-12
 
 ### Changed
