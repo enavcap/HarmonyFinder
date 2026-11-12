@@ -179,7 +179,7 @@ class AdaptadorWiR:
         sufijo = correcciones.huella(Path(rel).as_posix())     # las correcciones de la fuente invalidan la caché
         cache = Path(__file__).resolve().parents[2] / "datos" / "cache" / "anotaciones" / f"{sha1(f)}{sufijo}.json"
         if cache.exists():
-            return json.loads(cache.read_text())
+            return self._desplazar(json.loads(cache.read_text()), rel)
         filas = None
         if self.indice_previo and Path(self.indice_previo).exists() and f.name in ("analysis.txt", "analysis.rntxt") \
            and not sufijo:
@@ -209,4 +209,14 @@ class AdaptadorWiR:
                 "pcs": r["pcs"], "bajo": r["bajo"], "cadencia": None, "fin_frase": None, "pedal": None,
                 "cambios": None, "derivado": "grado,alteracion,calidad,inversion,septima,pcs,bajo",
             })
-        return out
+        return self._desplazar(out, rel)
+
+    @staticmethod
+    def _desplazar(filas, rel):
+        """Corrige la numeración de compases de los análisis desplazados respecto a su partitura
+        (desfases_compases.json, p. ej. una anacrusa contada como c. 1)."""
+        from .. import correcciones
+        d = correcciones.desfase(Path(rel).as_posix())
+        if d:
+            filas = [{**r, "compas": r["compas"] + d} if r.get("compas") is not None else r for r in filas]
+        return filas

@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 ARCHIVO = Path(__file__).resolve().parent / "correcciones_fuentes.json"
+DESFASES = Path(__file__).resolve().parent / "desfases_compases.json"
 
 
 def _tabla():
@@ -38,3 +39,10 @@ def huella(rel):
         return ""
     import hashlib
     return "-c" + hashlib.sha1(json.dumps(c, ensure_ascii=False).encode()).hexdigest()[:8]
+
+
+def desfase(rel):
+    """Número que se suma a los compases de un análisis cuya numeración va desplazada respecto a la partitura
+    (desfases_compases.json); 0 si no hay desfase."""
+    t = json.loads(DESFASES.read_text(encoding="utf-8"))
+    return t.get(str(rel).replace("\\", "/"), [0])[0]

@@ -12,7 +12,7 @@ cifrado con music21, igual que en indexar.py. Como en exportar_mc, los detectore
 tramos, sin cruzar los pasajes al unísono.
 
 Las cadencias (y el 6/4 cadencial) necesitan además los rasgos de partitura de cada acorde (peso métrico,
-tiple, respiro…): se calculan con cadencias.rasgos sobre las partituras publicadas en web/scores.
+tiple, reposo, marcas de final…): se calculan con cadencias.rasgos sobre las partituras publicadas en web/scores.
 """
 import base64, json, sys
 from functools import lru_cache

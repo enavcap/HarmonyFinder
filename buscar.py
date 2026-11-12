@@ -653,6 +653,21 @@ def pedal_de_dominante(ac):
         i = max(j, i + 1)
     return out
 
+def _es_supertonica_elevada(a):
+    return a["grado"] == 2 and a["alteracion"] == 1 and not a["secundaria"]
+
+def _es_superdominante_elevada(a):
+    # en menor, #vi es el 6.º grado ascendente de la escala (convención de RomanText y del DCML): no es alteración
+    return a["grado"] == 6 and a["alteracion"] == 1 and not a["secundaria"] and a["modo"] == "major"
+
+def supertonica_elevada(ac):
+    """Acorde sobre el 2.º grado elevado (#ii, #iiº7…) según el cifrado, en mayor o menor; no incluye las secundarias."""
+    return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if _es_supertonica_elevada(a)]
+
+def superdominante_elevada(ac):
+    """Acorde sobre el 6.º grado elevado (#vi, #viº7…) según el cifrado, en mayor; no incluye las secundarias."""
+    return [(i, a["cifrado"], 1) for i, a in enumerate(ac) if _es_superdominante_elevada(a)]
+
 def acorde_vecino_cromatico(ac):
     """Acordes con alteración (#, b) que no son napolitana ni sexta aumentada ni secundarios."""
     return [(i, a["cifrado"], 1) for i, a in enumerate(ac)
@@ -675,6 +690,8 @@ CONCEPTOS = {
     "sexta_aumentada_francesa": (sexta_aumentada_francesa, "Fr43"),
     "sexta_aumentada_alemana": (sexta_aumentada_alemana, "Ger65"),
     "sexta_aumentada_a_64": (sexta_aumentada_a_64, "Ger65 → I64"),
+    "supertonica_elevada": (supertonica_elevada, "#ii, #iio7…"),
+    "superdominante_elevada": (superdominante_elevada, "#vi, #vio7… en mayor"),
     "dominante_secundaria": (dominante_secundaria, "V/x"),
     "dominante_secundaria_resuelta": (dominante_secundaria_resuelta, "V/x → x"),
     "dominante_de_la_dominante": (dominante_de_la_dominante, "V/V"),
@@ -714,6 +731,8 @@ SINONIMOS = {
     "sexta_aumentada_francesa": ["francesa", "sexta francesa"],
     "sexta_aumentada_alemana": ["alemana", "sexta alemana"],
     "sexta_aumentada": ["sexta aumentada", "sextas aumentadas", "aumentada"],
+    "supertonica_elevada": ["supertonica elevada", "supertónica elevada", "segundo grado elevado", "ii elevado", "#iio7", "#iio"],
+    "superdominante_elevada": ["superdominante elevada", "sexto grado elevado", "vi elevado", "#vio7", "#vio"],
     "dominante_de_la_dominante": ["dominante de la dominante", "v/v", "v de v", "doble dominante"],
     "dominante_secundaria_resuelta": ["dominante secundaria", "dominantes secundarias", "resuel", "resolv"],
     "dominante_secundaria": ["dominante secundaria", "dominantes secundarias", "dominante auxiliar", "v/", "tonicizacion", "tonicización"],

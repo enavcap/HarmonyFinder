@@ -37,18 +37,24 @@ def _xml_de(datos):
         datos = z.read(nombre)
     return datos
 
-def leer(datos, midi=False, calderones=None):
+def leer(datos, midi=False, calderones=None, barras=None, tiple=None):
     """(notas, compases) de una partitura.
     notas: [(inicio, fin, clase de altura)] en negras, alturas reales (con midi=True, altura MIDI).
     calderones: si se pasa un set, recibe el inicio de cada nota con calderón.
+    barras: si se pasa un set, recibe el instante de cada barra doble, final o de repetición (primera parte).
+    tiple: si se pasa una lista, recibe para cada parte (en el orden de la partitura) su voz superior
+           escrita — pentagrama 1, voz 1 — como [(inicio, fin, altura MIDI o None si es silencio)],
+           con las notas ligadas unidas.
     compases: [(número, inicio, duración, (num, den))] de la primera parte, en orden."""
     raiz = ET.fromstring(_xml_de(datos))
     notas, compases = [], None
     for ip, parte in enumerate(raiz.iter("part")):
         divisiones, transp, t0, metro = 1, 0, Fraction(0), (4, 4)
         lista = []
+        if tiple is not None:
+            tiple.append([])
         for m in parte.findall("measure"):
-            t = mx = Fraction(0); ultimo_inicio = Fraction(0)
+            t = mx = Fraction(0); ultimo_inicio = Fraction(0); barras_m = []
             for el in m:
                 if el.tag == "attributes":
                     d = el.findtext("divisions")
@@ -71,19 +77,42 @@ def leer(datos, midi=False, calderones=None):
                     if el.find("chord") is None:
                         ultimo_inicio = t; t += dur; mx = max(mx, t)
                     p = el.find("pitch")
+                    alt = None
                     if p is not None and dur > 0:
                         alt = (PC[p.findtext("step")] + int(float(p.findtext("alter") or 0)) + transp
                                + 12 * (int(p.findtext("octave") or 4) + 1))
                         notas.append((t0 + inicio, t0 + inicio + dur, alt if midi else alt % 12))
                     if calderones is not None and el.find("notations/fermata") is not None:
                         calderones.add(t0 + inicio)
+                    if tiple is not None and dur > 0 and (el.findtext("staff") or "1") == "1" \
+                       and (el.findtext("voice") or "1") == "1" and (alt is not None or el.find("rest") is not None):
+                        _a_tiple(tiple[-1], t0 + inicio, t0 + inicio + dur, alt,
+                                 el.find("chord") is not None, any(x.get("type") == "stop" for x in el.findall("tie")))
+                elif el.tag == "barline" and barras is not None and ip == 0:
+                    estilo = el.findtext("bar-style") or ""
+                    if estilo in ("light-heavy", "light-light", "heavy-light", "heavy-heavy") or el.find("repeat") is not None:
+                        barras_m.append(el.get("location") or "right")
             lleno = Fraction(4 * metro[0], metro[1])
             dur_m = mx if mx > 0 else lleno
+            for lugar in barras_m:                       # la barra derecha está al final del compás
+                barras.add(t0 + (dur_m if lugar == "right" else 0))
             lista.append((m.get("number") or "", t0, dur_m, metro))
             t0 += dur_m
         if compases is None:
             compases = lista
     return notas, compases or []
+
+def _a_tiple(tiple, a, b, alt, acorde, ligada):
+    """Añade un evento a la voz superior: en un acorde se queda la nota más aguda; una nota ligada
+    desde la anterior (misma altura, contigua) la prolonga."""
+    if acorde and tiple and tiple[-1][0] == a:
+        if alt is not None and (tiple[-1][2] is None or alt > tiple[-1][2]):
+            tiple[-1] = (a, max(b, tiple[-1][1]), alt)
+        return
+    if ligada and alt is not None and tiple and tiple[-1][2] == alt and tiple[-1][1] == a:
+        tiple[-1] = (tiple[-1][0], b, alt)
+        return
+    tiple.append((a, b, alt))
 
 def _num(n):
     return int(n) if re.fullmatch(r"\d+", n or "") else None
